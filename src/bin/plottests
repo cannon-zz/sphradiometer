@@ -1,0 +1,136 @@
+#!/usr/bin/python
+#
+# Copyright (C) 2006  Kipp C. Cannon
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+#
+# =============================================================================
+#
+#                                   Preamble
+#
+# =============================================================================
+#
+
+
+import math
+import matplotlib
+matplotlib.rcParams.update({
+	"numerix": "numpy",
+	"font.size": 8.0,
+	"axes.titlesize": 10.0,
+	"axes.labelsize": 10.0,
+	"xtick.labelsize": 6.0,
+	"ytick.labelsize": 6.0,
+	"legend.fontsize": 8.0,
+	"figure.dpi": 300.0,
+	"savefig.dpi": 300.0,
+	"text.usetex": True     # render all text with TeX
+})
+from matplotlib import figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import numarray
+from optparse import OptionParser
+import re
+
+from radiometer import *
+
+
+#
+# =============================================================================
+#
+#                                 Command Line
+#
+# =============================================================================
+#
+
+
+class Injection(object):
+	def __init__(self, ra, dec):
+		self.ra = ra
+		self.dec = dec
+
+
+def parse_command_line():
+	parser = OptionParser()
+	parser.add_option("--injection-ra-dec", default = [], action = "append", help = "injection right-ascension and declination")
+	parser.add_option("--baseline-theta", default = math.pi / 2, help = "baseline theta")
+	parser.add_option("--baseline-phi", default = 0, help = "baseline phi")
+	options, filenames = parser.parse_args()
+
+	for n, ra_dec, in enumerate(options.injection_ra_dec):
+		ra, dec = ra_dec.split(",")
+		options.injection_ra_dec[n] = Injection(float(ra), float(dec))
+	options.baseline_theta = float(options.baseline_theta)
+	options.baseline_phi = float(options.baseline_phi)
+
+	return options, (filenames or [None])
+
+
+#
+# =============================================================================
+#
+#                                    Plots
+#
+# =============================================================================
+#
+
+
+options, filenames = parse_command_line()
+
+
+filename_pattern = re.compile(r"tests_(?P<name>\S+)_(?P<N_T>\S+)_(?P<l_T>\S+)_(?P<l_xi>\S+)_(?P<gmst>[0-9.]+).dat")
+for filename in filenames:
+	name, N_T_str, l_T_str, l_xi_str, gmst_str = re.search(filename_pattern, filename).groups()
+	if name != "exact":
+		continue
+	N_T = int(N_T_str)
+	l_T = int(l_T_str)
+	l_xi = int(l_xi_str)
+	gmst = float(gmst_str)
+	print filename
+
+
+	# Load data
+	exact = ioutils.read_sh_series(file(filename))
+	template = "tests_%%s_%s_%s_%s_%s.%%s" % (N_T_str, l_T_str, l_xi_str, gmst_str)
+	fdaverg = ioutils.read_sh_series(file(template % ("fdaverage", "dat")))
+	tdaverg = ioutils.read_sh_series(file(template % ("tdaverage", "dat")))
+
+
+	# Mollweid projection
+	fig = figure.Figure()
+	FigureCanvas(fig)
+	fig.set_size_inches(4.8, 2.4)
+
+	plot = plotutils.SkyPlot(fig.add_axes((0, 0.5, 0.5, 0.5)))
+	plot.contourf(plot.samples_from_sh_series(fdaverg))
+
+	plot = plotutils.SkyPlot(fig.add_axes((0, 0, 0.5, 0.5)))
+	plot.contourf(plot.samples_from_sh_series(exact))
+
+
+	# x-y plane
+	plot = plotutils.XYSlicePlot(fig.add_axes((0.53, 0.06, .44, .88), polar = True))
+
+	plot.plot_yvals(plot.yvals_from_sh_series(exact) + 1, "k--", linewidth = 0.8)
+	plot.plot_yvals(plot.yvals_from_sh_series(fdaverg) + 1, "k", linewidth = 0.8)
+	plot.axes.set_rgrids((0.0, 0.5, 1.0, 1.5, 2.0, 2.5), ("-1", "", "0", "", "+1", ""))
+	#plot.axes.set_thetagrids(range(0, 360, 30), frac = 1.2)
+
+	template = "tests_%s_%s_%s_%s.%%s" % (N_T_str, l_T_str, l_xi_str, gmst_str.replace(".", "_"))
+	fig.savefig(template % "png")
+	fig.savefig(template % "eps")

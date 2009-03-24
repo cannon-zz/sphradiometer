@@ -1,0 +1,194 @@
+#!/usr/bin/python
+#
+# Copyright (C) 2006  Kipp C. Cannon
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+#
+# =============================================================================
+#
+#                                   Preamble
+#
+# =============================================================================
+#
+
+
+import math
+from matplotlib import figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import numpy
+from optparse import OptionParser
+import re
+
+from radiometer import *
+
+
+#
+# =============================================================================
+#
+#                                  Some Math
+#
+# =============================================================================
+#
+
+
+def sinc(x):
+	if x != 0.0:
+		x *= math.pi
+		return math.sin(x) / x
+	return 1.0
+
+
+def gamma_gamma_s(baseline_theta, baseline_phi, injection_theta, injection_phi, theta, phi):
+	gamma = math.acos(math.cos(theta) * math.cos(baseline_theta) + math.sin(theta) * math.sin(baseline_theta) * math.cos(phi - baseline_phi))
+	gamma_s = math.acos(math.cos(injection_theta) * math.cos(baseline_theta) + math.sin(injection_theta) * math.sin(baseline_theta) * math.cos(injection_phi - baseline_phi))
+	return gamma, gamma_s
+
+
+def zeta(theta, theta_s, d = 0.01):
+	return d * (math.cos(theta) - math.cos(theta_s))
+
+
+def xi(theta, theta_s, f_c, delta_f):
+	return sinc(zeta(theta, theta_s) * delta_f) * math.cos(2 * math.pi * zeta(theta, theta_s) * f_c)
+
+
+#
+# =============================================================================
+#
+#                                 Command Line
+#
+# =============================================================================
+#
+
+
+class Injection(object):
+	def __init__(self, ra, dec):
+		self.ra = ra
+		self.dec = dec
+
+
+def parse_command_line():
+	parser = OptionParser()
+	parser.add_option("--injection-ra-dec", default = [], action = "append", help = "injection right-ascension and declination")
+	parser.add_option("--baseline-theta", default = math.pi / 2, help = "baseline theta")
+	parser.add_option("--baseline-phi", default = 0, help = "baseline phi")
+	options, filenames = parser.parse_args()
+
+	for n, ra_dec, in enumerate(options.injection_ra_dec):
+		ra, dec = ra_dec.split(",")
+		options.injection_ra_dec[n] = Injection(float(ra), float(dec))
+	options.baseline_theta = float(options.baseline_theta)
+	options.baseline_phi = float(options.baseline_phi)
+
+	return options, (filenames or [None])
+
+
+#
+# =============================================================================
+#
+#                                    Plots
+#
+# =============================================================================
+#
+
+
+def xticks():
+	ticks = []
+	labels = []
+	for i in xrange(5):
+		ticks.append(i * math.pi / 4)
+		labels.append(r"\(\frac{%d \pi}{4}\)" % -(i - 2))
+	return ticks, labels
+
+
+def xyslice(power, averg, gmst, injections):
+	fig = figure.Figure()
+	FigureCanvas(fig)
+	fig.set_size_inches(4, 4)
+
+	plot = plotutils.XYSlicePlot(fig.add_axes((0.05, 0.05, .9, .9), polar = True))
+
+	exactvals = numpy.zeros((len(plot.phi),), dtype = "double")
+	for i in xrange(len(plot.phi)):
+		for injection in injections:
+			gamma, gamma_s = gamma_gamma_s(options.baseline_theta, options.baseline_phi + gmst, math.pi / 2 - injection.dec, injection.ra, plot.theta[i], plot.phi[i])
+			exactvals[i] += xi(gamma, gamma_s, 128, 256)
+
+	powervals = plot.yvals_from_sh_series(power)
+	#errvals = numpy.abs(powervals - exactvals) / max(exactvals)
+	errvals = numpy.zeros((len(plot.phi),), dtype = "double")
+
+	plot.plot_yvals(plot.yvals_from_sh_series(power) + 1, "k")
+	plot.plot_yvals(exactvals + 1, "k--")
+	plot.plot_yvals(plot.yvals_from_sh_series(averg) + 1, "g")
+	plot.plot_yvals(errvals * 50, "r")
+
+	return fig
+
+
+def mollweid(power, averg, gmst, injections):
+	fig = figure.Figure()
+	FigureCanvas(fig)
+	fig.set_size_inches(4, 4)
+
+	plot = plotutils.SkyPlot(fig.add_axes([0, 0.5, 1, 0.5]))
+
+	power_samples = plot.samples_from_sh_series(power)
+	averg_samples = plot.samples_from_sh_series(averg)
+
+	plot.contourf(power_samples)
+	for injection in injections:
+		x, y = plot.map((-injection.ra * 180 / math.pi,), (injection.dec * 180 / math.pi,))
+		plot.map.plot(x, y, "r+")
+
+	plot = plotutils.SkyPlot(fig.add_axes([0, 0, 1, 0.5]))
+	plot.contourf(averg_samples)
+	for injection in injections:
+		x, y = plot.map((-injection.ra * 180 / math.pi,), (injection.dec * 180 / math.pi,))
+		plot.map.plot(x, y, "r+")
+
+	return fig
+
+
+options, filenames = parse_command_line()
+
+
+for filename in filenames:
+	print filename
+	gmst = float(filename[9:-4])
+
+	fdname = filename[:6] + "fd_" + filename[9:]
+	tdavergname = "averg_td_" + filename[9:]
+	fdavergname = "averg_fd_" + filename[9:]
+
+	tdpower = ioutils.read_sh_series(file(filename))
+	fdpower = ioutils.read_sh_series(file(fdname))
+	tdaverg = ioutils.read_sh_series(file(tdavergname))
+	fdaverg = ioutils.read_sh_series(file(fdavergname))
+
+	for injection in options.injection_ra_dec:
+		print "	injection at %s, %s:" % (plotutils.rad_to_hms_str(injection.ra), plotutils.rad_to_dms_str(injection.dec))
+		print "		current td power = %g" % radiometer.sh_series_eval(tdpower, math.pi / 2 - injection.dec, injection.ra).real
+		print "		time averaged td power = %g" % radiometer.sh_series_eval(tdaverg, math.pi / 2 - injection.dec, injection.ra).real
+		print "		current fd power = %g" % radiometer.sh_series_eval(fdpower, math.pi / 2 - injection.dec, injection.ra).real
+		print "		time averaged fd power = %g" % radiometer.sh_series_eval(fdaverg, math.pi / 2 - injection.dec, injection.ra).real
+
+	fig = mollweid(tdpower, tdaverg, gmst, options.injection_ra_dec)
+	fig.savefig(filename[:-4] + ".png")
+
+	fig = mollweid(fdpower, fdaverg, gmst, options.injection_ra_dec)
+	fig.savefig(fdname[:-4] + ".png")
