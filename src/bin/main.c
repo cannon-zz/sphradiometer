@@ -95,8 +95,6 @@ struct options {
 		double dec;
 	} *injection_ra_dec;
 	int n_injections;
-	double baseline_theta;
-	double baseline_phi;
 };
 
 
@@ -108,8 +106,6 @@ static struct options *command_line_options_new(void)
 	*options = (struct options) {
 		.injection_ra_dec = NULL,
 		.n_injections = 0,
-		.baseline_theta = M_PI_2,
-		.baseline_phi = 0,
 	};
 
 	return options;
@@ -145,8 +141,6 @@ struct options *parse_command_line(int argc, char *argv[])
 	int option_index;
 	struct option long_options[] = {
 		{"injection-ra-dec",	required_argument,	NULL,	'A'},
-		{"baseline-theta",	required_argument,	NULL,	'B'},
-		{"baseline-phi",	required_argument,	NULL,	'C'},
 		{NULL,	0,	NULL,	0}
 	};
 	struct options *options = command_line_options_new();
@@ -163,16 +157,6 @@ struct options *parse_command_line(int argc, char *argv[])
 		command_line_add_injection(options, ra, dec);
 		break;
 	}
-
-	/* baseline-theta */
-	case 'B':
-		options->baseline_theta = atof(optarg);
-		break;
-
-	/* baseline-phi */
-	case 'C':
-		options->baseline_phi = atof(optarg);
-		break;
 
 	/* option sets a flag */
 	case 0:
@@ -296,18 +280,18 @@ int main(int argc, char *argv[])
 		sh_series_rotate_z(fdsky, fdsky, gmst);
 
 		/* output */
-		sprintf(filename, "power_td_%020.17f.dat", gmst);
-		diagnostics_dump_sh_series(tdsky, filename);
+		/*sprintf(filename, "power_td_%020.17f.dat", gmst);
+		diagnostics_dump_sh_series(tdsky, filename);*/
 		sprintf(filename, "power_fd_%020.17f.dat", gmst);
 		diagnostics_dump_sh_series(fdsky, filename);
 
-		sh_series_scale(tdaverage, (double) i / (i + 1));
-		sh_series_add(tdaverage, 1.0 / (i + 1), tdsky);
+		/*sh_series_scale(tdaverage, (double) i / (i + 1));
+		sh_series_add(tdaverage, 1.0 / (i + 1), tdsky);*/
 		sh_series_scale(fdaverage, (double) i / (i + 1));
 		sh_series_add(fdaverage, 1.0 / (i + 1), fdsky);
 
-		sprintf(filename, "averg_td_%020.17f.dat", gmst);
-		diagnostics_dump_sh_series(tdaverage, filename);
+		/*sprintf(filename, "averg_td_%020.17f.dat", gmst);
+		diagnostics_dump_sh_series(tdaverage, filename);*/
 		sprintf(filename, "averg_fd_%020.17f.dat", gmst);
 		diagnostics_dump_sh_series(fdaverage, filename);
 	}
