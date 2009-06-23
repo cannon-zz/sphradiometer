@@ -167,28 +167,28 @@ def mollweid(power, averg, gmst, injections):
 options, filenames = parse_command_line()
 
 
-for filename in filenames:
-	print filename
-	gmst = float(filename[9:-4])
+for fdname in filenames:
+	print fdname
+	gmst = float(fdname[9:-4])
 
-	fdname = filename[:6] + "fd_" + filename[9:]
-	tdavergname = "averg_td_" + filename[9:]
-	fdavergname = "averg_fd_" + filename[9:]
+	tdname = fdname[:6] + "td_" + fdname[9:]
+	tdavergname = "averg_td_" + fdname[9:]
+	fdavergname = "averg_fd_" + fdname[9:]
 
-	tdpower = ioutils.read_sh_series(file(filename))
+	#tdpower = ioutils.read_sh_series(file(fdname))
 	fdpower = ioutils.read_sh_series(file(fdname))
-	tdaverg = ioutils.read_sh_series(file(tdavergname))
+	#tdaverg = ioutils.read_sh_series(file(tdavergname))
 	fdaverg = ioutils.read_sh_series(file(fdavergname))
 
 	for injection in options.injection_ra_dec:
 		print "	injection at %s, %s:" % (plotutils.rad_to_hms_str(injection.ra), plotutils.rad_to_dms_str(injection.dec))
-		print "		current td power = %g" % radiometer.sh_series_eval(tdpower, math.pi / 2 - injection.dec, injection.ra).real
-		print "		time averaged td power = %g" % radiometer.sh_series_eval(tdaverg, math.pi / 2 - injection.dec, injection.ra).real
+		#print "		current td power = %g" % radiometer.sh_series_eval(tdpower, math.pi / 2 - injection.dec, injection.ra).real
+		#print "		time averaged td power = %g" % radiometer.sh_series_eval(tdaverg, math.pi / 2 - injection.dec, injection.ra).real
 		print "		current fd power = %g" % radiometer.sh_series_eval(fdpower, math.pi / 2 - injection.dec, injection.ra).real
 		print "		time averaged fd power = %g" % radiometer.sh_series_eval(fdaverg, math.pi / 2 - injection.dec, injection.ra).real
 
-	fig = mollweid(tdpower, tdaverg, gmst, options.injection_ra_dec)
-	fig.savefig(filename[:-4] + ".png")
+	#fig = mollweid(tdpower, tdaverg, gmst, options.injection_ra_dec)
+	#fig.savefig(fdname[:-4] + ".png")
 
 	fig = mollweid(fdpower, fdaverg, gmst, options.injection_ra_dec)
 	fig.savefig(fdname[:-4] + ".png")
