@@ -41,6 +41,14 @@ PKG_CHECK_MODULES([GSL], [gsl], , [echo "Not Found!" ; exit 1])
 AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 
+# Check for LAPACK
+LAPACK_CFLAGS=
+LAPACK_LIBS=-llapacke
+AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_SUBST([LAPACK_CFLAGS])
+AC_SUBST([LAPACK_LIBS])
+
 # Check for LAL
 PKG_CHECK_MODULES([LAL], [lal], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LAL_CFLAGS])
