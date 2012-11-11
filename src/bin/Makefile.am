@@ -1,16 +1,24 @@
 INCLUDES = -I../include -I.
 
 bin_PROGRAMS = radiometer fastX
-noinst_PROGRAMS = tests
+noinst_PROGRAMS = tests inspiral_sky_map
 
 radiometer_SOURCES = main.c instruments.c diagnostics.c diagnostics.h instruments.h
-radiometer_LDFLAGS = $(GSL_LIBS) $(LAL_LIBS)
+radiometer_LDFLAGS = $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
+radiometer_CFLAGS = $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 radiometer_LDADD = ../lib/libradiometer.la
 
 fastX_SOURCES = fastX.c instruments.c instruments.h
-fastX_LDFLAGS = $(GSL_LIBS) $(LAL_LIBS) $(LALFRAME_LIBS)
+fastX_LDFLAGS = $(GSL_LIBS) $(LAL_LIBS) $(LALFRAME_LIBS) $(LALSIMULATION_LIBS)
+fastX_CFLAGS = $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALFRAME_CFLAGS) $(LALSIMULATION_CFLAGS)
 fastX_LDADD = ../lib/libradiometer.la
 
+inspiral_sky_map_SOURCES = inspiral_sky_map.c instruments.c instruments.h diagnostics.c diagnostics.h
+inspiral_sky_map_LDFLAGS = $(GSL_LIBS) $(LAL_LIBS) $(LALFRAME_LIBS) $(LALSIMULATION_LIBS)
+inspiral_sky_map_CFLAGS = $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALFRAME_CFLAGS) $(LALSIMULATION_CFLAGS)
+inspiral_sky_map_LDADD = ../lib/libradiometer.la
+
 tests_SOURCES = tests.c instruments.c diagnostics.c diagnostics.h instruments.h
-tests_LDFLAGS = $(GSL_LIBS) $(LAL_LIBS)
+tests_LDFLAGS = $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
+tests_CFLAGS = $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 tests_LDADD = ../lib/libradiometer.la
