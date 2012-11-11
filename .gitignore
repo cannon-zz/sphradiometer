@@ -27,3 +27,4 @@ src/bin/tests
 src/lib/radiometer.pc
 src/python/radiometer.py
 src/python/radiometer_wrap.c
+stamp-h1
