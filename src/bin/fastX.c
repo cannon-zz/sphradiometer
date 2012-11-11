@@ -317,7 +317,6 @@ static REAL8TimeSeries *get_real8series_from_cache(
 	size_t lengthlimit
 )
 {
-	static const char func[] = "get_real8series_from_cache";
 	FrCache *cache;
 	FrStream *stream;
 	REAL8TimeSeries *data;
@@ -326,11 +325,11 @@ static REAL8TimeSeries *get_real8series_from_cache(
 	/* construct stream */
 	cache = XLALFrImportCache(cache_name);
 	if(!cache)
-		XLAL_ERROR_NULL(func, XLAL_EFUNC);
+		XLAL_ERROR_NULL(XLAL_EFUNC);
 	stream = XLALFrCacheOpen(cache);
 	XLALFrDestroyCache(cache);
 	if(!stream)
-		XLAL_ERROR_NULL(func, XLAL_EFUNC);
+		XLAL_ERROR_NULL(XLAL_EFUNC);
 
 	/* turn on checking for missing data */
 	stream->mode = LAL_FR_VERBOSE_MODE;
@@ -344,11 +343,11 @@ static REAL8TimeSeries *get_real8series_from_cache(
 
 	/* error checking */
 	if(!data)
-		XLAL_ERROR_NULL(func, XLAL_EFUNC);
+		XLAL_ERROR_NULL(XLAL_EFUNC);
 	if(gap) {
 		XLALDestroyREAL8TimeSeries(data);
 		XLALPrintError("error: gap detected in input data");
-		XLAL_ERROR_NULL(func, XLAL_EDATA);
+		XLAL_ERROR_NULL(XLAL_EDATA);
 	}
 
 	/* done */
@@ -366,13 +365,12 @@ static REAL8TimeSeries *get_instrument_time_series(
 	size_t lengthlimit
 )
 {
-	static const char func[] = "get_instrument_time_series";
 	REAL8TimeSeries *series;
 
 	/* get data */
 	series = get_real8series_from_cache(data_cache_name, data_channel_name, start, duration, lengthlimit);
 	if(!series)
-		XLAL_ERROR_NULL(func, XLAL_EFUNC);
+		XLAL_ERROR_NULL(XLAL_EFUNC);
 
 	/* add mdc injection */
 	if(mdc_cache_name && mdc_channel_name) {
@@ -382,7 +380,7 @@ static REAL8TimeSeries *get_instrument_time_series(
 		mdc = get_real8series_from_cache(mdc_cache_name, mdc_channel_name, start, duration, lengthlimit);
 		if(!mdc) {
 			XLALDestroyREAL8TimeSeries(series);
-			XLAL_ERROR_NULL(func, XLAL_EFUNC);
+			XLAL_ERROR_NULL(XLAL_EFUNC);
 		}
 
 		for(i = 0; i < series->data->length; i++)
@@ -411,20 +409,19 @@ static REAL8TimeSeries *condition_time_series(
 	double sample_rate
 )
 {
-	static const char func[] = "condition_time_series";
 	double new_deltaT = sample_rate > 0 ? 1.0 / sample_rate : series->deltaT;
 
 	if(flow > 0)
 		if(XLALHighPassREAL8TimeSeries(series, flow, .9, 6))
-			XLAL_ERROR_NULL(func, XLAL_EFUNC);
+			XLAL_ERROR_NULL(XLAL_EFUNC);
 
 	if(fhigh > 0)
 		if(XLALLowPassREAL8TimeSeries(series, fhigh, .9, 6))
-			XLAL_ERROR_NULL(func, XLAL_EFUNC);
+			XLAL_ERROR_NULL(XLAL_EFUNC);
 
 	if(fabs(new_deltaT - series->deltaT) / series->deltaT >= 1e-2)
 		if(XLALResampleREAL8TimeSeries(series, new_deltaT))
-			XLAL_ERROR_NULL(func, XLAL_EFUNC);
+			XLAL_ERROR_NULL(XLAL_EFUNC);
 
 	return series;
 }
