@@ -1,6 +1,8 @@
 *.o
 *.la
 *.lo
+.deps
+.libs
 aclocal.m4
 autom4te.cache
 config.h
@@ -9,8 +11,15 @@ config.h.in~
 config.log
 config.status
 configure
-.deps
-.libs
+gnuscripts/libtool.m4
+gnuscripts/ltmain.sh
+gnuscripts/ltoptions.m4
+gnuscripts/ltsugar.m4
+gnuscripts/ltversion.m4
+gnuscripts/lt~obsolete.m4
+libtool
 Makefile
 Makefile.in
-radiometer.pc
+src/lib/radiometer.pc
+src/python/radiometer.py
+src/python/radiometer_wrap.c
