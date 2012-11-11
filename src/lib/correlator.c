@@ -236,7 +236,7 @@ complex double *correlator_tseries_to_fseries(double *tseries, complex double *f
  */
 
 
-struct correlator_baseline *correlator_baseline_new(const struct instrument * const *instruments, int index_a, int index_b)
+struct correlator_baseline *correlator_baseline_new(const struct instrument *instruments[], int index_a, int index_b)
 {
 	struct correlator_baseline *new = malloc(sizeof(*new));
 	gsl_vector *d = instrument_baseline(instruments[index_a], instruments[index_b]);
@@ -616,7 +616,7 @@ struct sh_series *correlator_baseline_integrate_power_fd(const complex double *f
  */
 
 
-struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument * const *instruments, int n_instruments)
+struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument *instruments[], int n_instruments)
 {
 	struct correlator_network_baselines *new = malloc(sizeof(*new));
 	struct correlator_baseline **baselines = malloc(n_instruments * (n_instruments - 1) / 2 * sizeof(*baselines));

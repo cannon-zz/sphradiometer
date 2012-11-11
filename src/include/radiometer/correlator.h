@@ -201,11 +201,11 @@ complex double *correlator_tseries_to_fseries(double *, complex double *, int, f
  */
 
 
-struct correlator_baseline *correlator_baseline_new(const struct instrument * const *, int, int);
+struct correlator_baseline *correlator_baseline_new(const struct instrument *[], int, int);
 void correlator_baseline_free(struct correlator_baseline *);
 
 
-struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument * const *, int);
+struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument *[], int);
 void correlator_network_baselines_free(struct correlator_network_baselines *);
 unsigned int correlator_network_l_max(struct correlator_network_baselines *, double);
 
