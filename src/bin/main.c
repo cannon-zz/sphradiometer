@@ -43,6 +43,11 @@
 #include <diagnostics.h>
 #include <instruments.h>
 
+#include <gsl/gsl_spline.h>
+#include <lal/Units.h>
+#include <lal/FrequencySeries.h>
+#include <lal/Sequence.h>
+
 
 /*
  * ============================================================================
@@ -182,6 +187,215 @@ struct options *parse_command_line(int argc, char *argv[])
 /*
  * ============================================================================
  *
+ *                                  Spectrum
+ *
+ * ============================================================================
+ */
+
+
+/**
+ * Read a PSD from a spectrum file.  Ugly file format, but if everything
+ * uses *this* function to read it, we can switch to something more cool
+ * later.
+ */
+
+
+REAL8FrequencySeries *gstlal_read_reference_psd(const char *filename)
+{
+	LIGOTimeGPS gps_zero = {0, 0};
+	LALUnit strain_squared_per_hertz;
+	REAL8FrequencySeries *psd;
+	FILE *file;
+	unsigned i;
+
+	/*
+	 * open the psd file
+	 */
+
+	file = fopen(filename, "r");
+	if(!file) {
+		perror("gstlal_read_reference_psd()");
+		fprintf(stderr, "fopen(\"%s\") failed", filename);
+		return NULL;
+	}
+
+	/*
+	 * allocate a frequency series
+	 */
+
+	XLALUnitMultiply(&strain_squared_per_hertz, XLALUnitSquare(&strain_squared_per_hertz, &lalStrainUnit), &lalSecondUnit);
+	psd = XLALCreateREAL8FrequencySeries("PSD", &gps_zero, 0.0, 0.0, &strain_squared_per_hertz, 0);
+	if(!psd) {
+		fprintf(stderr, "XLALCreateREAL8FrequencySeries() failed");
+		fclose(file);
+		return NULL;
+	}
+
+	/*
+	 * read the psd into the frequency series one sample at a time
+	 */
+
+	for(i = 0; 1; i++) {
+		int result;
+		double f, amp;
+
+		/*
+		 * parse f and one psd sample from one line of input text
+		 */
+
+		result = fscanf(file, " %lg %lg", &f, &amp);
+		if(result == EOF || result < 2) {
+			if(feof(file))
+				/*
+				 * eof == done w/ success
+				 */
+				break;
+			if(result < 0)
+				/*
+				 * I/O error of some kind
+				 */
+				perror("gstlal_read_reference_psd()");
+			else
+				/*
+				 * no errors, but couldn't parse file
+				 */
+				fprintf(stderr, "unable to parse \"%s\"", filename);
+			fclose(file);
+			XLALDestroyREAL8FrequencySeries(psd);
+			return NULL;
+		}
+
+		/*
+		 * store in frequency series, replacing any infs with 0
+		 */
+
+		if(!XLALResizeREAL8Sequence(psd->data, 0, i + 1)) {
+			fprintf(stderr, "XLALResizeREAL8Sequence() failed");
+			fclose(file);
+			XLALDestroyREAL8FrequencySeries(psd);
+			return NULL;
+		}
+
+		psd->data->data[i] = isinf(amp) ? 0 : amp;
+
+		/*
+		 * update the metadata
+		 */
+
+		if(i == 0)
+			psd->f0 = f;
+		else
+			psd->deltaF = (f - psd->f0) / i;
+	}
+
+	/*
+	 * done
+	 */
+
+	fclose(file);
+
+	return psd;
+}
+
+
+/**
+ * Retrieve a PSD from a spectrum file, and re-interpolate to the desired
+ * frequency band and resolution.
+ */
+
+
+REAL8FrequencySeries *gstlal_get_reference_psd(const char *filename, double f0, double deltaF, size_t length)
+{
+	REAL8FrequencySeries *psd;
+	double *f;
+	gsl_spline *spline;
+	gsl_interp_accel *accel;
+	unsigned i;
+
+	/*
+	 * load the reference PSD
+	 */
+
+	psd = gstlal_read_reference_psd(filename);
+	if(!psd)
+		return NULL;
+
+	/*
+	 * feelin' lucky?
+	 */
+
+	if(psd->f0 == f0 && psd->deltaF == deltaF && psd->data->length == length)
+		return psd;
+
+	/*
+	 * construct an interpolator
+	 */
+
+	f = malloc(psd->data->length * sizeof(*f));
+	spline = gsl_spline_alloc(gsl_interp_linear, psd->data->length);
+	accel = gsl_interp_accel_alloc();
+	if(!f || !spline || !accel) {
+		fprintf(stderr, "gsl_spline_alloc() or gsl_interp_accel_alloc() failed");
+		XLALDestroyREAL8FrequencySeries(psd);
+		free(f);
+		if(spline)
+			gsl_spline_free(spline);
+		if(accel)
+			gsl_interp_accel_free(accel);
+		return NULL;
+	}
+	for(i = 0; i < psd->data->length; i++)
+		f[i] = psd->f0 + i * psd->deltaF;
+	if(gsl_spline_init(spline, f, psd->data->data, psd->data->length)) {
+		XLALDestroyREAL8FrequencySeries(psd);
+		free(f);
+		gsl_spline_free(spline);
+		gsl_interp_accel_free(accel);
+		return NULL;
+	}
+
+	/*
+	 * repopulate reference PSD from interpolator to match desired
+	 * resolution and size
+	 *
+	 * FIXME:  what if part of the desired frequency band lies outside
+	 * the reference spectrum loaded from the file?
+	 */
+
+	if(!XLALResizeREAL8Sequence(psd->data, 0, length)) {
+		XLALDestroyREAL8FrequencySeries(psd);
+		free(f);
+		gsl_spline_free(spline);
+		gsl_interp_accel_free(accel);
+		return NULL;
+	}
+	for(i = 0; i < psd->data->length; i++)
+		psd->data->data[i] = gsl_spline_eval(spline, f0 + i * deltaF, accel);
+
+	/*
+	 * adjust normalization for the new bin size, then update the
+	 * metadata
+	 */
+
+	for(i = 0; i < psd->data->length; i++)
+		psd->data->data[i] *= deltaF / psd->deltaF;
+	psd->f0 = f0;
+	psd->deltaF = deltaF;
+
+	/*
+	 * done
+	 */
+
+	free(f);
+	gsl_spline_free(spline);
+	gsl_interp_accel_free(accel);
+	return psd;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Entry Point
  *
  * ============================================================================
@@ -241,6 +455,7 @@ int main(int argc, char *argv[])
 	const double delta_gmst = 2 * M_PI / n_dumps;
 	double gmst;
 	char filename[100];
+	REAL8FrequencySeries *psd = gstlal_get_reference_psd("reference_psd.txt", 0.0, 1.0 / (time_series_length * delta_t), time_series_length);
 	int i, j, k;
 
 	dump_network_stats(stderr, baselines, tdplans, fdplans);
@@ -274,8 +489,11 @@ int main(int argc, char *argv[])
 		sh_series_rotate_z(tdsky, tdsky, gmst);*/
 
 		/* frequency domain */
-		for(k = 0; k < n_instruments; k++)
+		for(k = 0; k < n_instruments; k++) {
 			correlator_tseries_to_fseries(tseries[k], fseries[k], time_series_length, fftplans[k]);
+			for(j = 0; j < time_series_length; j++)
+				fseries[k][j] /= sqrt(psd->data->data[j]);
+		}
 		correlator_network_integrate_power_fd(fdsky, fseries, fdplans);
 		sh_series_rotate_z(fdsky, fdsky, gmst);
 
