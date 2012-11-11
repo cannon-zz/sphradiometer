@@ -2,6 +2,7 @@ AC_INIT([radiometer],[0.3.0],[kipp@gravity.phys.uwm.edu])
 AC_COPYRIGHT([Copyright (C) 2009 Kipp C. Cannon])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([gnuscripts])
+AC_CONFIG_MACRO_DIR([gnuscripts])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([ \
 	Makefile \
@@ -17,13 +18,14 @@ AC_CONFIG_FILES([ \
 ])
 
 # Checks for programs
-AC_PROG_CC
-AC_PROG_LIBTOOL
+AC_PROG_CC_C99
+AC_PROG_INSTALL
+LT_INIT
 PKG_PROG_PKG_CONFIG()
 
 # Check for Python
 AM_PATH_PYTHON([2.3])
-AC_PROG_SWIG([1.3.24])
+AX_PKG_SWIG([1.3.24])
 SWIG_PYTHON
 
 # Check for math library
@@ -46,6 +48,9 @@ AC_SUBST([LAL_LIBS])
 PKG_CHECK_MODULES([LALFRAME], [lalframe], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LALFRAME_CFLAGS])
 AC_SUBST([LALFRAME_LIBS])
+PKG_CHECK_MODULES([LALSIMULATION], [lalsimulation], , [echo "Not Found!" ; exit 1])
+AC_SUBST([LALSIMULATION_CFLAGS])
+AC_SUBST([LALSIMULATION_LIBS])
 
 # pkg-config module path
 AC_SUBST([pkgconfigdir],[${libdir}/pkgconfig])
