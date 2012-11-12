@@ -25,7 +25,7 @@ PKG_PROG_PKG_CONFIG()
 
 # Check for Python
 AM_PATH_PYTHON([2.3])
-AX_PKG_SWIG([1.3.24])
+AX_PKG_SWIG([1.3.24],[],[AC_MSG_ERROR("SWIG > 1.3.24 required to build.")])
 SWIG_PYTHON
 
 # Check for math library
