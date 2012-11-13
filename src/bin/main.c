@@ -199,7 +199,7 @@ REAL8FrequencySeries *gstlal_read_reference_psd(const char *filename)
 
 	file = fopen(filename, "r");
 	if(!file) {
-		perror("gstlal_read_reference_psd()");
+		perror(__func__);
 		fprintf(stderr, "fopen(\"%s\") failed", filename);
 		return NULL;
 	}
@@ -239,7 +239,7 @@ REAL8FrequencySeries *gstlal_read_reference_psd(const char *filename)
 				/*
 				 * I/O error of some kind
 				 */
-				perror("gstlal_read_reference_psd()");
+				perror(__func__);
 			else
 				/*
 				 * no errors, but couldn't parse file
