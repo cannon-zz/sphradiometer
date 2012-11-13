@@ -320,7 +320,7 @@ static REAL8TimeSeries *get_real8series_from_txt(
 		double values[7];
 		fscanf(f, "%lg %lg %lg %lg %lg %lg %lg", &values[0], &values[1], &values[2], &values[3], &values[4], &values[5], &values[6]);
 
-		series->data->data[i] = XLALCOMPLEX16Abs(XLALCOMPLEX16Rect(values[column], values[column + 1]));
+		series->data->data[i] = cabs(values[column] + I * values[column + 1]);
 	}
 
 	fclose(f);
@@ -384,7 +384,7 @@ static REAL8TimeSeries *get_real8series_from_cache(
 		XLAL_ERROR_NULL(XLAL_EFUNC);
 	}
 	for(i = 0; i < indata->data->length; i++)
-		data->data->data[i] = XLALCOMPLEX8Abs(indata->data->data[i]);
+		data->data->data[i] = cabsf(indata->data->data[i]);
 	XLALDestroyCOMPLEX8TimeSeries(indata);
 
 	/* done */
