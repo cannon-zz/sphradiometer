@@ -48,5 +48,8 @@ void diagnostics_dump_sh_series(const struct sh_series *, char *);
 double diagnostics_rms_error(const struct sh_series *, const struct sh_series *);
 void diagnostics_dump_correlator_plan_td_stats(FILE *, const struct correlator_plan_td *);
 void diagnostics_dump_correlator_plan_fd_stats(FILE *, const struct correlator_plan_fd *);
+void diagnostics_dump_network_plan_td_stats(FILE *, const struct correlator_network_plan_td *);
+void diagnostics_dump_network_plan_fd_stats(FILE *, const struct correlator_network_plan_fd *);
+
 
 #endif /* __RADIOMETER_BIN_DIAGNOSTICS_H__ */
