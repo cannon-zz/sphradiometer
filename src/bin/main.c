@@ -58,21 +58,6 @@
  */
 
 
-static void dump_network_stats(FILE *f, const struct correlator_network_baselines *baselines, const struct correlator_network_plan_td *tdplans, const struct correlator_network_plan_fd *fdplans)
-{
-	int i;
-
-	for(i = 0; i < baselines->n_baselines; i++) {
-		fprintf(f, "=== Baseline %d ===\n", i);
-		fprintf(f, "Time Domain Correlator:n");
-		diagnostics_dump_correlator_plan_td_stats(f, tdplans->plans[i]);
-		fprintf(f, "Frequency Domain Correlator:n");
-		diagnostics_dump_correlator_plan_fd_stats(f, fdplans->plans[i]);
-	}
-	fprintf(f, "=== End Baselines ===\n");
-}
-
-
 static void dump_time_series(const double *series, int n, char *name)
 {
 	FILE *f = fopen(name, "w");
@@ -458,8 +443,11 @@ int main(int argc, char *argv[])
 	REAL8FrequencySeries *psd = gstlal_get_reference_psd("reference_psd.txt", 0.0, 1.0 / (time_series_length * delta_t), time_series_length);
 	int i, j, k;
 
-	dump_network_stats(stderr, baselines, tdplans, fdplans);
-	fprintf(stderr, "sky: l max = %d\n", sky_l_max);
+	fprintf(stderr, "Time-domain Baselines:\n");
+	diagnostics_dump_network_plan_td_stats(stderr, tdplans);
+	fprintf(stderr, "\nFrequency-domain Baselines:\n");
+	diagnostics_dump_network_plan_fd_stats(stderr, fdplans);
+	fprintf(stderr, "\nsky: l max = %d\n", sky_l_max);
 	fprintf(stderr, "data: time series length = %g s (%d samples)\n", dump_interval, time_series_length);
 
 	gsl_rng_set(rng, time(NULL));
