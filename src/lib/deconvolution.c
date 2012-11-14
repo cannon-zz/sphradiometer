@@ -179,13 +179,12 @@ void print_SVD_to_file(const struct SVD const *svd)
 
 	sprintf(filename, "radiometer_output/%s/S.dat", svd->SVD_name);
 	FILE *S_file = fopen(filename, "w");
-	for(i = 0; i < svd->n; i++) {
+	for(i = 0; i < svd->n; i++)
 		fprintf(S_file, "%g\n", svd->S[i]);
-	}
 	fclose(S_file);
 
-        sprintf(filename, "radiometer_output/%s/A.dat", svd->SVD_name);
-        print_matrix(filename, svd->m, svd->n, svd->A);
+	sprintf(filename, "radiometer_output/%s/A.dat", svd->SVD_name);
+	print_matrix(filename, svd->m, svd->n, svd->A);
 	sprintf(filename, "radiometer_output/%s/A2.dat", svd->SVD_name);
 	print_matrix(filename, svd->m, svd->n, svd->A_new);
 	sprintf(filename, "radiometer_output/%s/U.dat", svd->SVD_name);
@@ -200,47 +199,47 @@ void print_SVD_to_file(const struct SVD const *svd)
 
 void SVD_reverse_check(const struct SVD *svd)
 {
-        int i, j, k;
+	int i, j, k;
 	char filename[50];
-        complex double value;
-        double orig_row_mag;
-        double reconst_row_mag;
-        double diff_row_mag;
+	complex double value;
+	double orig_row_mag;
+	double reconst_row_mag;
+	double diff_row_mag;
 
-        complex double *US = calloc(svd->m * svd->n, sizeof(*US));
-        complex double *USVT = calloc(svd->m * svd->n, sizeof(*USVT));
+	complex double *US = calloc(svd->m * svd->n, sizeof(*US));
+	complex double *USVT = calloc(svd->m * svd->n, sizeof(*USVT));
 
-        if(!US || !USVT) {
-                free(US);
-                free(USVT);
-                return;
-        }
+	if(!US || !USVT) {
+		free(US);
+		free(USVT);
+		return;
+	}
 
 	for(i = 0; i < svd->m; i++) {
 		for(j = 0; j < svd->n; j++) {
-                        value = 0;
-                        for(k = 0; k < svd->n; k++) {
-                                value = value + US[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j];
-                        }
-                        USVT[i * svd->n + j] = value;
+			value = 0;
+			for(k = 0; k < svd->n; k++) {
+				value = value + US[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j];
+			}
+			USVT[i * svd->n + j] = value;
 			US[i * svd->n + j] = svd->U[i * svd->n + j] * svd->S[j];
 		}
 	}
 
-        sprintf(filename, "radiometer_output/%s/US.dat", svd->SVD_name);
+	sprintf(filename, "radiometer_output/%s/US.dat", svd->SVD_name);
 	print_matrix(filename, svd->m, svd->n, US);
-        sprintf(filename, "radiometer_output/%s/USVT.dat", svd->SVD_name);
+	sprintf(filename, "radiometer_output/%s/USVT.dat", svd->SVD_name);
 	print_matrix(filename, svd->m, svd->n, USVT);
 
 
-        sprintf(filename, "radiometer_output/%s/check1.dat", svd->SVD_name);
-        FILE *error1 = fopen(filename, "w");
-        sprintf(filename, "radiometer_output/%s/check2.dat", svd->SVD_name);
-        FILE *error2 = fopen(filename, "w");
+	sprintf(filename, "radiometer_output/%s/check1.dat", svd->SVD_name);
+	FILE *error1 = fopen(filename, "w");
+	sprintf(filename, "radiometer_output/%s/check2.dat", svd->SVD_name);
+	FILE *error2 = fopen(filename, "w");
 
 
 
-        for(i = 0; i < 1; i++) {
+	for(i = 0; i < 1; i++) {
 //	for(i = 0; i < svd->m; i++) {
 //		reconst_row_mag = 0;
 //		orig_row_mag = 0;
@@ -275,20 +274,20 @@ void SVD_reverse_check(const struct SVD *svd)
 int SVD_to_sh_series_file(const struct SVD *svd, int l_max, int polar, double threshold)
 {
 	int i, j;
-        struct sh_series *VT_sh = sh_series_new(l_max, polar);
-        FILE *f = NULL;
-        char filename[50];
+	struct sh_series *VT_sh = sh_series_new(l_max, polar);
+	FILE *f = NULL;
+	char filename[50];
 
-//	for(i = 0; i < 20; i++) {
+	//for(i = 0; i < 20; i++) {
 	for(i = 0; i < svd->n && svd->S[i] > threshold; i++) {
-                for(j = 0; j < svd->n; j++) {
-                        VT_sh->coeff[j] = svd->VT[i * svd->n + j];
-                }
-                sprintf(filename, "radiometer_output/%s/dat_files/mode_%i.dat", svd->SVD_name, i);
-                f = fopen(filename, "w");
-                sh_series_print(f, VT_sh);
-                fclose(f);
-        }
+		for(j = 0; j < svd->n; j++) {
+			VT_sh->coeff[j] = svd->VT[i * svd->n + j];
+		}
+		sprintf(filename, "radiometer_output/%s/dat_files/mode_%i.dat", svd->SVD_name, i);
+		f = fopen(filename, "w");
+		sh_series_print(f, VT_sh);
+		fclose(f);
+	}
 	sh_series_free(VT_sh);
 	return i;
 }
@@ -342,21 +341,17 @@ void new_sing(const struct sh_series_array *matrix)
 	int total_modes = SVD_to_sh_series_file(first_SVD, matrix->l_max, matrix->polar, 1);
 	int total_phases = 2 * total_modes;
 	complex double *A = calloc(total_phases * total_modes * n, sizeof(*A));
-        if(!A) {
+	if(!A) {
 		free(A);
-                return;
-        }
+		return;
+	}
 
-        // due to multiple uses of m, k will be the m in (l,m) pairs
-        for(i = 0; i < total_phases; i++) {
-                for(j = 0; j < total_modes; j++) {
-                        for(l = 0; l <= l_max; l++) {
-                                for(k = -l; k <= l; k++) {
-                                        A[i * total_modes * n + j * n + sh_series_params_lmoffset(l_max, l, k)] = cexp(2 * M_PI * I * i * k / total_phases) * first_SVD->VT[j * n + sh_series_params_lmoffset(l_max, l, k)] * first_SVD->S[j];
-                                }
-                        }
-                }
-        }
+	// due to multiple uses of m, k will be the m in (l,m) pairs
+	for(i = 0; i < total_phases; i++)
+		for(j = 0; j < total_modes; j++)
+			for(l = 0; l <= l_max; l++)
+				for(k = -l; k <= l; k++)
+					A[i * total_modes * n + j * n + sh_series_params_lmoffset(l_max, l, k)] = cexp(2 * M_PI * I * i * k / total_phases) * first_SVD->VT[j * n + sh_series_params_lmoffset(l_max, l, k)] * first_SVD->S[j];
 
 	struct SVD *second_SVD = SVD_new(total_phases * total_modes, n, A);
 	print_SVD_to_file(second_SVD);
@@ -365,6 +360,6 @@ void new_sing(const struct sh_series_array *matrix)
 
 	SVD_free(first_SVD);
 	SVD_free(second_SVD);
-        return;
+	return;
 }
 #endif
