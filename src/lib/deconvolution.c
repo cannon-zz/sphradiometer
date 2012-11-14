@@ -160,20 +160,15 @@ static struct SVD *SVD_new(int m, int n, const complex double *A)
 #if 0
 void print_matrix(char *filename, int rows, int cols, complex double *matrix)
 {
-	fprintf(stderr, "Printing to %s...\n", filename);
 	int i, j;
  	FILE *f = fopen(filename, "w");
 
  	for(i = 0; i < rows; i++) {
- 		if(i % 1000 == 0)
-			fprintf(stderr, "Row %i\n", i);
 		for(j = 0; j < cols; j++)
 			fprintf(f, "%g+I%g\t", creal(matrix[i * cols + j]), cimag(matrix[i * cols + j]));
 		fprintf(f, "\n");
  	}
  	fclose(f);
-	fprintf(stderr, "Done printing to %s.\n", filename);
-	return;
 }
 
 
@@ -205,7 +200,6 @@ void print_SVD_to_file(const struct SVD const *svd)
 
 void SVD_reverse_check(const struct SVD *svd)
 {
-        fprintf(stderr, "Checking SVD...\n");
         int i, j, k;
 	char filename[50];
         complex double value;
@@ -213,12 +207,10 @@ void SVD_reverse_check(const struct SVD *svd)
         double reconst_row_mag;
         double diff_row_mag;
 
-	fprintf(stderr, "m: %i\tn: %i\n", svd->m, svd->n);
         complex double *US = calloc(svd->m * svd->n, sizeof(*US));
         complex double *USVT = calloc(svd->m * svd->n, sizeof(*USVT));
 
         if(!US || !USVT) {
-		fprintf(stderr, "Run out of memory for US or USVT!\n");
                 free(US);
                 free(USVT);
                 return;
@@ -267,9 +259,6 @@ void SVD_reverse_check(const struct SVD *svd)
 			fprintf(error1, "%g %g\n", creal(value), cimag(value));
 		}
 //		fprintf(error2, "%g\t%g\t%g\t%g\n", reconst_row_mag, orig_row_mag, diff_row_mag, diff_row_mag / orig_row_mag);
-		if(i % 100 == 0) {
-			fprintf(stderr, "Row %i checked\n", i);
-		}
 		fprintf(error1, "\n");
 	}
 
@@ -285,7 +274,6 @@ void SVD_reverse_check(const struct SVD *svd)
 // create plot data of VT
 int SVD_to_sh_series_file(const struct SVD *svd, int l_max, int polar, double threshold)
 {
-        fprintf(stderr, "Printing rows to file...");
 	int i, j;
         struct sh_series *VT_sh = sh_series_new(l_max, polar);
         FILE *f = NULL;
@@ -302,7 +290,6 @@ int SVD_to_sh_series_file(const struct SVD *svd, int l_max, int polar, double th
                 fclose(f);
         }
 	sh_series_free(VT_sh);
-	fprintf(stderr, "Done\n");
 	return i;
 }
 #endif
@@ -356,7 +343,6 @@ void new_sing(const struct sh_series_array *matrix)
 	int total_phases = 2 * total_modes;
 	complex double *A = calloc(total_phases * total_modes * n, sizeof(*A));
         if(!A) {
-                fprintf(stderr, "Run out of memory for second A!\n");
 		free(A);
                 return;
         }
