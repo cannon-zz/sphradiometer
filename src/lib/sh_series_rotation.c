@@ -178,7 +178,7 @@ static void D_matrix_free(complex double *D, unsigned int l)
  */
 
 
-#define DElement(matrix, l, m, m_prime) matrix[((int) (2 * (l) + 1)) * (m_prime) + (m)]
+#define DElement(matrix, l, m, m_prime) (matrix)[((int) (2 * (l) + 1)) * (m_prime) + (m)]
 
 
 /*
