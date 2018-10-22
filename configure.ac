@@ -24,7 +24,7 @@ LT_INIT
 PKG_PROG_PKG_CONFIG()
 
 # Check for Python
-AM_PATH_PYTHON([2.3])
+AM_PATH_PYTHON([2.7])
 AX_PKG_SWIG([1.3.24],[],[AC_MSG_ERROR("SWIG > 1.3.24 required to build.")])
 SWIG_PYTHON
 
@@ -42,9 +42,9 @@ AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 
 # Check for LAPACK
-LAPACK_CFLAGS=
+LAPACK_CFLAGS=-I/usr/include/lapacke
 LAPACK_LIBS=-llapacke
-AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_CHECK_HEADER([lapacke/lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
 AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
