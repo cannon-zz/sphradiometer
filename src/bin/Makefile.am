@@ -1,4 +1,4 @@
-INCLUDES = -I../include -I.
+AM_CPPFLAGS = -I../include -I.
 
 bin_PROGRAMS = radiometer fastX
 noinst_PROGRAMS = tests inspiral_sky_map

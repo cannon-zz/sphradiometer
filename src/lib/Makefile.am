@@ -1,4 +1,4 @@
-INCLUDES = -I../include
+AM_CPPFLAGS = -I../include
 
 pkgconfig_DATA = radiometer.pc
 

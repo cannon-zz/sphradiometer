@@ -1,7 +1,7 @@
 # fscking automake barfs unless a .so is named lib* so this all has to be
 # done BY HAND
 
-INCLUDES = -I../include
+AM_CPPFLAGS = -I../include
 
 EXTRA_DIST = radiometer.swig
 
