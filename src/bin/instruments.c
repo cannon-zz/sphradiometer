@@ -67,5 +67,5 @@ struct instrument *instrument_from_LALDetector(const LALDetector *det)
 
 struct instrument *instrument_from_name(const char *name)
 {
-	return instrument_from_LALDetector(XLALInstrumentNameToLALDetector(name));
+	return instrument_from_LALDetector(XLALDetectorPrefixToLALDetector(name));
 }

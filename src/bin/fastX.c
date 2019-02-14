@@ -45,8 +45,8 @@
 #include <lal/BandPassTimeSeries.h>
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
-#include <lal/FrameCache.h>
-#include <lal/FrameStream.h>
+#include <lal/LALCache.h>
+#include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimulation.h>
 #include <lal/ResampleTimeSeries.h>
@@ -195,7 +195,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	case 'B': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
 		options->instruments[0] = instrument_from_name(inst_name);
-		options->detectors[0] = XLALInstrumentNameToLALDetector(inst_name);
+		options->detectors[0] = XLALDetectorPrefixToLALDetector(inst_name);
 		options->data1_channel_name = optarg;
 		break;
 	}
@@ -219,7 +219,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	case 'b': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
 		options->instruments[1] = instrument_from_name(inst_name);
-		options->detectors[1] = XLALInstrumentNameToLALDetector(inst_name);
+		options->detectors[1] = XLALDetectorPrefixToLALDetector(inst_name);
 		options->data2_channel_name = optarg;
 		break;
 	}
@@ -317,29 +317,29 @@ static REAL8TimeSeries *get_real8series_from_cache(
 	size_t lengthlimit
 )
 {
-	FrCache *cache;
-	FrStream *stream;
+	LALCache *cache;
+	LALFrStream *stream;
 	REAL8TimeSeries *data;
 	int gap;
 
 	/* construct stream */
-	cache = XLALFrImportCache(cache_name);
+	cache = XLALCacheImport(cache_name);
 	if(!cache)
 		XLAL_ERROR_NULL(XLAL_EFUNC);
-	stream = XLALFrCacheOpen(cache);
-	XLALFrDestroyCache(cache);
+	stream = XLALFrStreamCacheOpen(cache);
+	XLALDestroyCache(cache);
 	if(!stream)
 		XLAL_ERROR_NULL(XLAL_EFUNC);
 
 	/* turn on checking for missing data */
-	stream->mode = LAL_FR_VERBOSE_MODE;
+	stream->mode = LAL_FR_STREAM_VERBOSE_MODE;
 
 	/* get data */
-	data = XLALFrReadREAL8TimeSeries(stream, channel_name, &start, duration, lengthlimit);
+	data = XLALFrStreamReadREAL8TimeSeries(stream, channel_name, &start, duration, lengthlimit);
 
 	/* check for gaps and close */
-	gap = stream->state & LAL_FR_GAP;
-	XLALFrClose(stream);
+	gap = stream->state & LAL_FR_STREAM_GAP;
+	XLALFrStreamClose(stream);
 
 	/* error checking */
 	if(!data)
@@ -548,14 +548,6 @@ int main(int argc, char *argv[])
 	int start_sample;
 	int k;
 	struct timeval t_start, t_end;
-
-
-	/*
-	 * Enable verbosity.
-	 */
-
-
-	lalDebugLevel = LALERROR | LALWARNING | LALINFO | LALNMEMDBG | LALNMEMPAD | LALNMEMTRK;
 
 
 	/*
