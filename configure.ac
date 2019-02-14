@@ -42,9 +42,9 @@ AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 
 # Check for LAPACK
-LAPACK_CFLAGS=-I/usr/include/lapacke
+LAPACK_CFLAGS=
 LAPACK_LIBS=-llapacke
-AC_CHECK_HEADER([lapacke/lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
 AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
