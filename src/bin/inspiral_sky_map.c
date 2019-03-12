@@ -46,9 +46,8 @@
 #include <lal/BandPassTimeSeries.h>
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
-#include <lal/FrameCache.h>
-#include <lal/FrameStream.h>
-#include <lal/LALComplex.h>
+#include <lal/LALCache.h>
+#include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimulation.h>
 #include <lal/ResampleTimeSeries.h>
@@ -134,7 +133,7 @@ static struct options *command_line_set_instrument(struct options *options, int 
 	if(!strcmp(instrument_name, "V1"))
 		instrument_name[1] = '2';
 
-	options->detectors[n] = XLALInstrumentNameToLALDetector(instrument_name);
+	options->detectors[n] = XLALDetectorPrefixToLALDetector(instrument_name);
 	options->instruments[n] = instrument_from_LALDetector(options->detectors[n]);
 
 	return options;
@@ -336,37 +335,37 @@ static REAL8TimeSeries *get_real8series_from_cache(
 	double duration
 )
 {
-	FrCache *cache;
-	FrStream *stream;
+	LALCache *cache;
+	LALFrStream *stream;
 	REAL8TimeSeries *data;
 	COMPLEX8TimeSeries *indata;
 	unsigned i;
 	int gap;
 
 	/* construct stream */
-	cache = XLALFrImportCache(cache_name);
+	cache = XLALCacheImport(cache_name);
 	if(!cache)
 		XLAL_ERROR_NULL(XLAL_EFUNC);
-	stream = XLALFrCacheOpen(cache);
-	XLALFrDestroyCache(cache);
+	stream = XLALFrStreamCacheOpen(cache);
+	XLALDestroyCache(cache);
 	if(!stream)
 		XLAL_ERROR_NULL(XLAL_EFUNC);
 
 	/* turn on checking for missing data */
-	stream->mode = LAL_FR_VERBOSE_MODE;
+	stream->mode = LAL_FR_STREAM_VERBOSE_MODE;
 
 	/* get data */
 #if 0
 	indata = XLALFrReadCOMPLEX8TimeSeries(stream, channel_name, &start, duration, 0);
 #else
 	indata = XLALCreateCOMPLEX8TimeSeries(channel_name, &start, 0.0, 1.0 / 4096, &lalDimensionlessUnit, 1.0 * 4096);
-	XLALFrGetCOMPLEX8TimeSeries(indata, stream);
+	XLALFrStreamGetCOMPLEX8TimeSeries(indata, stream);
 	indata->epoch = start;
 #endif
 
 	/* check for gaps and close */
-	gap = stream->state & LAL_FR_GAP;
-	XLALFrClose(stream);
+	gap = stream->state & LAL_FR_STREAM_GAP;
+	XLALFrStreamClose(stream);
 
 	/* error checking */
 	if(!indata)
@@ -467,14 +466,6 @@ int main(int argc, char *argv[])
 	int start_sample;
 	int k;
 	struct timeval t_start, t_end;
-
-
-	/*
-	 * Enable verbosity.
-	 */
-
-
-	lalDebugLevel = LALERROR | LALWARNING | LALINFO | LALNMEMDBG | LALNMEMPAD | LALNMEMTRK;
 
 
 	/*
