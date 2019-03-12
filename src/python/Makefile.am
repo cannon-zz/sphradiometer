@@ -11,9 +11,9 @@ pkgpython_PYTHON = __init__.py ioutils.py plotutils.py radiometer.py
 pkgpyexec_LTLIBRARIES = _radiometer.la
 
 _radiometer_la_SOURCES = radiometer_wrap.c
-_radiometer_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS)
+_radiometer_la_CPPFLAGS = $(AM_CPPFLAGS) $(PYTHON_CPPFLAGS) $(SWIG_PYTHON_CPPFLAGS) -I/usr/include/tcl8.6
 _radiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS)
 _radiometer_la_LIBADD = ../lib/libradiometer.la
 
 radiometer.py radiometer_wrap.c : radiometer.swig ../include/radiometer/*.h
-	$(SWIG) $(SWIG_PYTHON_OPT) $(INCLUDES) $<
+	$(SWIG) $(SWIG_PYTHON_OPT) -I$(SWIG_LIB)/python $(AM_CPPFLAGS) $<
