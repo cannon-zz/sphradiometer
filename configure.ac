@@ -24,9 +24,11 @@ LT_INIT
 PKG_PROG_PKG_CONFIG()
 
 # Check for Python
-AM_PATH_PYTHON([2.7])
-AX_PKG_SWIG([1.3.24],[],[AC_MSG_ERROR("SWIG > 1.3.24 required to build.")])
-SWIG_PYTHON
+AM_PATH_PYTHON([3.0])
+AX_PYTHON_DEVEL()
+
+AX_PKG_SWIG([3.0],[],[AC_MSG_ERROR("SWIG > 3.0 required to build.")])
+AX_SWIG_PYTHON
 
 # Check for math library
 AC_CHECK_LIB([m], [main], , [AC_MSG_ERROR([cannot find the math library])])
