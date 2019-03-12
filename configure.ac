@@ -50,7 +50,7 @@ AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
 
 # Check for LAL
-PKG_CHECK_MODULES([LAL], [lal], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([LAL], [lal lalsupport], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LAL_CFLAGS])
 AC_SUBST([LAL_LIBS])
 PKG_CHECK_MODULES([LALFRAME], [lalframe], , [echo "Not Found!" ; exit 1])
