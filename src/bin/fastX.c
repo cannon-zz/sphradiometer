@@ -162,22 +162,22 @@ struct options *command_line_parse(int argc, char *argv[])
 	int c;
 	int option_index;
 	struct option long_options[] = {
-		{"data1-cache-name",	required_argument,	NULL,	'A'},
-		{"data1-channel-name",	required_argument,	NULL,	'B'},
-		{"mdc1-cache-name",	required_argument,	NULL,	'C'},
-		{"mdc1-channel-name",	required_argument,	NULL,	'D'},
-		{"data2-cache-name",	required_argument,	NULL,	'a'},
-		{"data2-channel-name",	required_argument,	NULL,	'b'},
-		{"mdc2-cache-name",	required_argument,	NULL,	'c'},
-		{"mdc2-channel-name",	required_argument,	NULL,	'd'},
-		{"analysis-start-gps",	required_argument,	NULL,	'E'},
-		{"analysis-duration",	required_argument,	NULL,	'F'},
+		{"data1-cache-name",		required_argument,	NULL,	'A'},
+		{"data1-channel-name",		required_argument,	NULL,	'B'},
+		{"mdc1-cache-name",		required_argument,	NULL,	'C'},
+		{"mdc1-channel-name",		required_argument,	NULL,	'D'},
+		{"data2-cache-name",		required_argument,	NULL,	'a'},
+		{"data2-channel-name",		required_argument,	NULL,	'b'},
+		{"mdc2-cache-name",		required_argument,	NULL,	'c'},
+		{"mdc2-channel-name",		required_argument,	NULL,	'd'},
+		{"analysis-start-gps",		required_argument,	NULL,	'E'},
+		{"analysis-duration",		required_argument,	NULL,	'F'},
 		{"integration-duration",	required_argument,	NULL,	'G'},
-		{"output",		required_argument,	NULL,	'H'},
-		{"pass-band-low",	required_argument,	NULL,	'I'},
-		{"pass-band-high",	required_argument,	NULL,	'J'},
-		{"down-sample-to",	required_argument,	NULL,	'K'},
-		{"help",		no_argument,		NULL,	'h'},
+		{"output",			required_argument,	NULL,	'H'},
+		{"pass-band-low",		required_argument,	NULL,	'I'},
+		{"pass-band-high",		required_argument,	NULL,	'J'},
+		{"down-sample-to",		required_argument,	NULL,	'K'},
+		{"help",			no_argument,		NULL,	'h'},
 		{NULL,	0,	NULL,	0}
 	};
 	struct options *options = command_line_options_new();
