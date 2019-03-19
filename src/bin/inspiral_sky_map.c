@@ -30,29 +30,22 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h>
-#include <time.h>
 #include <getopt.h>
 #include <fftw3.h>
 #include <gsl/gsl_math.h>
-#include <gsl/gsl_rng.h>
 #include <radiometer/instrument.h>
 #include <radiometer/sh_series.h>
-#include <radiometer/inject.h>
 #include <radiometer/correlator.h>
 #include <diagnostics.h>
 #include <instruments.h>
 
-#include <lal/BandPassTimeSeries.h>
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
 #include <lal/LALCache.h>
 #include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimulation.h>
-#include <lal/ResampleTimeSeries.h>
 #include <lal/TimeSeries.h>
-#include <lal/LALError.h>
 #include <lal/XLALError.h>
 #include <lal/Units.h>
 #include <lal/Window.h>
@@ -68,15 +61,13 @@
 
 
 struct options {
-	struct instrument *instruments[3];
-	const LALDetector *detectors[3];	/* FIXME: merge with instruments[] */
+	struct instrument *instruments[2];
+	const LALDetector *detectors[2];	/* FIXME: merge with instruments[] */
 	int n_instruments;
 	char *data1_cache_name;
 	char *data1_channel_name;
 	char *data2_cache_name;
 	char *data2_channel_name;
-	char *data3_cache_name;
-	char *data3_channel_name;
 	LIGOTimeGPS analysis_start;
 	double analysis_duration;
 	double integration_duration;
@@ -99,14 +90,12 @@ static struct options *command_line_options_new(void)
 		.instruments = {
 			NULL,
 			NULL,
-			NULL,
 		},
 		.detectors = {
 			NULL,
 			NULL,
-			NULL,
 		},
-		.n_instruments = 3,
+		.n_instruments = 2,
 		.data1_cache_name = NULL,
 		.data1_channel_name = NULL,
 		.data2_cache_name = NULL,
@@ -128,10 +117,6 @@ static struct options *command_line_options_new(void)
 static struct options *command_line_set_instrument(struct options *options, int n, const char *name)
 {
 	char instrument_name[3] = {name[0], name[1], '\0'};
-
-	/* correct VIRGO's name appearing in CBC channel names */
-	if(!strcmp(instrument_name, "V1"))
-		instrument_name[1] = '2';
 
 	options->detectors[n] = XLALDetectorPrefixToLALDetector(instrument_name);
 	options->instruments[n] = instrument_from_LALDetector(options->detectors[n]);
@@ -176,8 +161,6 @@ struct options *command_line_parse(int argc, char *argv[])
 		{"data1-channel-name",	required_argument,	NULL,	'B'},
 		{"data2-cache-name",	required_argument,	NULL,	'a'},
 		{"data2-channel-name",	required_argument,	NULL,	'b'},
-		{"data3-cache-name",	required_argument,	NULL,	'C'},
-		{"data3-channel-name",	required_argument,	NULL,	'c'},
 		{"analysis-start-gps",	required_argument,	NULL,	'E'},
 		{"analysis-duration",	required_argument,	NULL,	'F'},
 		{"integration-duration",	required_argument,	NULL,	'G'},
@@ -212,17 +195,6 @@ struct options *command_line_parse(int argc, char *argv[])
 	case 'b':
 		command_line_set_instrument(options, 1, optarg);
 		options->data2_channel_name = optarg;
-		break;
-
-	/* data3-cache-name */
-	case 'C':
-		options->data3_cache_name = optarg;
-		break;
-
-	/* data3-channel-name */
-	case 'c':
-		command_line_set_instrument(options, 2, optarg);
-		options->data3_channel_name = optarg;
 		break;
 
 	/* analysis-start-gps */
@@ -290,45 +262,7 @@ struct options *command_line_parse(int argc, char *argv[])
  */
 
 
-static REAL8TimeSeries *get_real8series_from_txt(
-	const char *filename,
-	const char *channel_name,
-	LIGOTimeGPS start,
-	double duration
-)
-{
-	FILE *f;
-	REAL8TimeSeries *series;
-	int i;
-	int column;
-
-	if(!strncmp(channel_name, "H1", 2)) {
-		column = 1;
-	} else if(!strncmp(channel_name, "L1", 2)) {
-		column = 3;
-	} else if(!strncmp(channel_name, "V1", 2)) {
-		column = 5;
-	} else
-		return NULL;
-
-	f = fopen(filename, "r");
-
-	series = XLALCreateREAL8TimeSeries(channel_name, &start, 0.0, 1.0 / 2048, &lalDimensionlessUnit, 1.0 * 2048);
-
-	for(i = 0; i < series->data->length; i++) {
-		double values[7];
-		fscanf(f, "%lg %lg %lg %lg %lg %lg %lg", &values[0], &values[1], &values[2], &values[3], &values[4], &values[5], &values[6]);
-
-		series->data->data[i] = cabs(values[column] + I * values[column + 1]);
-	}
-
-	fclose(f);
-
-	return series;
-}
-
-
-static REAL8TimeSeries *get_real8series_from_cache(
+static COMPLEX8TimeSeries *get_complex8series_from_cache(
 	const char *cache_name,
 	const char *channel_name,
 	LIGOTimeGPS start,
@@ -337,9 +271,7 @@ static REAL8TimeSeries *get_real8series_from_cache(
 {
 	LALCache *cache;
 	LALFrStream *stream;
-	REAL8TimeSeries *data;
-	COMPLEX8TimeSeries *indata;
-	unsigned i;
+	COMPLEX8TimeSeries *data;
 	int gap;
 
 	/* construct stream */
@@ -355,73 +287,23 @@ static REAL8TimeSeries *get_real8series_from_cache(
 	stream->mode = LAL_FR_STREAM_VERBOSE_MODE;
 
 	/* get data */
-#if 0
-	indata = XLALFrReadCOMPLEX8TimeSeries(stream, channel_name, &start, duration, 0);
-#else
-	indata = XLALCreateCOMPLEX8TimeSeries(channel_name, &start, 0.0, 1.0 / 4096, &lalDimensionlessUnit, 1.0 * 4096);
-	XLALFrStreamGetCOMPLEX8TimeSeries(indata, stream);
-	indata->epoch = start;
-#endif
+	data = XLALFrStreamReadCOMPLEX8TimeSeries(stream, channel_name, &start, duration, 0);
 
 	/* check for gaps and close */
 	gap = stream->state & LAL_FR_STREAM_GAP;
 	XLALFrStreamClose(stream);
 
 	/* error checking */
-	if(!indata)
+	if(!data)
 		XLAL_ERROR_NULL(XLAL_EFUNC);
 	if(gap) {
-		XLALDestroyCOMPLEX8TimeSeries(indata);
+		XLALDestroyCOMPLEX8TimeSeries(data);
 		XLALPrintError("error: gap detected in input data");
 		XLAL_ERROR_NULL(XLAL_EDATA);
 	}
 
-	/* copy magnitude time series */
-	data = XLALCreateREAL8TimeSeries(indata->name, &indata->epoch, indata->f0, indata->deltaT, &indata->sampleUnits, indata->data->length);
-	if(!data) {
-		XLALDestroyCOMPLEX8TimeSeries(indata);
-		XLAL_ERROR_NULL(XLAL_EFUNC);
-	}
-	for(i = 0; i < indata->data->length; i++)
-		data->data->data[i] = cabsf(indata->data->data[i]);
-	XLALDestroyCOMPLEX8TimeSeries(indata);
-
 	/* done */
 	return data;
-}
-
-
-/*
- * ============================================================================
- *
- *                             Data Conditioning
- *
- * ============================================================================
- */
-
-
-static REAL8TimeSeries *condition_time_series(
-	REAL8TimeSeries *series,
-	double flow,
-	double fhigh,
-	double sample_rate
-)
-{
-	double new_deltaT = sample_rate > 0 ? 1.0 / sample_rate : series->deltaT;
-
-	if(flow > 0)
-		if(XLALHighPassREAL8TimeSeries(series, flow, .9, 6))
-			XLAL_ERROR_NULL(XLAL_EFUNC);
-
-	if(fhigh > 0)
-		if(XLALLowPassREAL8TimeSeries(series, fhigh, .9, 6))
-			XLAL_ERROR_NULL(XLAL_EFUNC);
-
-	if(fabs(new_deltaT - series->deltaT) / series->deltaT >= 1e-2)
-		if(XLALResampleREAL8TimeSeries(series, new_deltaT))
-			XLAL_ERROR_NULL(XLAL_EFUNC);
-
-	return series;
 }
 
 
@@ -451,21 +333,17 @@ static double gmst_from_epoch_and_offset(LIGOTimeGPS epoch, double offset)
 
 int main(int argc, char *argv[])
 {
-	gsl_rng *rng;
 	struct options *options;
-	REAL8TimeSeries *series[3];
+	COMPLEX8TimeSeries *series[2];
 	struct correlator_network_baselines *baselines;
 	double *tseries;
 	REAL8Window *window;
-	complex double *fseries[3];
-	fftw_plan fftplans[3];
+	complex double *fseries[2];
+	fftw_plan fftplans[2];
 	struct correlator_network_plan_fd *fdplans;
 	int sky_l_max;
 	struct sh_series *sky;
-	double gmst;
-	int start_sample;
 	int k;
-	struct timeval t_start, t_end;
 
 
 	/*
@@ -477,42 +355,21 @@ int main(int argc, char *argv[])
 
 
 	/*
-	 * Initialize the random number generator.
-	 */
-
-
-	rng = gsl_rng_alloc(gsl_rng_ranlxd1);
-	gsl_rng_set(rng, time(NULL));
-
-
-	/*
 	 * Load time series data.
 	 */
 
 
-/*
-	series[0] = get_real8series_from_cache(options->data1_cache_name, options->data1_channel_name, options->analysis_start, options->analysis_duration);
-	series[1] = get_real8series_from_cache(options->data2_cache_name, options->data2_channel_name, options->analysis_start, options->analysis_duration);
-	series[2] = get_real8series_from_cache(options->data3_cache_name, options->data3_channel_name, options->analysis_start, options->analysis_duration);
-*/
-	series[0] = get_real8series_from_txt("TestInjection1.txt", options->data1_channel_name, options->analysis_start, options->analysis_duration);
-	series[1] = get_real8series_from_txt("TestInjection1.txt", options->data2_channel_name, options->analysis_start, options->analysis_duration);
-	series[2] = get_real8series_from_txt("TestInjection1.txt", options->data3_channel_name, options->analysis_start, options->analysis_duration);
+	series[0] = get_complex8series_from_cache(options->data1_cache_name, options->data1_channel_name, options->analysis_start, options->analysis_duration);
+	series[1] = get_complex8series_from_cache(options->data2_cache_name, options->data2_channel_name, options->analysis_start, options->analysis_duration);
 
-	if(!series[0] || !series[1] || !series[2]) {
+	if(!series[0] || !series[1]) {
 		XLALPrintError("failure loading data\n");
 		exit(1);
 	}
-	if(series[0]->deltaT != series[1]->deltaT || series[0]->deltaT != series[2]->deltaT) {
-		fprintf(stderr, "sample frequency mismatch\n");
+	if(series[0]->deltaT != series[1]->deltaT) {
+		fprintf(stderr, "sample rate mismatch\n");
 		exit(1);
 	}
-
-/*
-	series[0] = condition_time_series(series[0], -1, -1, 1024);
-	series[1] = condition_time_series(series[1], -1, -1, 1024);
-	series[2] = condition_time_series(series[2], -1, -1, 1024);
-*/
 
 	window = XLALCreateRectangularREAL8Window(options->integration_duration / series[0]->deltaT);
 	if(window->data->length * series[0]->deltaT != options->integration_duration) {
@@ -523,11 +380,9 @@ int main(int argc, char *argv[])
 	tseries = malloc(window->data->length * sizeof(*tseries));
 	fseries[0] = malloc(window->data->length * sizeof(**fseries));
 	fseries[1] = malloc(window->data->length * sizeof(**fseries));
-	fseries[2] = malloc(window->data->length * sizeof(**fseries));
 
 	fftplans[0] = correlator_tseries_to_fseries_plan(tseries, fseries[0], window->data->length);
 	fftplans[1] = correlator_tseries_to_fseries_plan(tseries, fseries[1], window->data->length);
-	fftplans[2] = correlator_tseries_to_fseries_plan(tseries, fseries[2], window->data->length);
 
 
 	/*
@@ -539,62 +394,6 @@ int main(int argc, char *argv[])
 	fdplans = correlator_network_plan_fd_new(baselines, window->data->length, series[0]->deltaT);
 	sky_l_max = correlator_network_l_max(baselines, series[0]->deltaT);
 	sky = sh_series_new_zero(sky_l_max, 0);
-
-
-	/*
-	 * Loop over integration chunk.
-	 */
-
-
-	fprintf(stderr, "starting integration\n");
-	gettimeofday(&t_start, NULL);
-	for(start_sample = 0; start_sample + window->data->length <= series[0]->data->length; start_sample += window->data->length * options->integration_shift) {
-		char filename[128];
-
-		/*
-		 * Extract the data to integrate.
-		 */
-
-
-		fprintf(stderr, "\t[%.3f s, %.3f s)\n", start_sample * series[0]->deltaT, (start_sample + window->data->length) * series[0]->deltaT);
-		for(k = 0; k < options->n_instruments; k++) {
-			unsigned j;
-			memcpy(tseries, &series[k]->data->data[start_sample], window->data->length * sizeof(*tseries));
-			for(j = 0; j < window->data->length; j++)
-				tseries[j] *= window->data->data[j] * sqrt(window->data->length / window->sumofsquares);
-			correlator_tseries_to_fseries(tseries, fseries[k], window->data->length, fftplans[k]);
-		}
-
-
-		/*
-		 * Compute angular distribution of integrated cross power.
-		 */
-
-
-		correlator_network_integrate_power_fd(sky, fseries, fdplans);
-
-		/*
-		 * Rotate sky.
-		 */
-
-
-		gmst = gmst_from_epoch_and_offset(options->analysis_start, start_sample * series[0]->deltaT);
-		sh_series_rotate_z(sky, sky, gmst);
-
-
-		/*
-		 * Output.
-		 */
-
-		sprintf(filename, "%s_%020.17f.dat", options->output_name, gmst);
-		diagnostics_dump_sh_series(sky, filename);
-	}
-	gettimeofday(&t_end, NULL);
-	fprintf(stderr, "finished integration\n");
-
-	fprintf(stderr, "analyzed %g s of data in %g s chunks, overlapping %g%%, in %g s\n", series[0]->data->length * series[0]->deltaT, window->data->length * series[0]->deltaT, 100 * (1 - options->integration_shift), (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
-	fprintf(stderr, "data sample rate was %g Hz\n", 1.0 / series[0]->deltaT);
-	fprintf(stderr, "sky was computed to harmonic order l = %d\n", sky->l_max);
 
 
 	/*
@@ -611,7 +410,6 @@ int main(int argc, char *argv[])
 	correlator_network_baselines_free(baselines);
 	sh_series_free(sky);
 	command_line_options_free(options);
-	gsl_rng_free(rng);
 
 	return 0;
 }
