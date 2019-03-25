@@ -49,6 +49,15 @@
 
 struct instrument {
 	gsl_vector *phase_centre;
+	/*
+	 * user data.  not used by the sphradiometer library.  if freefunc
+	 * is not NULL it will be called with data as the one argument when
+	 * the instrument object is free()ed, otherwise the memory at the
+	 * location pointed to by data will not be free()ed when the
+	 * instrument object is free()ed.
+	 */
+	void *data;
+	void (*freefunc)(void *);
 };
 
 
@@ -75,7 +84,7 @@ double vector_r_dot_s(const gsl_vector *, double, double);
 void vector_direction(const gsl_vector *, double *, double *);
 
 
-struct instrument *instrument_new(double, double, double);
+struct instrument *instrument_new(double, double, double, void *, void (*)(void *));
 void instrument_free(struct instrument *);
 
 

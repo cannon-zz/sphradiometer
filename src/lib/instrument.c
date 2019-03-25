@@ -110,7 +110,7 @@ void vector_direction(const gsl_vector *v, double *theta, double *phi)
  */
 
 
-struct instrument *instrument_new(double x, double y, double z)
+struct instrument *instrument_new(double x, double y, double z, void *data, void (*freefunc)(void *))
 {
 	struct instrument *new = malloc(sizeof(*new));
 	gsl_vector *phase_centre = gsl_vector_alloc(3);
@@ -126,6 +126,8 @@ struct instrument *instrument_new(double x, double y, double z)
 	gsl_vector_set(phase_centre, 2, z);
 
 	new->phase_centre = phase_centre;
+	new->data = data;
+	new->freefunc = freefunc;
 
 	return new;
 }
@@ -133,8 +135,11 @@ struct instrument *instrument_new(double x, double y, double z)
 
 void instrument_free(struct instrument *instrument)
 {
-	if(instrument)
+	if(instrument) {
 		gsl_vector_free(instrument->phase_centre);
+		if(instrument->freefunc)
+			instrument->freefunc(instrument->data);
+	}
 	free(instrument);
 }
 

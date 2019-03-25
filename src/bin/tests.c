@@ -527,8 +527,8 @@ int main(int argc, char *argv[])
 	gsl_rng *rng = gsl_rng_alloc(gsl_rng_ranlxd1);
 
 	struct instrument *instruments[] = {
-		instrument_from_r_theta_phi(+0.005, M_PI_2, 0),
-		instrument_from_r_theta_phi(-0.005, M_PI_2, 0)
+		instrument_from_r_theta_phi(+0.005, M_PI_2, 0, NULL, NULL),
+		instrument_from_r_theta_phi(-0.005, M_PI_2, 0, NULL, NULL)
 	};
 	int n_instruments = sizeof(instruments) / sizeof(*instruments);
 

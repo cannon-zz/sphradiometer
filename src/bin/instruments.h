@@ -43,7 +43,7 @@
  */
 
 
-struct instrument *instrument_from_r_theta_phi(double, double, double);
+struct instrument *instrument_from_r_theta_phi(double, double, double, void *, void (*)(void *));
 struct instrument *instrument_from_LALDetector(const LALDetector *);
 struct instrument *instrument_from_name(const char *);
 

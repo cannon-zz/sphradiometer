@@ -45,12 +45,14 @@
  */
 
 
-struct instrument *instrument_from_r_theta_phi(double r, double theta, double phi)
+struct instrument *instrument_from_r_theta_phi(double r, double theta, double phi, void *data, void (*freefunc)(void *))
 {
 	return instrument_new(
 		r * sin(theta) * cos(phi),
 		r * sin(theta) * sin(phi),
-		r * cos(theta)
+		r * cos(theta),
+		data,
+		freefunc
 	);
 }
 
@@ -60,7 +62,9 @@ struct instrument *instrument_from_LALDetector(const LALDetector *det)
 	return instrument_new(
 		det->location[0] / GSL_CONST_MKS_SPEED_OF_LIGHT,
 		det->location[1] / GSL_CONST_MKS_SPEED_OF_LIGHT,
-		det->location[2] / GSL_CONST_MKS_SPEED_OF_LIGHT
+		det->location[2] / GSL_CONST_MKS_SPEED_OF_LIGHT,
+		det,
+		NULL
 	);
 }
 
