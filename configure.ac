@@ -15,7 +15,7 @@ AC_CONFIG_FILES([ \
 	src/lib/sphradiometer.pc \
 	src/python/Makefile \
 	src/bin/Makefile \
-	src/test/Makefile
+	test/Makefile
 ])
 
 # set pkg-config module path
