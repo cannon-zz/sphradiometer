@@ -62,7 +62,6 @@
 
 struct options {
 	struct instrument *instruments[2];
-	const LALDetector *detectors[2];	/* FIXME: merge with instruments[] */
 	int n_instruments;
 	char *data1_cache_name;
 	char *data1_channel_name;
@@ -91,10 +90,6 @@ static struct options *command_line_options_new(void)
 			NULL,
 			NULL,
 		},
-		.detectors = {
-			NULL,
-			NULL,
-		},
 		.n_instruments = 2,
 		.data1_cache_name = NULL,
 		.data1_channel_name = NULL,
@@ -118,8 +113,7 @@ static struct options *command_line_set_instrument(struct options *options, int 
 {
 	char instrument_name[3] = {name[0], name[1], '\0'};
 
-	options->detectors[n] = XLALDetectorPrefixToLALDetector(instrument_name);
-	options->instruments[n] = instrument_from_LALDetector(options->detectors[n]);
+	options->instruments[n] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector(instrument_name));
 
 	return options;
 }
@@ -325,6 +319,127 @@ static double gmst_from_epoch_and_offset(LIGOTimeGPS epoch, double offset)
 /*
  * ============================================================================
  *
+ *                             Projection for antenna
+ *
+ * ============================================================================
+ */
+
+
+/* if normalization is needed, set polarization = 1.
+ * if it is NOT needed, set polarization = 0. */
+static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, double theta, double phi, int normalization)
+{
+	double twopsi;
+	double normplus2;
+	double normcross2;
+	double product;
+	int i;
+
+	// store fp, fc
+	for(i = 0; i < n; i++)
+		XLALComputeDetAMResponse(&fplus[i], &fcross[i], det[i]->response, phi, M_PI_2 - theta, 0.0, 0.0);
+
+	// dominant polarization angle
+	normplus2 = normcross2 = product = 0.0;
+	for(i = 0; i < n; i++){
+		normplus2 += fplus[i] * fplus[i];
+		normcross2 += fcross[i] * fcross[i];
+		product += fplus[i] * fcross[i];
+	}
+	twopsi = atan(2.0 * product / (normplus2 - normcross2)) / 2.;
+
+	// normalization if necessary
+	if(normalization)
+		for(i = 0; i < n; i++){
+			fplus[i] /= sqrt(normplus2);
+			fcross[i] /= sqrt(normcross2);
+		}
+
+	// set fp, fc
+	for(i = 0; i < n; i++){
+		double temp = cos(twopsi) * fplus[i] + sin(twopsi) * fcross[i];
+		fcross[i] = -sin(twopsi) * fplus[i] + cos(twopsi) * fcross[i];
+		fplus[i] = temp;
+	}
+}
+
+
+static double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
+{
+	double fplus[n], fcross[n];
+
+	FDP(fplus, fcross, det, n, theta, phi, 1);
+	return fplus[i] * fplus[j] + fcross[i] * fcross[j];
+}
+
+
+struct ProjectionMatrixWrapperData {
+	int i, j;
+	const LALDetector **det;
+	int n;
+};
+
+static double ProjectionMatrixWrapper(double theta, double phi, void *_data)
+{
+	struct ProjectionMatrixWrapperData *data = _data;
+
+	return ProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n);
+}
+
+
+static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct correlator_plan_fd *plan, const struct sh_series *projection)
+{
+	struct sh_series *result;
+	struct sh_series_product_plan *product_plan;
+	int i;
+
+	result = sh_series_new(plan->delay_product->l_max, 0);
+	if(!result)
+		return NULL;
+	product_plan = sh_series_product_plan_new(result, &plan->delay_product->series[0], projection);
+	if(!product_plan) {
+		sh_series_free(result);
+		return NULL;
+	}
+
+	for(i = 0; i < plan->delay_product->n; i++) {
+		sh_series_product(result, &plan->delay_product->series[i], projection, product_plan);
+		sh_series_assign(&plan->delay_product->series[i], result);
+	}
+
+	sh_series_product_plan_free(product_plan);
+	sh_series_free(result);
+
+	return plan;
+}
+
+
+static struct correlator_network_plan_fd *correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
+{
+	int n = plan->baselines->n_instruments;
+	int i, j;
+	LALDetector **det = NULL; /* FIXME:  get array of detectors somehow */
+
+	for(i = 1; i < n; i++)
+		for(j = 0; j < i; j++) {
+			struct sh_series *projection = sh_series_new(8, 0);
+			struct ProjectionMatrixWrapperData data = {
+				.i = i,
+				.j = j,
+				.det = det,
+				.n = n
+			};
+
+			sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data);
+
+			sh_series_free(projection);
+	}
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Entry Point
  *
  * ============================================================================
@@ -344,6 +459,11 @@ int main(int argc, char *argv[])
 	int sky_l_max;
 	struct sh_series *sky;
 	int k;
+	struct timeval t_start, t_end;
+	int start_sample, time_series_length;
+	double gmst;
+	const LALDetector det[2];
+	int i;
 
 
 	/*
@@ -386,7 +506,7 @@ int main(int argc, char *argv[])
 
 
 	/*
-	 * Construct the correlator.
+	 * prepare correlator
 	 */
 
 
@@ -394,6 +514,56 @@ int main(int argc, char *argv[])
 	fdplans = correlator_network_plan_fd_new(baselines, window->data->length, series[0]->deltaT);
 	sky_l_max = correlator_network_l_max(baselines, series[0]->deltaT);
 	sky = sh_series_new_zero(sky_l_max, 0);
+
+
+	/*
+	 * Loop over integration chunk.
+	 */
+
+
+	fprintf(stderr, "starting integration\n");
+	gettimeofday(&t_start, NULL);
+	for(start_sample = 0; start_sample + time_series_length <= series[0]->data->length; start_sample += time_series_length / 2) {
+		/*
+		 * Extract the data to integrate.
+		 */
+
+
+		fprintf(stderr, "\t[%.3f s, %.3f s)\n", start_sample * series[0]->deltaT, (start_sample + time_series_length) * series[0]->deltaT);
+		for(k = 0; k < options->n_instruments; k++) {
+			memcpy(tseries, &series[k]->data->data[start_sample], time_series_length * sizeof(*tseries));
+			correlator_tseries_to_fseries(tseries, fseries[k], time_series_length, fftplans[k]);
+		}
+
+
+		/*
+		 * Compute angular distribution of integrated cross power.
+		 */
+
+		correlator_network_integrate_power_fd(sky, fseries, fdplans);
+
+		/*
+		 * Rotate sky.
+		 */
+
+
+		gmst = gmst_from_epoch_and_offset(options->analysis_start, start_sample * series[0]->deltaT);
+		sh_series_rotate_z(sky, sky, gmst);
+
+
+		/*
+		 * Output.
+		 */
+
+
+		/* FIXME: should probably do something here */
+	}
+	gettimeofday(&t_end, NULL);
+	fprintf(stderr, "finished integration\n");
+
+	fprintf(stderr, "analyzed %g s of data in %g s chunks, overlapping 50%%, in %g s\n", series[0]->data->length * series[0]->deltaT, time_series_length * series[0]->deltaT, (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
+	fprintf(stderr, "data sample rate was %g Hz\n", 1.0 / series[0]->deltaT);
+	fprintf(stderr, "sky was computed to harmonic order l = %d\n", sky->l_max);
 
 
 	/*
