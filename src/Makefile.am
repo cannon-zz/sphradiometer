@@ -1,2 +1,1 @@
-SUBDIRS = include lib bin test
-#SUBDIRS += python
+SUBDIRS = include lib python bin test
