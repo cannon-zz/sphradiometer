@@ -33,9 +33,9 @@
 #include <getopt.h>
 #include <fftw3.h>
 #include <gsl/gsl_math.h>
-#include <radiometer/instrument.h>
-#include <radiometer/sh_series.h>
-#include <radiometer/correlator.h>
+#include <sphradiometer/instrument.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/correlator.h>
 #include <diagnostics.h>
 #include <instruments.h>
 

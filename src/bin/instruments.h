@@ -30,7 +30,7 @@
  */
 
 
-#include <radiometer/instrument.h>
+#include <sphradiometer/instrument.h>
 #include <lal/LALDetectors.h>
 
 

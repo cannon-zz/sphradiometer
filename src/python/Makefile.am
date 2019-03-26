@@ -1,20 +1,23 @@
-# fscking automake barfs unless a .so is named lib* so this all has to be
-# done BY HAND
-
 AM_CPPFLAGS = -I../include
 
-EXTRA_DIST = radiometer.swig
+# This is a trick taken from the gst-python automake setup.
+# All of the Python scripts will be installed under the exec dir,
+# which prevents the module from getting spread across lib and lib64
+# on e.g. CentOS.
+pkgpythondir = $(pkgpyexecdir)
 
-BUILT_SOURCES = radiometer_wrap.c
+EXTRA_DIST = sphradiometer.swig
 
-pkgpython_PYTHON = __init__.py ioutils.py plotutils.py radiometer.py
-pkgpyexec_LTLIBRARIES = _radiometer.la
+BUILT_SOURCES = sphradiometer.py sphradiometer_wrap.c
 
-_radiometer_la_SOURCES = radiometer_wrap.c
-_radiometer_la_CPPFLAGS = $(AM_CPPFLAGS) $(PYTHON_CPPFLAGS) $(AX_SWIG_PYTHON_CPPFLAGS)
-_radiometer_la_CFLAGS = $(AM_CFLAGS) $(PYTHON_CFLAGS) $(AX_SWIG_PYTHON_CFLAGS) $(TCL_CFLAGS)
-_radiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS) $(TCL_LIBS)
-_radiometer_la_LIBADD = ../lib/libradiometer.la
+pkgpython_PYTHON = __init__.py ioutils.py plotutils.py sphradiometer.py
+pkgpyexec_LTLIBRARIES = _sphradiometer.la
 
-radiometer.py radiometer_wrap.c : radiometer.swig ../include/radiometer/*.h
+_sphradiometer_la_SOURCES = sphradiometer_wrap.c
+_sphradiometer_la_CPPFLAGS = $(AM_CPPFLAGS) $(PYTHON_CPPFLAGS) $(AX_SWIG_PYTHON_CPPFLAGS)
+_sphradiometer_la_CFLAGS = $(AM_CFLAGS) $(PYTHON_CFLAGS) $(AX_SWIG_PYTHON_CFLAGS) $(TCL_CFLAGS)
+_sphradiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS) $(TCL_LIBS)
+_sphradiometer_la_LIBADD = ../lib/libsphradiometer.la
+
+sphradiometer.py sphradiometer_wrap.c : sphradiometer.swig ../include/sphradiometer/*.h
 	$(SWIG) $(AX_SWIG_PYTHON_OPT) -I$(SWIG_LIB)/python $(AM_CPPFLAGS) $<

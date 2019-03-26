@@ -17,22 +17,22 @@
  */
 
 
-%module radiometer
+%module sphradiometer
 %include ccomplex.i
 %{
-#include <radiometer/sh_series.h>
-#include <radiometer/instrument.h>
-#include <radiometer/inject.h>
-#include <radiometer/projection.h>
-#include <radiometer/correlator.h>
-#include <radiometer/sky.h>
-#include <radiometer/deconvolution.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/instrument.h>
+#include <sphradiometer/inject.h>
+#include <sphradiometer/projection.h>
+#include <sphradiometer/correlator.h>
+#include <sphradiometer/sky.h>
+#include <sphradiometer/deconvolution.h>
 %}
 
-%include <radiometer/sh_series.h>
-%include <radiometer/instrument.h>
-%include <radiometer/inject.h>
-%include <radiometer/projection.h>
-%include <radiometer/correlator.h>
-%include <radiometer/sky.h>
-%include <radiometer/deconvolution.h>
+%include <sphradiometer/sh_series.h>
+%include <sphradiometer/instrument.h>
+%include <sphradiometer/inject.h>
+%include <sphradiometer/projection.h>
+%include <sphradiometer/correlator.h>
+%include <sphradiometer/sky.h>
+%include <sphradiometer/deconvolution.h>

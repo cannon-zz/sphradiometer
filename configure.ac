@@ -1,4 +1,4 @@
-AC_INIT([radiometer],[0.3.0],[kipp@gravity.phys.uwm.edu])
+AC_INIT([sphradiometer],[0.3.0],[kipp@gravity.phys.uwm.edu])
 AC_COPYRIGHT([Copyright (C) 2009 Kipp C. Cannon])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([gnuscripts])
@@ -10,9 +10,9 @@ AC_CONFIG_FILES([ \
 	debian/Makefile \
 	src/Makefile \
 	src/include/Makefile \
-	src/include/radiometer/Makefile \
+	src/include/sphradiometer/Makefile \
 	src/lib/Makefile \
-	src/lib/radiometer.pc \
+	src/lib/sphradiometer.pc \
 	src/python/Makefile \
 	src/bin/Makefile \
 	src/test/Makefile

@@ -33,9 +33,9 @@
 #include <fftw3.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
-#include <radiometer/instrument.h>
-#include <radiometer/projection.h>
-#include <radiometer/correlator.h>
+#include <sphradiometer/instrument.h>
+#include <sphradiometer/projection.h>
+#include <sphradiometer/correlator.h>
 
 
 /*

@@ -32,9 +32,9 @@
 #include <string.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
-#include <radiometer/instrument.h>
-#include <radiometer/projection.h>
-#include <radiometer/sh_series.h>
+#include <sphradiometer/instrument.h>
+#include <sphradiometer/projection.h>
+#include <sphradiometer/sh_series.h>
 
 
 /*

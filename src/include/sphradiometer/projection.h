@@ -17,8 +17,8 @@
  */
 
 
-#ifndef __RADIOMETER_DECONVOLUTION_H__
-#define __RADIOMETER_DECONVOLUTION_H__
+#ifndef __RADIOMETER_PROJECTION_H__
+#define __RADIOMETER_PROJECTION_H__
 
 
 /*
@@ -30,7 +30,10 @@
  */
 
 
-#include <radiometer/sh_series.h>
+#include <complex.h>
+#include <stdio.h>
+#include <gsl/gsl_vector.h>
+#include <sphradiometer/sh_series.h>
 
 
 /*
@@ -40,6 +43,19 @@
  *
  * ============================================================================
  */
+
+
+/*
+ * Aggregate data passed to delay function while projecting onto spherical
+ * harmonics.
+ */
+
+
+struct projection_delay_element_data {
+	const gsl_vector *r;
+	double delta_t;
+	int j, k;
+};
 
 
 /*
@@ -60,7 +76,16 @@
  */
 
 
-complex double *sh_series_array_orthogonalize(struct sh_series_array *);
+int projection_matrix_n_elements(double , double);
+unsigned int projection_matrix_l_max(double, double);
 
 
-#endif  /* __RADIOMETER_DECONVOLUTION_H__ */
+int projection_matrix_write(const struct sh_series_array *, FILE *);
+struct sh_series_array *projection_matrix_read(FILE *file);
+
+
+double projection_delay_element(double, double, void *);
+struct sh_series_array *projection_matrix_delay(unsigned int, unsigned int, const gsl_vector *, double);
+
+
+#endif  /* __RADIOMETER_PROJECTION_H__ */

@@ -3,9 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libradiometer
+Name: libsphradiometer
 Description: Full-Sky Synthesis Imaging Library
 Version: @VERSION@
 Requires: fftw3 gsl
-Libs: -L${libdir} -lradiometer
+Libs: -L${libdir} -lsphradiometer
 Cflags: -I${includedir}

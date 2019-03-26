@@ -1,1 +1,1 @@
-SUBDIRS = radiometer
+SUBDIRS = sphradiometer

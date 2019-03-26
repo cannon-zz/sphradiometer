@@ -31,8 +31,8 @@
 
 
 #include <fftw3.h>
-#include <radiometer/instrument.h>
-#include <radiometer/sh_series.h>
+#include <sphradiometer/instrument.h>
+#include <sphradiometer/sh_series.h>
 
 
 /*

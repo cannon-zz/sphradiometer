@@ -31,7 +31,7 @@
 
 
 #include <gsl/gsl_rng.h>
-#include <radiometer/instrument.h>
+#include <sphradiometer/instrument.h>
 
 
 /*

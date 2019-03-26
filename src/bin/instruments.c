@@ -30,7 +30,7 @@
 #include <math.h>
 #include <string.h>
 #include <gsl/gsl_const.h>
-#include <radiometer/instrument.h>
+#include <sphradiometer/instrument.h>
 #include <lal/LALDetectors.h>
 #include <lal/LALSimulation.h>
 #include <instruments.h>

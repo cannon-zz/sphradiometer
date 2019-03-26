@@ -47,8 +47,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <radiometer/sh_series.h>
-#include <radiometer/sky.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/sky.h>
 
 
 /*

@@ -29,7 +29,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <gsl/gsl_math.h>
-#include <radiometer/sky.h>
+#include <sphradiometer/sky.h>
 
 
 /*

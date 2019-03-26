@@ -31,8 +31,8 @@
 
 
 #include <stdio.h>
-#include <radiometer/sh_series.h>
-#include <radiometer/correlator.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/correlator.h>
 
 
 /*

@@ -32,8 +32,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <lapacke.h>
-#include <radiometer/sh_series.h>
-#include <radiometer/deconvolution.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/deconvolution.h>
 
 
 /*

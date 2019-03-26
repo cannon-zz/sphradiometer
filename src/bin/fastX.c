@@ -36,10 +36,10 @@
 #include <fftw3.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
-#include <radiometer/instrument.h>
-#include <radiometer/sh_series.h>
-#include <radiometer/inject.h>
-#include <radiometer/correlator.h>
+#include <sphradiometer/instrument.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/inject.h>
+#include <sphradiometer/correlator.h>
 #include <instruments.h>
 
 #include <lal/BandPassTimeSeries.h>

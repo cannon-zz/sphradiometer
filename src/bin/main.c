@@ -36,10 +36,10 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_vector.h>
-#include <radiometer/instrument.h>
-#include <radiometer/sh_series.h>
-#include <radiometer/inject.h>
-#include <radiometer/correlator.h>
+#include <sphradiometer/instrument.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/inject.h>
+#include <sphradiometer/correlator.h>
 #include <diagnostics.h>
 #include <instruments.h>
 

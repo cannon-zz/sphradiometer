@@ -25,7 +25,7 @@ src/bin/fastX
 src/bin/inspiral_sky_map
 src/bin/radiometer
 src/bin/tests
-src/lib/radiometer.pc
-src/python/radiometer.py
-src/python/radiometer_wrap.c
+src/lib/sphradiometer.pc
+src/python/sphradiometer.py
+src/python/sphradiometer_wrap.c
 stamp-h1

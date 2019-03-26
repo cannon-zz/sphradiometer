@@ -29,8 +29,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <gsl/gsl_math.h>
-#include <radiometer/sh_series.h>
-#include <radiometer/correlator.h>
+#include <sphradiometer/sh_series.h>
+#include <sphradiometer/correlator.h>
 #include <diagnostics.h>
 
 

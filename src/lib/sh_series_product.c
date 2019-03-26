@@ -60,7 +60,7 @@
 #include <string.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_coupling.h>
-#include <radiometer/sh_series.h>
+#include <sphradiometer/sh_series.h>
 
 
 /*
