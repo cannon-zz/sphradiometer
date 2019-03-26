@@ -416,23 +416,20 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 
 static struct correlator_network_plan_fd *correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
 {
-	int n = plan->baselines->n_instruments;
-	int i, j;
+	int i;
 	LALDetector **det = NULL; /* FIXME:  get array of detectors somehow */
 
-	for(i = 1; i < n; i++)
-		for(j = 0; j < i; j++) {
-			struct sh_series *projection = sh_series_new(8, 0);
-			struct ProjectionMatrixWrapperData data = {
-				.i = i,
-				.j = j,
-				.det = det,
-				.n = n
-			};
-
-			sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data);
-
-			sh_series_free(projection);
+	for(i = 0; i < plan->baselines->n_baselines; i++) {
+		struct sh_series *projection = sh_series_new(8, 0);
+		struct ProjectionMatrixWrapperData data = {
+			.i = plan->baselines->baselines[i]->index_a,
+			.j = plan->baselines->baselines[i]->index_b,
+			.det = det,
+			.n = plan->baselines->n_instruments
+		};
+		sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data);
+		correlator_plan_mult_by_projection(plan->plans[i], projection);
+		sh_series_free(projection);
 	}
 }
 
