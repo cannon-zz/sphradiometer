@@ -122,9 +122,10 @@ struct correlator_plan_fd {
 
 
 struct correlator_network_baselines {
+	const struct instrument **instruments;
 	int n_instruments;
-	int n_baselines;
 	struct correlator_baseline **baselines;
+	int n_baselines;
 };
 
 

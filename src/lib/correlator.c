@@ -642,9 +642,10 @@ struct correlator_network_baselines *correlator_network_baselines_new(const stru
 			}
 		}
 
+	new->instruments = instruments;
 	new->n_instruments = n_instruments;
-	new->n_baselines = n_instruments * (n_instruments - 1) / 2;
 	new->baselines = baselines;
+	new->n_baselines = n_instruments * (n_instruments - 1) / 2;
 
 	return new;
 }
@@ -656,6 +657,7 @@ void correlator_network_baselines_free(struct correlator_network_baselines *netw
 		int i;
 		for(i = 0; i < network->n_baselines; i++)
 			correlator_baseline_free(network->baselines[i]);
+		/* do not free instruments pointer, we don't own it */
 		free(network->baselines);
 	}
 	free(network);
