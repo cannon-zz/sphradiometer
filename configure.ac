@@ -13,8 +13,7 @@ AC_CONFIG_FILES([ \
 	src/lib/radiometer.pc \
 	src/python/Makefile \
 	src/bin/Makefile \
-	src/test/Makefile \
-	src/matlab/Makefile \
+	src/test/Makefile
 ])
 
 # Checks for programs

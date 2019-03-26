@@ -1,2 +1,2 @@
 SUBDIRS = include lib bin test
-#SUBDIRS += python matlab
+#SUBDIRS += python
