@@ -26,10 +26,12 @@ LT_INIT
 PKG_PROG_PKG_CONFIG()
 
 # Check for Python
-AM_PATH_PYTHON([3.0])
+AC_SUBST([MIN_PYTHON_VERSION], [3.0])
+AM_PATH_PYTHON([${MIN_PYTHON_VERSION}])
 AX_PYTHON_DEVEL()
 
-AX_PKG_SWIG([3.0],[],[AC_MSG_ERROR("SWIG > 3.0 required to build.")])
+AC_SUBST([MIN_SWIG_VERSION], [3.0])
+AX_PKG_SWIG([${MIN_SWIG_VERSION}],[],[AC_MSG_ERROR("SWIG > ${MIN_SWIG_VERSION} required to build.")])
 AX_SWIG_PYTHON
 
 # Check for math library
@@ -41,31 +43,32 @@ AC_SUBST([FFTW_CFLAGS])
 AC_SUBST([FFTW_LIBS])
 
 # Check for GSL
-PKG_CHECK_MODULES([GSL], [gsl], , [echo "Not Found!" ; exit 1])
+AC_SUBST([MIN_GSL_VERSION], [1.9])
+PKG_CHECK_MODULES([GSL], [gsl >= ${MIN_GSL_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 
 # Check for LAPACK
-LAPACK_CFLAGS=
-LAPACK_LIBS=-llapacke
-AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
-AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_SUBST([MIN_LAPACK_VERSION], [3.0])
+PKG_CHECK_MODULES([LAPACK], [lapacke >= ${MIN_LAPACK_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
+AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])])
 
 # Check for LAL
-PKG_CHECK_MODULES([LAL], [lal lalsupport], , [echo "Not Found!" ; exit 1])
+AC_SUBST([MIN_LAL_VERSION], [6.19.0])
+PKG_CHECK_MODULES([LAL], [lal >= ${MIN_LAL_VERSION} lalsupport >= ${MIN_LAL_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LAL_CFLAGS])
 AC_SUBST([LAL_LIBS])
-PKG_CHECK_MODULES([LALFRAME], [lalframe], , [echo "Not Found!" ; exit 1])
+AC_SUBST([MIN_LALFRAME_VERSION], [1.4.0])
+PKG_CHECK_MODULES([LALFRAME], [lalframe >= ${MIN_LALFRAME_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LALFRAME_CFLAGS])
 AC_SUBST([LALFRAME_LIBS])
-PKG_CHECK_MODULES([LALSIMULATION], [lalsimulation], , [echo "Not Found!" ; exit 1])
+AC_SUBST([MIN_LALSIMULATION_VERSION], [1.8.0])
+PKG_CHECK_MODULES([LALSIMULATION], [lalsimulation >= ${MIN_LALSIMULATION_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LALSIMULATION_CFLAGS])
 AC_SUBST([LALSIMULATION_LIBS])
-
-# Set package-wide CFLAGS
-AC_SUBST([AM_CFLAGS], ["-std=c99 -Wall -Wno-unused-function \$(FFTW_CFLAGS) \$(GSL_CFLAGS) \$(LAL_CFLAGS)"])
 
 # Generate configured output files
 AC_PROG_MAKE_SET
