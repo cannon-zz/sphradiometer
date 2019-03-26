@@ -1,3 +1,3 @@
 ACLOCAL_AMFLAGS = -I gnuscripts
 
-SUBDIRS = src
+SUBDIRS = src debian

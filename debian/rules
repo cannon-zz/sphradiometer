@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+%:
+	dh $@ --with=python3
+
+override_dh_auto_install:
+	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
+	ls -lR $(CURDIR)/debian/tmp
+
+override_dh_python3:
+	dh_python3 --no-guessing-versions

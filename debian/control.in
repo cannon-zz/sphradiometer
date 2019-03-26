@@ -1,0 +1,53 @@
+Source: sphradiometer
+Maintainer: Kipp Cannon <kipp.cannon@ligo.org>
+Section: contrib/science
+Priority: optional
+Standards-Version: 3.9.2
+X-Python-Version: >= @MIN_PYTHON_VERSION@
+Build-Depends:
+ debhelper (>= 9),
+ dh-python,
+ fakeroot,
+ libfftw3-dev (>= 3),
+ libgsl-dev (>= @MIN_GSL_VERSION@),
+ liblapacke-dev (>= @MIN_LAPACK_VERSION@),
+ lal-dev (>= @MIN_LAL_VERSION@),
+ lal-python (>= @MIN_LAL_VERSION@),
+ lalframe-dev (>= @MIN_LALFRAME_VERSION@),
+ lalsimulation-dev (>= @MIN_LALSIMULATION_VERSION@),
+ pkg-config,
+ python-all-dev (>= @MIN_PYTHON_VERSION@)
+
+Package: sphradiometer
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
+ libfftw3-3,
+ libgsl23 (>= @MIN_GSL_VERSION@),
+ liblapacke (>= @MIN_LAPACK_VERSION@),
+ lal (>= @MIN_LAL_VERSION@),
+ lal-python (>= @MIN_LAL_VERSION@),
+ lalframe (>= @MIN_LALFRAME_VERSION@),
+ lalinspiral (>= @MIN_LALINSPIRAL_VERSION@),
+ lalsimulation (>= @MIN_LALSIMULATION_VERSION@),
+ python (>= @MIN_PYTHON_VERSION@),
+ python3-numpy (>= @MIN_NUMPY_VERSION@),
+ python3-matplotlib (>= @MIN_MATPLOTLIB_VERSION@),
+ python3-mpltoolkits.basemap (>= @MIN_BASEMAP_VERSION@),
+ python3-scipy (>= @MIN_SCIPY_VERSION@)
+Description: Omni-directional broadband aperture synthesis imaging library.
+ This package provides a C library, along with its associated wrappers and
+ tools, that implements an omni-directional broadband aperture synthesis
+ imaging algorithm.  The core algorithm is a generalization of the Van
+ Cittert-Zernike theorem and is described in Phys. Rev. D, 75(12), 123003
+ (doi://10.1103/PhysRevD.75.123003).  Additional algorithms based on that
+ core and tailored specifically for the problem of ground-based
+ gravitational-wave source localization are also included.
+
+Package: sphradiometer-dev
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ sphradiometer (= ${binary:Version}),
+ libgsl-dev (>= 1.9)
+Description: Files and documentation needed for compiling sphradiometer based software.
+ This package contains the files needed to compile sphradiometer based
+ software.
