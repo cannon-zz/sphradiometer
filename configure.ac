@@ -16,6 +16,9 @@ AC_CONFIG_FILES([ \
 	src/test/Makefile
 ])
 
+# set pkg-config module path
+AC_SUBST([pkgconfigdir],[${libdir}/pkgconfig])
+
 # Checks for programs
 AC_PROG_CC_C99
 AC_PROG_INSTALL
@@ -60,9 +63,6 @@ AC_SUBST([LALFRAME_LIBS])
 PKG_CHECK_MODULES([LALSIMULATION], [lalsimulation], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LALSIMULATION_CFLAGS])
 AC_SUBST([LALSIMULATION_LIBS])
-
-# pkg-config module path
-AC_SUBST([pkgconfigdir],[${libdir}/pkgconfig])
 
 # Set package-wide CFLAGS
 AC_SUBST([AM_CFLAGS], ["-std=c99 -Wall -Wno-unused-function \$(FFTW_CFLAGS) \$(GSL_CFLAGS) \$(LAL_CFLAGS)"])
