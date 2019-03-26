@@ -66,7 +66,6 @@
 
 struct options {
 	struct instrument *instruments[2];
-	const LALDetector *detectors[2];	/* FIXME: merge with instruments[] */
 	int n_instruments;
 	char *data1_cache_name;
 	char *data1_channel_name;
@@ -99,10 +98,6 @@ static struct options *command_line_options_new(void)
 
 	*options = (struct options) {
 		.instruments = {
-			NULL,
-			NULL,
-		},
-		.detectors = {
 			NULL,
 			NULL,
 		},
@@ -195,7 +190,6 @@ struct options *command_line_parse(int argc, char *argv[])
 	case 'B': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
 		options->instruments[0] = instrument_from_name(inst_name);
-		options->detectors[0] = XLALDetectorPrefixToLALDetector(inst_name);
 		options->data1_channel_name = optarg;
 		break;
 	}
@@ -219,7 +213,6 @@ struct options *command_line_parse(int argc, char *argv[])
 	case 'b': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
 		options->instruments[1] = instrument_from_name(inst_name);
-		options->detectors[1] = XLALDetectorPrefixToLALDetector(inst_name);
 		options->data2_channel_name = optarg;
 		break;
 	}
@@ -627,7 +620,7 @@ int main(int argc, char *argv[])
 	}
 	{
 	/* construct baseline response function */
-	struct sh_series *resp12 = response12(options->detectors[0], options->detectors[1], 10);
+	struct sh_series *resp12 = response12(options->instruments[0]->data, options->instruments[1]->data, 10);
 	/* multiply each element of the correlator's transform matrix by
 	 * the response */
 	correlator_plan_mult_by_response(fdplans->plans[0], resp12);
