@@ -118,6 +118,8 @@ struct instrument *instrument_new(double x, double y, double z, void *data, void
 	if(!new || !phase_centre) {
 		free(new);
 		gsl_vector_free(phase_centre);
+		if(freefunc)
+			freefunc(data);
 		return NULL;
 	}
 
