@@ -52,12 +52,9 @@
  */
 
 
-unsigned int correlator_power_l_max(const struct instrument *instrument_a, const struct instrument *instrument_b, double delta_t)
+unsigned int correlator_baseline_power_l_max(const struct correlator_baseline *baseline, double delta_t)
 {
-	gsl_vector *baseline = instrument_baseline(instrument_a, instrument_b);
-	const unsigned int l_max = M_PI / (2 * asin(delta_t / (2 * vector_magnitude(baseline)))) + 1;
-
-	gsl_vector_free(baseline);
+	const unsigned int l_max = M_PI / (2 * asin(delta_t / (2 * vector_magnitude(baseline->d)))) + 1;
 
 #if 1
 	return l_max + 2;
@@ -291,7 +288,7 @@ struct correlator_plan_td *correlator_plan_td_new(const struct correlator_baseli
 	struct sh_series_array *proj_b = NULL;
 	struct sh_series *sample_a = sh_series_new(a_l_max, 1);
 	struct sh_series *sample_b = sh_series_new(b_l_max, 1);
-	unsigned int power_l_max = correlator_power_l_max(baseline->instrument_a, baseline->instrument_b, delta_t);	/* FIXME: make sure power_l_max does not excede a_l_max + b_l_max or we're wasting cpu cycles */
+	unsigned int power_l_max = correlator_baseline_power_l_max(baseline, delta_t);	/* FIXME: make sure power_l_max does not excede a_l_max + b_l_max or we're wasting cpu cycles */
 	struct sh_series *product = sh_series_new(power_l_max, 1);
 	struct sh_series *power_1d = sh_series_new(power_l_max, 1);
 	struct sh_series *power_2d = sh_series_new(power_l_max, 0);
@@ -670,7 +667,7 @@ unsigned int correlator_network_l_max(struct correlator_network_baselines *netwo
 	int i;
 
 	for(i = 0; i < network->n_baselines; i++) {
-		const unsigned int l = correlator_power_l_max(network->baselines[i]->instrument_a, network->baselines[i]->instrument_b, delta_t);
+		const unsigned int l = correlator_baseline_power_l_max(network->baselines[i], delta_t);
 		if(l > l_max)
 			l_max = l;
 	}

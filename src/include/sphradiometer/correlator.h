@@ -174,7 +174,7 @@ struct correlator_network_plan_fd {
  */
 
 
-unsigned int correlator_power_l_max(const struct instrument *, const struct instrument *, double);
+unsigned int correlator_baseline_power_l_max(const struct correlator_baseline *, double);
 double correlator_dump_interval(unsigned int, unsigned int);
 int correlator_transient(const struct sh_series_array *, const struct sh_series_array *);
 
