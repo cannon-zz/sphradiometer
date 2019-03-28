@@ -246,8 +246,7 @@ struct correlator_baseline *correlator_baseline_new(const struct instrument *ins
 
 	new->index_a = index_a;
 	new->index_b = index_b;
-	new->instrument_a = instruments[index_a];
-	new->instrument_b = instruments[index_b];
+	new->instruments = instruments;
 	new->d = d;
 	vector_direction(d, &new->theta, &new->phi);
 

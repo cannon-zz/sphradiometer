@@ -53,8 +53,7 @@
 struct correlator_baseline {
 	int index_a;
 	int index_b;
-	const struct instrument *instrument_a;
-	const struct instrument *instrument_b;
+	const struct instrument **instruments;
 	gsl_vector *d;
 	double theta;
 	double phi;
