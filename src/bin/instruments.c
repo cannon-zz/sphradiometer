@@ -59,12 +59,17 @@ struct instrument *instrument_from_r_theta_phi(double r, double theta, double ph
 
 struct instrument *instrument_from_LALDetector(const LALDetector *det)
 {
+	/* this copy is only being made to remove the const'edness */
+	LALDetector *copy = malloc(sizeof(*copy));
+	if(!copy)
+		return NULL;
+	*copy = *det;
 	return instrument_new(
 		det->location[0] / GSL_CONST_MKS_SPEED_OF_LIGHT,
 		det->location[1] / GSL_CONST_MKS_SPEED_OF_LIGHT,
 		det->location[2] / GSL_CONST_MKS_SPEED_OF_LIGHT,
-		det,
-		NULL
+		copy,
+		free
 	);
 }
 
