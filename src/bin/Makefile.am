@@ -1,7 +1,7 @@
 AM_CPPFLAGS = -I../include -I.
 
-bin_PROGRAMS = radiometer fastX
-noinst_PROGRAMS = tests inspiral_sky_map
+bin_PROGRAMS = inspiral_sky_map radiometer fastX
+noinst_PROGRAMS = tests
 
 radiometer_SOURCES = main.c instruments.c diagnostics.c diagnostics.h instruments.h
 radiometer_CFLAGS = $(AM_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
