@@ -51,9 +51,9 @@
 
 
 struct correlator_baseline {
+	const struct instrument_array *instruments;
 	int index_a;
 	int index_b;
-	const struct instrument **instruments;
 	gsl_vector *d;
 	double theta;
 	double phi;
@@ -121,8 +121,6 @@ struct correlator_plan_fd {
 
 
 struct correlator_network_baselines {
-	const struct instrument **instruments;
-	int n_instruments;
 	struct correlator_baseline **baselines;
 	int n_baselines;
 };
@@ -201,11 +199,11 @@ complex double *correlator_tseries_to_fseries(double *, complex double *, int, f
  */
 
 
-struct correlator_baseline *correlator_baseline_new(const struct instrument *[], int, int);
+struct correlator_baseline *correlator_baseline_new(const struct instrument_array *, int, int);
 void correlator_baseline_free(struct correlator_baseline *);
 
 
-struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument *[], int);
+struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument_array *);
 void correlator_network_baselines_free(struct correlator_network_baselines *);
 unsigned int correlator_network_l_max(struct correlator_network_baselines *, double);
 

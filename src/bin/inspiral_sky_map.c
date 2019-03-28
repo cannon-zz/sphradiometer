@@ -61,8 +61,7 @@
 
 
 struct options {
-	struct instrument *instruments[2];
-	int n_instruments;
+	struct instrument_array *instruments;
 	char *data1_cache_name;
 	char *data1_channel_name;
 	char *data2_cache_name;
@@ -86,11 +85,7 @@ static struct options *command_line_options_new(void)
 
 
 	*options = (struct options) {
-		.instruments = {
-			NULL,
-			NULL,
-		},
-		.n_instruments = 2,
+		.instruments = instrument_array_new(2),
 		.data1_cache_name = NULL,
 		.data1_channel_name = NULL,
 		.data2_cache_name = NULL,
@@ -113,7 +108,7 @@ static struct options *command_line_set_instrument(struct options *options, int 
 {
 	char instrument_name[3] = {name[0], name[1], '\0'};
 
-	options->instruments[n] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector(instrument_name));
+	instrument_array_set(options->instruments, n, instrument_from_LALDetector(XLALDetectorPrefixToLALDetector(instrument_name)));
 
 	return options;
 }
@@ -132,9 +127,7 @@ static int command_line_options_validate(struct options *options)
 static void command_line_options_free(struct options *options)
 {
 	if(options) {
-		int i;
-		for(i = 0; i < options->n_instruments; i++)
-			instrument_free(options->instruments[i]);
+		instrument_array_free(options->instruments);
 	}
 	free(options);
 }
@@ -417,10 +410,11 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 static struct correlator_network_plan_fd *correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
 {
 	int i;
-	const LALDetector **det = malloc(plan->baselines->n_instruments * sizeof(*det));
+	const struct instrument_array *instruments = plan->baselines->baselines[0]->instruments;
+	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
-	for(i = 0; i < plan->baselines->n_instruments; i++)
-		det[i] = plan->baselines->instruments[i]->data;
+	for(i = 0; i < instrument_array_len(instruments); i++)
+		det[i] = instrument_array_get(instruments, i)->data;
 
 	for(i = 0; i < plan->baselines->n_baselines; i++) {
 		struct sh_series *projection = sh_series_new(8, 0);
@@ -428,7 +422,7 @@ static struct correlator_network_plan_fd *correlator_network_plan_mult_by_projec
 			.i = plan->baselines->baselines[i]->index_a,
 			.j = plan->baselines->baselines[i]->index_b,
 			.det = det,
-			.n = plan->baselines->n_instruments
+			.n = instrument_array_len(instruments)
 		};
 		sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data);
 		correlator_plan_mult_by_projection(plan->plans[i], projection);
@@ -512,7 +506,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-	baselines = correlator_network_baselines_new(options->instruments, options->n_instruments);
+	baselines = correlator_network_baselines_new(options->instruments);
 	fdplans = correlator_network_plan_fd_new(baselines, window->data->length, series[0]->deltaT);
 	sky_l_max = correlator_network_l_max(baselines, series[0]->deltaT);
 	sky = sh_series_new_zero(sky_l_max, 0);
@@ -532,7 +526,7 @@ int main(int argc, char *argv[])
 
 
 		fprintf(stderr, "\t[%.3f s, %.3f s)\n", start_sample * series[0]->deltaT, (start_sample + time_series_length) * series[0]->deltaT);
-		for(k = 0; k < options->n_instruments; k++) {
+		for(k = 0; k < instrument_array_len(options->instruments); k++) {
 			memcpy(tseries, &series[k]->data->data[start_sample], time_series_length * sizeof(*tseries));
 			correlator_tseries_to_fseries(tseries, fseries[k], time_series_length, fftplans[k]);
 		}
@@ -574,7 +568,7 @@ int main(int argc, char *argv[])
 
 
 	free(tseries);
-	for(k = 0; k < options->n_instruments; k++) {
+	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		free(fseries[k]);
 		fftw_destroy_plan(fftplans[k]);
 	}

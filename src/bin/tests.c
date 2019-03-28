@@ -301,9 +301,9 @@ static double dB(double x)
 }
 
 
-static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument **instruments, int n_instruments, double delta_t, double *gmst, int n_gmst, int trials)
+static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_array *instruments, double delta_t, double *gmst, int n_gmst, int trials)
 {
-	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments, n_instruments);
+	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments);
 
 	const int sky_l_max = correlator_network_l_max(baselines, delta_t);
 	const double dump_interval = correlator_dump_interval(sky_l_max, 20);
@@ -346,7 +346,7 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument **i
 
 	int i, j, k;
 
-	if(n_instruments != 2) {
+	if(instrument_array_len(instruments) != 2) {
 		fprintf(stderr, "FIXME!!\n");
 		return;
 	}
@@ -386,14 +386,14 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument **i
 			fprintf(stderr, "trial %d / %d\n", j + 1, trials);
 
 			/* zero the instrument time series */
-			for(k = 0; k < n_instruments; k++)
+			for(k = 0; k < instrument_array_len(instruments); k++)
 				memset(tseries[k], 0, time_series_length * sizeof(*tseries[k]));
 
 			/* inject point source at vernal equinox */
 			if(!speed) {
 				gaussian_white_noise(injection, time_series_length, variance, rng);
-				for(k = 0; k < n_instruments; k++)
-					inject_into(instruments[k], tseries[k], injection, time_series_length, delta_t, 0.0, 0.0, gmst[i]);
+				for(k = 0; k < instrument_array_len(instruments); k++)
+					inject_into(instrument_array_get(instruments, k), tseries[k], injection, time_series_length, delta_t, 0.0, 0.0, gmst[i]);
 			}
 
 			/* compute integrated cross power */
@@ -408,7 +408,7 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument **i
 
 			/* frequency domain */
 			if(fd) {
-				for(k = 0; k < n_instruments; k++)
+				for(k = 0; k < instrument_array_len(instruments); k++)
 					correlator_tseries_to_fseries(tseries[k], fseries[k], time_series_length, fftplans[k]);
 				correlator_network_integrate_power_fd(fdsky, fseries, fdplans);
 				sh_series_rotate_z(fdsky, fdsky, gmst[i]);
@@ -495,7 +495,7 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument **i
 	 * Clean up
 	 */
 
-	for(k = 0; k < n_instruments; k++) {
+	for(k = 0; k < instrument_array_len(instruments); k++) {
 		free(tseries[k]);
 		free(fseries[k]);
 		fftw_destroy_plan(fftplans[k]);
@@ -526,11 +526,9 @@ int main(int argc, char *argv[])
 	struct options *options = parse_command_line(argc, argv);
 	gsl_rng *rng = gsl_rng_alloc(gsl_rng_ranlxd1);
 
-	struct instrument *instruments[] = {
-		instrument_from_r_theta_phi(+0.005, M_PI_2, 0, NULL, NULL),
-		instrument_from_r_theta_phi(-0.005, M_PI_2, 0, NULL, NULL)
-	};
-	int n_instruments = sizeof(instruments) / sizeof(*instruments);
+	struct instrument_array *instruments = instrument_array_new(0);
+	instrument_array_append(instruments, instrument_from_r_theta_phi(+0.005, M_PI_2, 0, NULL, NULL));
+	instrument_array_append(instruments, instrument_from_r_theta_phi(-0.005, M_PI_2, 0, NULL, NULL));
 
 	const double delta_t = 1.0 / options->sample_frequency;
 
@@ -545,15 +543,14 @@ int main(int argc, char *argv[])
 	for(i = 0; i < n_gmst; i++)
 		gmst[i] = i * (M_PI / 4);
 
-	test1(1, 1, 0, rng, instruments, n_instruments, delta_t, gmst, n_gmst, options->trials);
+	test1(1, 1, 0, rng, instruments, delta_t, gmst, n_gmst, options->trials);
 
 
 	/*
 	 * Clean up
 	 */
 
-	for(k = 0; k < n_instruments; k++)
-		instrument_free(instruments[k]);
+	instrument_array_free(instruments);
 	command_line_options_free(options);
 	gsl_rng_free(rng);
 

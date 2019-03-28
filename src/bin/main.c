@@ -393,14 +393,12 @@ int main(int argc, char *argv[])
 	const double delta_t = 1.0 / 512;
 	gsl_rng *rng = gsl_rng_alloc(gsl_rng_ranlxd1);
 
-	struct instrument *instruments[] = {
-		instrument_from_name("H1"),
-		instrument_from_name("L1")/*,
-		instrument_from_name("G1")*/
-	};
-	int n_instruments = sizeof(instruments) / sizeof(*instruments);
+	struct instrument_array *instruments = instrument_array_new(0);
+	instrument_array_append(instruments, instrument_from_name("H1"));
+	instrument_array_append(instruments, instrument_from_name("L1"));
+	/*instrument_array_append(instruments, instrument_from_name("G1"));*/
 
-	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments, n_instruments);
+	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments);
 
 	const int sky_l_max = correlator_network_l_max(baselines, delta_t);
 	const double dump_interval = correlator_dump_interval(sky_l_max, 20);
@@ -457,7 +455,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "GMST = %g rad\n", gmst);
 
 		/* zero the instrument time series */
-		for(k = 0; k < n_instruments; k++)
+		for(k = 0; k < instrument_array_len(instruments); k++)
 			memset(tseries[k], 0, time_series_length * sizeof(*tseries[k]));
 
 		/* generate instrumental noise for 1e-3 SNR injections *
@@ -467,8 +465,8 @@ int main(int argc, char *argv[])
 		/* inject point sources */
 		for(j = 0; j < options->n_injections; j++) {
 			gaussian_white_noise(injection, time_series_length, 1.0, rng);
-			for(k = 0; k < n_instruments; k++)
-				inject_into(instruments[k], tseries[k], injection, time_series_length, delta_t, options->injection_ra_dec[j].ra, options->injection_ra_dec[j].dec, gmst);
+			for(k = 0; k < instrument_array_len(instruments); k++)
+				inject_into(instrument_array_get(instruments, k), tseries[k], injection, time_series_length, delta_t, options->injection_ra_dec[j].ra, options->injection_ra_dec[j].dec, gmst);
 		}
 
 		/* compute integrated cross power */
@@ -477,7 +475,7 @@ int main(int argc, char *argv[])
 		sh_series_rotate_z(tdsky, tdsky, gmst);*/
 
 		/* frequency domain */
-		for(k = 0; k < n_instruments; k++) {
+		for(k = 0; k < instrument_array_len(instruments); k++) {
 			correlator_tseries_to_fseries(tseries[k], fseries[k], time_series_length, fftplans[k]);
 			for(j = 0; j < time_series_length; j++)
 				fseries[k][j] /= sqrt(psd->data->data[j]);
@@ -506,8 +504,7 @@ int main(int argc, char *argv[])
 	 * Clean up
 	 */
 
-	for(k = 0; k < n_instruments; k++) {
-		instrument_free(instruments[k]);
+	for(k = 0; k < instrument_array_len(instruments); k++) {
 		free(tseries[k]);
 		free(fseries[k]);
 		fftw_destroy_plan(fftplans[k]);
@@ -517,6 +514,7 @@ int main(int argc, char *argv[])
 	correlator_network_plan_fd_free(fdplans);
 	correlator_network_plan_td_free(tdplans);
 	correlator_network_baselines_free(baselines);
+	instrument_array_free(instruments);
 	sh_series_free(tdsky);
 	sh_series_free(fdsky);
 	sh_series_free(tdaverage);

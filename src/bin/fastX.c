@@ -65,8 +65,7 @@
 
 
 struct options {
-	struct instrument *instruments[2];
-	int n_instruments;
+	struct instrument_array *instruments;
 	char *data1_cache_name;
 	char *data1_channel_name;
 	char *mdc1_cache_name;
@@ -97,11 +96,7 @@ static struct options *command_line_options_new(void)
 
 
 	*options = (struct options) {
-		.instruments = {
-			NULL,
-			NULL,
-		},
-		.n_instruments = 2,
+		.instruments = instrument_array_new(2),
 		.data1_cache_name = NULL,
 		.data1_channel_name = NULL,
 		.mdc1_cache_name = NULL,
@@ -139,8 +134,7 @@ static int command_line_options_validate(struct options *options)
 static void command_line_options_free(struct options *options)
 {
 	if(options) {
-		instrument_free(options->instruments[0]);
-		instrument_free(options->instruments[1]);
+		instrument_array_free(options->instruments);
 	}
 	free(options);
 }
@@ -189,7 +183,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	/* data1-channel-name */
 	case 'B': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
-		options->instruments[0] = instrument_from_name(inst_name);
+		instrument_array_set(options->instruments, 0, instrument_from_name(inst_name));
 		options->data1_channel_name = optarg;
 		break;
 	}
@@ -212,7 +206,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	/* data2-channel-name */
 	case 'b': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
-		options->instruments[1] = instrument_from_name(inst_name);
+		instrument_array_set(options->instruments, 1, instrument_from_name(inst_name));
 		options->data2_channel_name = optarg;
 		break;
 	}
@@ -599,7 +593,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-	baselines = correlator_network_baselines_new(options->instruments, options->n_instruments);
+	baselines = correlator_network_baselines_new(options->instruments);
 	fdplans = correlator_network_plan_fd_new(baselines, time_series_length, series[0]->deltaT);
 	sky_l_max = correlator_network_l_max(baselines, series[0]->deltaT);
 	sky = sh_series_new_zero(sky_l_max, 0);
@@ -620,7 +614,7 @@ int main(int argc, char *argv[])
 	}
 	{
 	/* construct baseline response function */
-	struct sh_series *resp12 = response12(options->instruments[0]->data, options->instruments[1]->data, 10);
+	struct sh_series *resp12 = response12(instrument_array_get(options->instruments, 0)->data, instrument_array_get(options->instruments, 1)->data, 10);
 	/* multiply each element of the correlator's transform matrix by
 	 * the response */
 	correlator_plan_mult_by_response(fdplans->plans[0], resp12);
@@ -643,7 +637,7 @@ int main(int argc, char *argv[])
 
 
 		fprintf(stderr, "\t[%.3f s, %.3f s)\n", start_sample * series[0]->deltaT, (start_sample + time_series_length) * series[0]->deltaT);
-		for(k = 0; k < options->n_instruments; k++) {
+		for(k = 0; k < instrument_array_len(options->instruments); k++) {
 			memcpy(tseries, &series[k]->data->data[start_sample], time_series_length * sizeof(*tseries));
 			correlator_tseries_to_fseries(tseries, fseries[k], time_series_length, fftplans[k]);
 		}
@@ -686,7 +680,7 @@ int main(int argc, char *argv[])
 
 
 	free(tseries);
-	for(k = 0; k < options->n_instruments; k++) {
+	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		free(fseries[k]);
 		fftw_destroy_plan(fftplans[k]);
 	}

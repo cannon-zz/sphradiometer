@@ -233,10 +233,10 @@ complex double *correlator_tseries_to_fseries(double *tseries, complex double *f
  */
 
 
-struct correlator_baseline *correlator_baseline_new(const struct instrument *instruments[], int index_a, int index_b)
+struct correlator_baseline *correlator_baseline_new(const struct instrument_array *instruments, int index_a, int index_b)
 {
 	struct correlator_baseline *new = malloc(sizeof(*new));
-	gsl_vector *d = instrument_baseline(instruments[index_a], instruments[index_b]);
+	gsl_vector *d = instrument_baseline(instrument_array_get(instruments, index_a), instrument_array_get(instruments, index_b));
 
 	if(!new || !d) {
 		gsl_vector_free(d);
@@ -244,9 +244,9 @@ struct correlator_baseline *correlator_baseline_new(const struct instrument *ins
 		return NULL;
 	}
 
+	new->instruments = instruments;
 	new->index_a = index_a;
 	new->index_b = index_b;
-	new->instruments = instruments;
 	new->d = d;
 	vector_direction(d, &new->theta, &new->phi);
 
@@ -612,10 +612,10 @@ struct sh_series *correlator_baseline_integrate_power_fd(const complex double *f
  */
 
 
-struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument *instruments[], int n_instruments)
+struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument_array *instruments)
 {
 	struct correlator_network_baselines *new = malloc(sizeof(*new));
-	struct correlator_baseline **baselines = malloc(n_instruments * (n_instruments - 1) / 2 * sizeof(*baselines));
+	struct correlator_baseline **baselines = malloc(instrument_array_len(instruments) * (instrument_array_len(instruments) - 1) / 2 * sizeof(*baselines));
 	int i, j, k;
 
 	if(!new || !baselines) {
@@ -625,7 +625,7 @@ struct correlator_network_baselines *correlator_network_baselines_new(const stru
 	}
 
 	k = 0;
-	for(i = 1; i < n_instruments; i++)
+	for(i = 1; i < instrument_array_len(instruments); i++)
 		for(j = 0; j < i; j++, k++) {
 			baselines[k] = correlator_baseline_new(instruments, i, j);
 			if(!baselines[k]) {
@@ -638,10 +638,8 @@ struct correlator_network_baselines *correlator_network_baselines_new(const stru
 			}
 		}
 
-	new->instruments = instruments;
-	new->n_instruments = n_instruments;
 	new->baselines = baselines;
-	new->n_baselines = n_instruments * (n_instruments - 1) / 2;
+	new->n_baselines = instrument_array_len(instruments) * (instrument_array_len(instruments) - 1) / 2;
 
 	return new;
 }
@@ -764,7 +762,7 @@ struct sh_series *correlator_network_integrate_power_td(struct sh_series *sky, d
 
 	sh_series_zero(sky);
 	k = 0;
-	for(i = 1; i < plan->baselines->n_instruments; i++)
+	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
 			correlator_baseline_integrate_power_td(tseries[i], tseries[j], windows[k], tseries_length, plan->plans[k]);
 			sh_series_add_into(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);
@@ -786,7 +784,7 @@ struct sh_series *correlator_network_integrate_power_fd(struct sh_series *sky, c
 
 	sh_series_zero(sky);
 	k = 0;
-	for(i = 1; i < plan->baselines->n_instruments; i++)
+	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
 			correlator_baseline_integrate_power_fd(fseries[i], fseries[j], plan->plans[k]);
 			sh_series_add_into(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);

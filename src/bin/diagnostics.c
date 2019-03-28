@@ -104,10 +104,16 @@ double diagnostics_rms_error(const struct sh_series *measured, const struct sh_s
 void diagnostics_dump_correlator_plan_td_stats(FILE *f, const struct correlator_plan_td *plan)
 {
 	sh_series_print(f, &plan->proj_a->series[(plan->proj_a->n - 1) / 2]);
-	fprintf(f, "instrument A: phase centre = (%g, %g, %g)\n", gsl_vector_get(plan->baseline->instruments[plan->baseline->index_a]->phase_centre, 0), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_a]->phase_centre, 1), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_a]->phase_centre, 2));
+	{
+	gsl_vector *phase_centre = instrument_array_get(plan->baseline->instruments, plan->baseline->index_a)->phase_centre;
+	fprintf(f, "instrument A: phase centre = (%g, %g, %g)\n", gsl_vector_get(phase_centre, 0), gsl_vector_get(phase_centre, 1), gsl_vector_get(phase_centre, 2));
+	}
 	fprintf(f, "instrument A: n = %d\n", plan->proj_a->n);
 	fprintf(f, "instrument A: l max = %d\n", plan->proj_a->l_max);
-	fprintf(f, "instrument B: phase centre = (%g, %g, %g)\n", gsl_vector_get(plan->baseline->instruments[plan->baseline->index_b]->phase_centre, 0), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_b]->phase_centre, 1), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_b]->phase_centre, 2));
+	{
+	gsl_vector *phase_centre = instrument_array_get(plan->baseline->instruments, plan->baseline->index_b)->phase_centre;
+	fprintf(f, "instrument B: phase centre = (%g, %g, %g)\n", gsl_vector_get(phase_centre, 0), gsl_vector_get(phase_centre, 1), gsl_vector_get(phase_centre, 2));
+	}
 	fprintf(f, "instrument B: n = %d\n", plan->proj_b->n);
 	fprintf(f, "instrument B: l max = %d\n", plan->proj_b->l_max);
 	fprintf(f, "correlator: transient = %d samples\n", plan->transient);
@@ -118,8 +124,14 @@ void diagnostics_dump_correlator_plan_td_stats(FILE *f, const struct correlator_
 
 void diagnostics_dump_correlator_plan_fd_stats(FILE *f, const struct correlator_plan_fd *plan)
 {
-	fprintf(f, "instrument A: phase centre = (%g, %g, %g)\n", gsl_vector_get(plan->baseline->instruments[plan->baseline->index_a]->phase_centre, 0), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_a]->phase_centre, 1), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_a]->phase_centre, 2));
-	fprintf(f, "instrument B: phase centre = (%g, %g, %g)\n", gsl_vector_get(plan->baseline->instruments[plan->baseline->index_b]->phase_centre, 0), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_b]->phase_centre, 1), gsl_vector_get(plan->baseline->instruments[plan->baseline->index_b]->phase_centre, 2));
+	{
+	gsl_vector *phase_centre = instrument_array_get(plan->baseline->instruments, plan->baseline->index_a)->phase_centre;
+	fprintf(f, "instrument A: phase centre = (%g, %g, %g)\n", gsl_vector_get(phase_centre, 0), gsl_vector_get(phase_centre, 1), gsl_vector_get(phase_centre, 2));
+	}
+	{
+	gsl_vector *phase_centre = instrument_array_get(plan->baseline->instruments, plan->baseline->index_b)->phase_centre;
+	fprintf(f, "instrument B: phase centre = (%g, %g, %g)\n", gsl_vector_get(phase_centre, 0), gsl_vector_get(phase_centre, 1), gsl_vector_get(phase_centre, 2));
+	}
 	fprintf(f, "correlator: N = %d samples\n", plan->delay_product->n);
 	fprintf(f, "correlator: transient = %d samples\n", plan->transient);
 	fprintf(f, "correlator: l max = %d\n", plan->power_2d->l_max);
