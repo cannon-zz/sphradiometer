@@ -171,3 +171,96 @@ gsl_vector *instrument_baseline(const struct instrument *a, const struct instrum
 
 	return baseline;
 }
+
+
+/*
+ * ============================================================================
+ *
+ *                          Instrument Array Object
+ *
+ * ============================================================================
+ */
+
+
+struct instrument_array *instrument_array_new(int n)
+{
+	struct instrument_array *instrument_array = malloc(sizeof(*instrument_array));
+	struct instrument **instruments = calloc(n, sizeof(*instruments));
+
+	if(!instrument_array || !instruments) {
+		free(instrument_array);
+		free(instruments);
+		return NULL;
+	}
+
+	instrument_array->instruments = instruments;
+	instrument_array->n = n;
+
+	return instrument_array;
+}
+
+
+int instrument_array_len(const struct instrument_array *instrument_array)
+{
+	return instrument_array->n;
+}
+
+
+/*
+ * returns borrowed reference
+ */
+
+struct instrument *instrument_array_get(const struct instrument_array *instrument_array, int k)
+{
+	return 0 <= k && k < instrument_array->n ? instrument_array->instruments[k] : NULL;
+}
+
+
+/*
+ * takes ownership of instrument;  frees it on failure
+ */
+
+struct instrument *instrument_array_set(struct instrument_array *instrument_array, int k, struct instrument *instrument)
+{
+	if(k < 0 || k >= instrument_array->n) {
+		instrument_free(instrument);
+		NULL;
+	}
+
+	instrument_free(instrument_array->instruments[k]);
+	instrument_array->instruments[k] = instrument;
+	return instrument;
+}
+
+
+/*
+ * takes ownership of instrument;  frees it on failure
+ */
+
+
+struct instrument *instrument_array_append(struct instrument_array *instrument_array, struct instrument *instrument)
+{
+	struct instrument **new = realloc(instrument_array->instruments, (instrument_array->n + 1) * sizeof(*instrument_array->instruments));
+
+	if(!new) {
+		instrument_free(instrument);
+		return NULL;
+	}
+}
+
+
+/*
+ * frees instrument_array and all instruments it contains
+ */
+
+
+void instrument_array_free(struct instrument_array *instrument_array)
+{
+	if(instrument_array) {
+		int i;
+		for(i = 0; i < instrument_array->n; i++)
+			instrument_free(instrument_array->instruments[i]);
+		free(instrument_array->instruments);
+	}
+	free(instrument_array);
+}

@@ -62,6 +62,17 @@ struct instrument {
 
 
 /*
+ * An array of instruments
+ */
+
+
+struct instrument_array {
+	struct instrument **instruments;
+	int n;
+};
+
+
+/*
  * ============================================================================
  *
  *                                   Macros
@@ -86,6 +97,14 @@ void vector_direction(const gsl_vector *, double *, double *);
 
 struct instrument *instrument_new(double, double, double, void *, void (*)(void *));
 void instrument_free(struct instrument *);
+
+
+struct instrument_array *instrument_array_new(int);
+int instrument_array_len(const struct instrument_array *);
+struct instrument *instrument_array_get(const struct instrument_array *, int);
+struct instrument *instrument_array_set(struct instrument_array *, int, struct instrument *);
+struct instrument *instrument_array_append(struct instrument_array *, struct instrument *);
+void instrument_array_free(struct instrument_array *);
 
 
 double instrument_r(const struct instrument *);
