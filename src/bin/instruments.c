@@ -26,9 +26,7 @@
  */
 
 
-#include <complex.h>
-#include <math.h>
-#include <string.h>
+#include <stdlib.h>
 #include <gsl/gsl_const.h>
 #include <sphradiometer/instrument.h>
 #include <lal/LALDetectors.h>
@@ -43,18 +41,6 @@
  *
  * ============================================================================
  */
-
-
-struct instrument *instrument_from_r_theta_phi(double r, double theta, double phi, void *data, void (*freefunc)(void *))
-{
-	return instrument_new(
-		r * sin(theta) * cos(phi),
-		r * sin(theta) * sin(phi),
-		r * cos(theta),
-		data,
-		freefunc
-	);
-}
 
 
 struct instrument *instrument_from_LALDetector(const LALDetector *det)

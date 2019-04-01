@@ -42,7 +42,6 @@
 #include <sphradiometer/inject.h>
 #include <sphradiometer/correlator.h>
 #include <sphradiometer/diagnostics.h>
-#include <instruments.h>
 
 
 /*
@@ -527,8 +526,8 @@ int main(int argc, char *argv[])
 	gsl_rng *rng = gsl_rng_alloc(gsl_rng_ranlxd1);
 
 	struct instrument_array *instruments = instrument_array_new(0);
-	instrument_array_append(instruments, instrument_from_r_theta_phi(+0.005, M_PI_2, 0, NULL, NULL));
-	instrument_array_append(instruments, instrument_from_r_theta_phi(-0.005, M_PI_2, 0, NULL, NULL));
+	instrument_array_append(instruments, instrument_new_from_r_theta_phi(+0.005, M_PI_2, 0, NULL, NULL));
+	instrument_array_append(instruments, instrument_new_from_r_theta_phi(-0.005, M_PI_2, 0, NULL, NULL));
 
 	const double delta_t = 1.0 / options->sample_frequency;
 

@@ -18,7 +18,7 @@ inspiral_sky_map_CFLAGS = $(AM_CFLAGS) $(CHEALPIX_CFLAGS) $(FFTW_CFLAGS) $(GSL_C
 inspiral_sky_map_LDFLAGS = $(AM_LDFLAGS) $(CHEALPIX_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(HDF5_LIBS) $(LAL_LIBS) $(LALFRAME_LIBS) $(LALSIMULATION_LIBS)
 inspiral_sky_map_LDADD = ../lib/libsphradiometer.la
 
-tests_SOURCES = tests.c instruments.c instruments.h
+tests_SOURCES = tests.c
 tests_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 tests_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 tests_LDADD = ../lib/libsphradiometer.la

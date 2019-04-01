@@ -146,6 +146,18 @@ void instrument_free(struct instrument *instrument)
 }
 
 
+struct instrument *instrument_new_from_r_theta_phi(double r, double theta, double phi, void *data, void (*freefunc)(void *))
+{
+	return instrument_new(
+		r * sin(theta) * cos(phi),
+		r * sin(theta) * sin(phi),
+		r * cos(theta),
+		data,
+		freefunc
+	);
+}
+
+
 /*
  * Distance from origin to instrument phase centre.
  */
