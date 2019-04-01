@@ -9,6 +9,7 @@ Build-Depends:
  dh-python,
  fakeroot,
  libfftw3-dev (>= 3),
+ libhdf5-dev (>= @MIN_HDF5_VERSION@),
  libgsl-dev (>= @MIN_GSL_VERSION@),
  liblapacke-dev (>= @MIN_LAPACK_VERSION@),
  lal-dev (>= @MIN_LAL_VERSION@),
@@ -22,6 +23,7 @@ Package: sphradiometer
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
  libfftw3-3,
+ libhdf5-103 (>= @MIN_HDF5_VERSION@),
  libgsl23 (>= @MIN_GSL_VERSION@),
  liblapacke (>= @MIN_LAPACK_VERSION@),
  lal (>= @MIN_LAL_VERSION@),
