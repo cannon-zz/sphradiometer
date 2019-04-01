@@ -50,6 +50,12 @@ PKG_CHECK_MODULES([GSL], [gsl >= ${MIN_GSL_VERSION}], , [echo "Not Found!" ; exi
 AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 
+# Check for HDF5
+AC_SUBST([MIN_HDF5_VERSION], [1.10])
+PKG_CHECK_MODULES([HDF5], [hdf5 >= ${MIN_GSL_VERSION}], , [echo "Not Found!" ; exit 1])
+AC_SUBST([HDF5_CFLAGS])
+AC_SUBST([HDF5_LIBS])
+
 # Check for LAPACK
 AC_SUBST([MIN_LAPACK_VERSION], [3.0])
 PKG_CHECK_MODULES([LAPACK], [lapacke >= ${MIN_LAPACK_VERSION}], , [echo "Not Found!" ; exit 1])
