@@ -248,6 +248,12 @@ struct instrument *instrument_array_append(struct instrument_array *instrument_a
 		instrument_free(instrument);
 		return NULL;
 	}
+
+	instrument_array->instruments = new;
+	instrument_array->instruments[instrument_array->n] = instrument;
+	instrument_array->n++;
+
+	return instrument;
 }
 
 
