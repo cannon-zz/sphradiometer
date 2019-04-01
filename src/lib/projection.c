@@ -148,7 +148,7 @@ struct sh_series_array *projection_matrix_delay(unsigned int n, unsigned int l_m
 
 int projection_matrix_write(const struct sh_series_array *matrix, FILE *file)
 {
-	unsigned int i;
+	int i;
 	int n;
 
 	n = fwrite(&matrix->n, sizeof(matrix->n), 1, file);

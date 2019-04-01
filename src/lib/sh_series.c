@@ -742,7 +742,7 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	fftw_execute(plan);
 
 	/* for each non-negative m, */
-	for(m = 0; m <= (series->polar ? 0 : series->l_max); m++) {
+	for(m = 0; m <= (int) (series->polar ? 0 : series->l_max); m++) {
 		/* populate P[][] with (normalized) P_{l m}(cos theta) */
 		for(i = 0; i < ntheta; i++)
 			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos(dtheta * (i + 0.5)), P + i * (series->l_max + 1) + m);
@@ -818,12 +818,12 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	fftw_execute(plan);
 
 	/* for each non-negative m, */
-	for(m = 0; m <= (series->polar ? 0 : series->l_max); m++) {
+	for(m = 0; m <= (int) (series->polar ? 0 : series->l_max); m++) {
 		/* populate P[][] with (normalized) P_{lm}(cos theta) */
 		for(i = 0; i < ntheta; i++)
 			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos(dtheta * (i + 0.5)), P + i * (series->l_max + 1) + m);
 		/* for each l s.t. m <= l <= l_max, */
-		for(l = m; l <= series->l_max; l++) {
+		for(l = m; l <= (int) series->l_max; l++) {
 			/* integrate H_{m}(theta) sin(theta) P_{lm}(cos
 			 * theta) over theta for +/-m */
 			complex double c = 0.0;
@@ -996,7 +996,7 @@ void sh_series_print(FILE *f, const struct sh_series *series)
 
 int sh_series_write(const struct sh_series *series, FILE *file)
 {
-	int n;
+	size_t n;
 
 	n = fwrite(&series->l_max, sizeof(series->l_max), 1, file);
 	n += fwrite(&series->polar, sizeof(series->polar), 1, file);
@@ -1018,7 +1018,7 @@ int sh_series_read(struct sh_series *series, FILE *file)
 {
 	unsigned int l_max;
 	int polar;
-	int n;
+	size_t n;
 
 	n = fread(&l_max, sizeof(l_max), 1, file);
 	n += fread(&polar, sizeof(polar), 1, file);
