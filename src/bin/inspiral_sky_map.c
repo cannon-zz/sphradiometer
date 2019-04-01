@@ -461,90 +461,55 @@ int main(int argc, char *argv[])
 	int start_sample, time_series_length;
 	double gmst;
 	const LALDetector det[2];
-	int i;
+	int i, j;
 	hid_t file_id, dataset_id, dataspace_id, filespace_id; //
 	herr_t status;
-	double *dset_data;
+	double *epoch;
 	int rank;
-	hsize_t dims[2];
+	int length, n;
 
 
 	// FIXME: set tseries and initial_time
-//	file_id = H5Fopen("output.h5", H5F_ACC_RDWR, H5P_DEFAULT);	// open an existing file
-//	dataset_id = H5Dopen(file_id, "/dset", H5P_DEFAULT);		// open an existing dataset
-//	filespace_id = H5Dget_space(dataset_id);			// read the dataset
-//	rank = H5Sget_simple_extent_ndims(filespace_id);		//
-//	status = H5Sget_simple_extent_dims(filespace_id, dims, NULL);	//
-//	dset_data = calloc(sizeof(double), dims[0]*dims[1]);		//
-//	status = H5Dread(dataset_id, H5T_NAIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, dset_data); //
-	
+	file_id = H5Fopen("output.h5", H5F_ACC_RDWR, H5P_DEFAULT);	// open an existing file
+	dataset_id = H5Dopen(file_id, "/data_length", H5P_DEFAULT);	// open an existing dataset
+	filespace_id = H5Dget_space(dataset_id);			// read the dataset
+	status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &length); //
+	fprintf(stderr, "data_length = %d\n", length);
 
-	complex float tseries_h1[] = {-3.983366012573242 -I*1.126609563827515 ,
-		-4.169796466827393 -I*0.1484837979078293 ,
-		-3.969766616821289+ I*0.7086409330368042 ,
-		-3.590789794921875+ I*1.213011264801025 ,
-		-3.466731309890747+ I*1.413019061088562 ,
-		-3.683328866958618+ I*1.755069017410278 ,
-		-3.960615873336792+ I*2.538711786270142 ,
-		-3.926766633987427+ I*3.765216112136841 ,
-		-3.297438383102417+ I*5.179051399230957 ,
-		-1.979390144348145+ I*6.397994041442871 ,
-		-0.1174830719828606+ I*7.072439193725586 ,
-		1.977809309959412+ I*6.977499485015869 ,
-		3.828668355941772+ I*6.035830974578857 ,
-		5.097399234771729+ I*4.576348781585693 ,
-		5.724094867706299+ I*2.90929913520813 ,
-		5.729362964630127+ I*1.364532113075256 ,
-		5.399999618530273+ I*0.1394371688365936 ,
-		4.840004920959473 -I*0.8327525854110718 ,
-		4.231722354888916 -I*1.482487440109253 ,
-		3.69499659538269 -I*1.961324572563171 ,
-		3.169871807098389 -I*2.357835292816162 ,
-	};
-	complex float tseries_l1[] = {4.783010959625244+ I*4.272365093231201 ,
-		5.034692287445068+ I*3.548733711242676 ,
-		5.366576194763184+ I*3.200068950653076 ,
-		5.998232364654541+ I*3.035331010818481 ,
-		7.141907691955566+ I*2.736834764480591 ,
-		8.686773300170898+ I*1.842572093009949 ,
-		10.26880168914795+ I*0.006665350869297981 ,
-		11.27248287200928 -I*2.897961139678955 ,
-		11.00472545623779 -I*6.521040439605713 ,
-		9.039669036865234 -I*10.08332538604736 ,
-		5.528451919555664 -I*12.57289409637451 ,
-		1.317213177680969 -I*13.27334213256836 ,
-		-2.55349063873291 -I*12.10455894470215 ,
-		-5.085619449615479 -I*9.672429084777832 ,
-		-6.066431045532227 -I*7.106531620025635 ,
-		-6.081847667694092 -I*5.159073829650879 ,
-		-5.780312061309814 -I*4.009140491485596 ,
-		-5.821097850799561 -I*3.332641124725342 ,
-		-6.196267127990723 -I*2.49298095703125 ,
-		-6.42664098739624 -I*1.259080767631531 ,
-		-6.144642353057861+ I*0.1295482814311981
-	};
-	complex float tseries_v1[] = {-0.7310531735420227+ I*1.292859077453613 ,
-		-0.5984863638877869+ I*1.589023351669312 ,
-		-0.3703035116195679+ I*1.957797408103943 ,
-		0.06488069146871567+ I*2.389910221099854 ,
-		0.8175532817840576+ I*2.72331714630127 ,
-		1.821033835411072+ I*2.719309568405151 ,
-		2.848188877105713+ I*2.27576470375061 ,
-		3.702071189880371+ I*1.421364903450012 ,
-		4.21214771270752+ I*0.230946958065033 ,
-		4.220407485961914 -I*1.115646958351135 ,
-		3.713864088058472 -I*2.333185911178589 ,
-		2.857001543045044 -I*3.230406999588013 ,
-		1.830233216285706 -I*3.75080394744873 ,
-		0.7930911183357239 -I*3.883560180664062 ,
-		-0.08061070740222931 -I*3.709914207458496 ,
-		-0.7251806855201721 -I*3.417925357818604 ,
-		-1.229905009269714 -I*3.130890607833862 ,
-		-1.694764614105225 -I*2.844826221466064 ,
-		-2.152580738067627 -I*2.520911693572998 ,
-		-2.606910943984985 -I*2.119481086730957 ,
-		-3.038182497024536 -I*1.595876097679138
-	};
+	dataset_id = H5Dopen(file_id, "/detector_number", H5P_DEFAULT);	// open an existing dataset
+	filespace_id = H5Dget_space(dataset_id);			// read the dataset
+	status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &n); //
+	fprintf(stderr, "detector_number = %d\n", n);
+
+	dataset_id = H5Dopen(file_id, "/epoch", H5P_DEFAULT);		// open an existing dataset
+	filespace_id = H5Dget_space(dataset_id);			// read the dataset
+	epoch = calloc(sizeof(double), 1);		//
+	status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, epoch); //
+	fprintf(stderr, "epoch = %f\n", *epoch);
+	
+	complex float **SNR = NULL;
+	float *SNR_real = NULL;
+	float *SNR_imag = NULL;
+	char *name = NULL;
+	SNR = (complex float **)malloc(n*sizeof(complex float *));
+	SNR_real = (float *)malloc(length*sizeof(float));
+	SNR_imag = (float *)malloc(length*sizeof(float));
+	name = (char *)malloc(11*sizeof(char));
+	for(i = 0; i < n; i++) SNR[i] = (complex float *)malloc(length*sizeof(complex float));
+	for(i = 0; i < n; i++){
+		snprintf(name, 11, "%s%d%s", "/SNR", i, "_real");
+		dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);	// open an existing dataset
+		filespace_id = H5Dget_space(dataset_id);			// read the dataset
+		status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, SNR_real); //
+
+		snprintf(name, 11, "%s%d%s", "/SNR", i, "_imag");
+		dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);	// open an existing dataset
+		filespace_id = H5Dget_space(dataset_id);			// read the dataset
+		status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, SNR_imag); //
+
+		for(j = 0; j < length; j++)
+			SNR[i][j] += SNR_real[j] + I*SNR_imag[j];
+	}
 
 
 	/*
@@ -554,11 +519,11 @@ int main(int argc, char *argv[])
 
 	//options = command_line_parse(argc, argv);
 	struct options *options = command_line_options_new();
-	options->integration_duration = 21 * 0.00048828125;
+	options->integration_duration = length * 0.00048828125;
 	options->instruments->instruments[0] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector("H1"));
 	options->instruments->instruments[1] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector("L1"));
 	//options->instruments[2] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector("V1"));
-	time_series_length = 21; //
+	time_series_length = length; //
 
 
 	/*
@@ -581,15 +546,15 @@ int main(int argc, char *argv[])
 	*/
 
 	LIGOTimeGPS epoch1, epoch2;
-	XLALINT8NSToGPS(&epoch1, 0);
-	XLALINT8NSToGPS(&epoch2, 1);
-	series[0] = XLALCreateCOMPLEX8TimeSeries("H1", &epoch1, 0, 0.00048828125, &lalSecondUnit, 21);
+	XLALINT8NSToGPS(&epoch1, epoch[0]);
+	XLALINT8NSToGPS(&epoch2, epoch[1]);
+	series[0] = XLALCreateCOMPLEX8TimeSeries("H1", &epoch1, 0, 0.00048828125, &lalSecondUnit, length);
 	free(series[0]->data->data);
-	series[0]->data->data = tseries_h1;
+	series[0]->data->data = SNR[0];
 
-	series[1] = XLALCreateCOMPLEX8TimeSeries("L1", &epoch2, 0, 0.00048828125, &lalSecondUnit, 21);
+	series[1] = XLALCreateCOMPLEX8TimeSeries("L1", &epoch2, 0, 0.00048828125, &lalSecondUnit, length);
 	free(series[1]->data->data);
-	series[1]->data->data = tseries_l1;
+	series[1]->data->data = SNR[1];
 
 	window = XLALCreateRectangularREAL8Window(options->integration_duration / series[0]->deltaT);
 	if(window->data->length * series[0]->deltaT != options->integration_duration) {
@@ -621,7 +586,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-	fprintf(stderr, "%g", time_series_length);
+	fprintf(stderr, "%d", time_series_length);
 	fprintf(stderr, "starting integration\n");
 	gettimeofday(&t_start, NULL);
 	for(start_sample = 0; start_sample + time_series_length <= series[0]->data->length; start_sample += time_series_length / 2) {
@@ -657,6 +622,20 @@ int main(int argc, char *argv[])
 		 */
 
 
+		long int nside = 32;
+		long int npix = nside2npix(nside);
+		long int ipring;
+		float map[npix];
+		double theta, phi;
+		for(ipring = 0; ipring < npix; ipring++){
+			pix2ang_ring(nside, ipring, &theta, &phi);
+			map[i] = sh_series_eval(sky, theta, phi);
+		}
+
+		fprintf(stderr, "generate fits file\n");
+		write_healpix_map(map, nside, "map.fits", 0, "C");
+
+
 		/* FIXME: should probably do something here */
 	}
 	gettimeofday(&t_end, NULL);
@@ -684,7 +663,8 @@ int main(int argc, char *argv[])
 
 	status = H5Dclose(dataset_id);	// close the dataset
 	status = H5Fclose(file_id);	// close the file
-	free(dset_data);		//
+	free(epoch);		//
+	free(SNR);		//
 
 	return 0;
 }
