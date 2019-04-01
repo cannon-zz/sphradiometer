@@ -52,7 +52,7 @@ AC_SUBST([GSL_LIBS])
 
 # Check for HDF5
 AC_SUBST([MIN_HDF5_VERSION], [1.10])
-PKG_CHECK_MODULES([HDF5], [hdf5 >= ${MIN_GSL_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([HDF5], [hdf5 >= ${MIN_HDF5_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([HDF5_CFLAGS])
 AC_SUBST([HDF5_LIBS])
 
