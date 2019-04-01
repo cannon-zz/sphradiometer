@@ -287,7 +287,11 @@ struct correlator_plan_td *correlator_plan_td_new(const struct correlator_baseli
 	struct sh_series_array *proj_b = NULL;
 	struct sh_series *sample_a = sh_series_new(a_l_max, 1);
 	struct sh_series *sample_b = sh_series_new(b_l_max, 1);
-	unsigned int power_l_max = correlator_baseline_power_l_max(baseline, delta_t);	/* FIXME: make sure power_l_max does not excede a_l_max + b_l_max or we're wasting cpu cycles */
+	/* power_l_max need not excede a_l_max + b_l_max or we're wasting
+	 * cpu cycles */
+	unsigned int power_l_max = correlator_baseline_power_l_max(baseline, delta_t);
+	if(power_l_max > a_l_max + b_l_max)
+		power_l_max = a_l_max + b_l_max;
 	struct sh_series *product = sh_series_new(power_l_max, 1);
 	struct sh_series *power_1d = sh_series_new(power_l_max, 1);
 	struct sh_series *power_2d = sh_series_new(power_l_max, 0);
