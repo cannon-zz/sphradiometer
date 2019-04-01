@@ -1,6 +1,8 @@
 *.o
 *.la
 *.lo
+*.log
+*.trs
 .deps
 .libs
 aclocal.m4
@@ -23,4 +25,5 @@ src/bin/tests
 src/lib/sphradiometer.pc
 src/python/sphradiometer.py
 src/python/sphradiometer_wrap.c
+test/s2kit_validate
 stamp-h1
