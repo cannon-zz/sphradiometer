@@ -31,7 +31,7 @@
 #include <gsl/gsl_math.h>
 #include <sphradiometer/sh_series.h>
 #include <sphradiometer/correlator.h>
-#include <diagnostics.h>
+#include <sphradiometer/diagnostics.h>
 
 
 /*

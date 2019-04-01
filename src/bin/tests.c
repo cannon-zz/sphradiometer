@@ -41,7 +41,7 @@
 #include <sphradiometer/sh_series.h>
 #include <sphradiometer/inject.h>
 #include <sphradiometer/correlator.h>
-#include <diagnostics.h>
+#include <sphradiometer/diagnostics.h>
 #include <instruments.h>
 
 

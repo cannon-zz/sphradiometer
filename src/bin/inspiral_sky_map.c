@@ -36,7 +36,7 @@
 #include <sphradiometer/instrument.h>
 #include <sphradiometer/sh_series.h>
 #include <sphradiometer/correlator.h>
-#include <diagnostics.h>
+#include <sphradiometer/diagnostics.h>
 #include <instruments.h>
 #include <chealpix.h>
 #include <hdf5.h>
