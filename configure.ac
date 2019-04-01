@@ -100,6 +100,11 @@ AX_PYTHON_MODULE([scipy])
 AX_PYTHON_MODULE([matplotlib])
 AX_PYTHON_MODULE([mpl_toolkits.basemap])
 
+# CFLAGS
+AX_CFLAGS_WARN_ALL([AM_CFLAGS])
+AM_CFLAGS="$AM_CFLAGS -Wextra -Wno-missing-field-initializers -Wno-unused-parameter"    # extra gcc-specific stuff
+AC_SUBST([AM_CFLAGS])
+
 # Generate configured output files
 AC_PROG_MAKE_SET
 AC_OUTPUT
