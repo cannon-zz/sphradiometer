@@ -192,7 +192,6 @@ void print_SVD_to_file(const struct SVD const *svd)
 }
 
 
-
 void SVD_reverse_check(const struct SVD *svd)
 {
 	int i, j, k;
@@ -232,8 +231,6 @@ void SVD_reverse_check(const struct SVD *svd)
 	FILE *error1 = fopen(filename, "w");
 	sprintf(filename, "radiometer_output/%s/check2.dat", svd->SVD_name);
 	FILE *error2 = fopen(filename, "w");
-
-
 
 	for(i = 0; i < 1; i++) {
 //	for(i = 0; i < svd->m; i++) {
