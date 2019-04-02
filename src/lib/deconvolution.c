@@ -117,16 +117,14 @@ static struct SVD *SVD_new(int m, int n, const complex double *A)
 
 	if(!new->A || !new->A_new || !new->S || !new->U || !new->VT || !work || !rwork || !iwork) {
 		SVD_free(new);
-		free(work);
-		free(rwork);
-		free(iwork);
-		return NULL;
+		new = NULL;
+		goto done;
 	}
 
 	memcpy(new->A, A, m * n * sizeof(*new->A));
 	memcpy(new->A_new, A, m * n * sizeof(*new->A_new));
-
 	transpose(m, n, &new->A_new);
+
 	LAPACK_zgesdd(&job, &m, &n, new->A_new, &lda, new->S, new->U, &ldu, new->VT, &ldvt, work, &lwork, rwork, iwork, &info);
 
 	lwork = work[0];
@@ -134,10 +132,8 @@ static struct SVD *SVD_new(int m, int n, const complex double *A)
 	work = calloc(lwork, sizeof(*work));
 	if(!work) {
 		SVD_free(new);
-		free(work);
-		free(rwork);
-		free(iwork);
-		return NULL;
+		new = NULL;
+		goto done;
 	}
 
 	LAPACK_zgesdd(&job, &m, &n, new->A_new, &lda, new->S, new->U, &ldu, new->VT, &ldvt, work, &lwork, rwork, iwork, &info);
@@ -149,10 +145,10 @@ static struct SVD *SVD_new(int m, int n, const complex double *A)
 	new->m = m;
 	new->n = n;
 
+done:
 	free(work);
 	free(rwork);
 	free(iwork);
-
 	return new;
 }
 
