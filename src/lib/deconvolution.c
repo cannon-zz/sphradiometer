@@ -210,16 +210,14 @@ void SVD_reverse_check(const struct SVD *svd)
 		return;
 	}
 
-	for(i = 0; i < svd->m; i++) {
+	for(i = 0; i < svd->m; i++)
 		for(j = 0; j < svd->n; j++) {
 			value = 0;
-			for(k = 0; k < svd->n; k++) {
-				value = value + US[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j];
-			}
+			for(k = 0; k < svd->n; k++)
+				value += US[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j];
 			USVT[i * svd->n + j] = value;
 			US[i * svd->n + j] = svd->U[i * svd->n + j] * svd->S[j];
 		}
-	}
 
 	sprintf(filename, "radiometer_output/%s/US.dat", svd->SVD_name);
 	print_matrix(filename, svd->m, svd->n, US);
