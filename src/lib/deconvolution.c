@@ -196,7 +196,6 @@ void SVD_reverse_check(const struct SVD *svd)
 {
 	int i, j, k;
 	char filename[50];
-	complex double value;
 	double orig_row_mag;
 	double reconst_row_mag;
 	double diff_row_mag;
@@ -212,7 +211,7 @@ void SVD_reverse_check(const struct SVD *svd)
 
 	for(i = 0; i < svd->m; i++)
 		for(j = 0; j < svd->n; j++) {
-			value = 0;
+			complex double value = 0;
 			for(k = 0; k < svd->n; k++)
 				value += US[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j];
 			USVT[i * svd->n + j] = value;
@@ -236,7 +235,7 @@ void SVD_reverse_check(const struct SVD *svd)
 //		orig_row_mag = 0;
 //		diff_row_mag = 0;
 		for(j = 0; j < svd->n; j++) {
-			value = 0;
+			complex double value = 0;
 			for(k = 0; k < svd->n; k++) {
 				fprintf(error1, "(%g %gI)\t*\t%g\t*\t(%g %gI)\t=\t%g %gI\n", creal(svd->U[i * svd->n + k]), cimag(svd->U[i * svd->n + k]), svd->S[k], creal(svd->VT[k * svd->n + j]), cimag(svd->VT[k * svd->n + j]), creal(svd->U[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j]), cimag(svd->U[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j]));
 				value += svd->U[i * svd->n + k] * svd->S[k] * svd->VT[k * svd->n + j];
