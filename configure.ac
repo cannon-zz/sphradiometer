@@ -39,6 +39,11 @@ AX_SWIG_PYTHON
 # Check for math library
 AC_CHECK_LIB([m], [main], , [AC_MSG_ERROR([cannot find the math library])])
 
+# Check for chealpix
+PKG_CHECK_MODULES([CHEALPIX], [chealpix], , [echo "Not Found!" ; exit 1])
+AC_SUBST([CHEALPIX_CFLAGS])
+AC_SUBST([CHEALPIX_LIBS])
+
 # Check for FFTW
 PKG_CHECK_MODULES([FFTW], [fftw3], , [echo "Not Found!" ; exit 1])
 AC_SUBST([FFTW_CFLAGS])
