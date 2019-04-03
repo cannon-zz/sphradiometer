@@ -199,7 +199,6 @@ struct sh_series *sh_series_assign(struct sh_series *dst, const struct sh_series
 		 * in src */
 		memset(dst->coeff, 0, sh_series_length(dst->l_max, dst->polar) * sizeof(*dst->coeff));
 		memcpy(dst->coeff, src->coeff, sh_series_length(src->l_max, src->polar) * sizeof(*dst->coeff));
-
 	}
 
 	return dst;
