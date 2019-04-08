@@ -40,6 +40,7 @@
 #include <instruments.h>
 #include <chealpix.h>
 #include <hdf5.h>
+#include <sys/time.h>
 
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
