@@ -191,7 +191,7 @@ double *correlator_square_window_new(int, int, double);
 
 
 fftw_plan correlator_tseries_to_fseries_plan(double *, complex double *, int);
-complex double *correlator_tseries_to_fseries(double *, complex double *, int, fftw_plan);
+void correlator_tseries_to_fseries(double *, complex double *, int, fftw_plan);
 
 
 /*

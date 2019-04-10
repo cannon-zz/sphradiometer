@@ -207,15 +207,13 @@ fftw_plan correlator_tseries_to_fseries_plan(double *tseries, complex double *fs
 }
 
 
-complex double *correlator_tseries_to_fseries(double *tseries, complex double *fseries, int n, fftw_plan plan)
+void correlator_tseries_to_fseries(double *tseries, complex double *fseries, int n, fftw_plan plan)
 {
 	int i;
 
 	fftw_execute(plan);
 	for(i = 1; i < n / 2; i++)
 		fseries[n - i] = conj(fseries[i]);
-
-	return fseries;
 }
 
 
