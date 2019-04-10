@@ -217,6 +217,18 @@ void correlator_tseries_to_fseries(double *tseries, complex double *fseries, int
 }
 
 
+fftw_plan correlator_ctseries_to_fseries_plan(complex double *tseries, complex double *fseries, int n)
+{
+	return fftw_plan_dft_1d(n, tseries, fseries, FFTW_FORWARD, FFTW_MEASURE);
+}
+
+
+void correlator_ctseries_to_fseries(fftw_plan plan)
+{
+	fftw_execute(plan);
+}
+
+
 /*
  * ============================================================================
  *

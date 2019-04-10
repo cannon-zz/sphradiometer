@@ -193,6 +193,9 @@ double *correlator_square_window_new(int, int, double);
 fftw_plan correlator_tseries_to_fseries_plan(double *, complex double *, int);
 void correlator_tseries_to_fseries(double *, complex double *, int, fftw_plan);
 
+fftw_plan correlator_ctseries_to_fseries_plan(complex double *, complex double *, int);
+void correlator_ctseries_to_fseries(fftw_plan);
+
 
 /*
  * Baselines
