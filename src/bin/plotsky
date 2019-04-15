@@ -33,7 +33,7 @@ import numpy
 from optparse import OptionParser
 import re
 
-from spradiometer import ioutils, plotutils, sphradiometer
+from sphradiometer import ioutils, plotutils, sphradiometer
 
 
 #
