@@ -1,6 +1,7 @@
 AM_CPPFLAGS = -I../src/include
 
 TESTS = \
+	healpy_validate \
 	s2kit_validate \
 	tests
 
