@@ -370,7 +370,7 @@ static REAL8TimeSeries *get_instrument_time_series(
 			XLAL_ERROR_NULL(XLAL_EFUNC);
 		}
 
-		for(i = 0; i < series->data->length; i++)
+		for(i = 0; i < (int) series->data->length; i++)
 			series->data->data[i] += mdc->data->data[i];
 
 		XLALDestroyREAL8TimeSeries(mdc);
@@ -630,7 +630,7 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "starting integration\n");
 	gettimeofday(&t_start, NULL);
-	for(start_sample = 0; start_sample + time_series_length <= series[0]->data->length; start_sample += time_series_length / 2) {
+	for(start_sample = 0; start_sample + time_series_length <= (int) series[0]->data->length; start_sample += time_series_length / 2) {
 		/*
 		 * Extract the data to integrate.
 		 */
