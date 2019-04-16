@@ -179,6 +179,75 @@ struct sh_series_array *sh_series_array_resize_zero(struct sh_series_array *arra
 
 
 /*
+ * Set the polar flag of an sh_series_array.  Any new coefficients are zeroed.
+ */
+
+
+struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *array, int polar)
+{
+	complex double *coeff;
+	int i;
+
+	/* sanitize input */
+	polar = polar ? 1 : 0;
+
+	/* no-op? */
+	if(array->polar == polar)
+		return array;
+
+	if(polar) {
+		/* making non-azimuthally symmetric sh_series objects
+		 * azimuthally symmetric, so the array of coefficients is
+		 * getting smaller, so move the coefficients first then
+		 * resize the memory */
+
+		/* go forwards, moving the coefficients at the start
+		 * downwards to not overwrite anything as we go.  use
+		 * sh_series_assign() to do the work of moving the
+		 * coefficients */
+		for(i = 0; i < array->n; i--) {
+			/* create an sh_series object pointing to the new
+			 * location of the coefficients */
+			struct sh_series series = array->series[i];
+			series.polar = polar;
+			series.coeff = array->coeff + i * sh_series_length(array->l_max, polar);
+			sh_series_assign(&series, &array->series[i]);
+		}
+
+		/* now resize memory */
+		coeff = realloc(array->coeff, array->n * sh_series_length(array->l_max, polar) * sizeof(*coeff));
+		if(!coeff)
+			return NULL;
+		array->coeff = coeff;
+	} else {
+		/* making azimuthally symmetric sh_series objects
+		 * non-azimuthally symmetric, so the array of coefficients is
+		 * getting bigger, so resize memory first then move the
+		 * coefficients */
+		coeff = realloc(array->coeff, array->n * sh_series_length(array->l_max, polar) * sizeof(*coeff));
+		if(!coeff)
+			return NULL;
+		array->coeff = coeff;
+
+		/* go backwards, moving the coefficients at the end upwards
+		 * to not overwrite anything as we go.  use
+		 * sh_series_assign() to do the work of moving the
+		 * coefficients */
+		for(i = array->n - 1; i >= 0; i--) {
+			/* create an sh_series object pointing to the new
+			 * location of the coefficients */
+			struct sh_series series = array->series[i];
+			series.polar = polar;
+			series.coeff = array->coeff + i * sh_series_length(array->l_max, polar);
+			sh_series_assign(&series, &array->series[i]);
+		}
+	}
+
+	return array;
+}
+
+
+/*
  * Make a copy of an sh_series_array object.
  */
 
