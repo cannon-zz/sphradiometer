@@ -55,6 +55,9 @@
  */
 
 
+#ifndef SWIG
+static complex double ccma(complex double, complex double, complex double) __attribute__ ((unused));
+#endif
 static complex double ccma(complex double x, complex double y, complex double z)
 {
 	return fma(-cimag(x), cimag(y), fma(creal(x), creal(y), creal(z))) + I * fma(cimag(x), creal(y), fma(creal(x), cimag(y), cimag(z)));
@@ -66,6 +69,9 @@ static complex double ccma(complex double x, complex double y, complex double z)
  */
 
 
+#ifndef SWIG
+static complex double cma(complex double, double, complex double) __attribute__ ((unused));
+#endif
 static complex double cma(complex double x, double y, complex double z)
 {
 	return fma(creal(x), y, creal(z)) + I * fma(cimag(x), y, cimag(z));

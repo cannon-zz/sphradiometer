@@ -152,6 +152,9 @@ struct sh_series_array {
  */
 
 
+#ifndef SWIG
+static size_t sh_series_moffset(unsigned int, int) __attribute__ ((unused));
+#endif
 static size_t sh_series_moffset(unsigned int l_max, int m)
 {
 	/* C allows compilers to perform any re-ordering of algebraic
@@ -175,12 +178,18 @@ static size_t sh_series_moffset(unsigned int l_max, int m)
  */
 
 
+#ifndef SWIG
+static size_t sh_series_params_lmoffset(unsigned int, unsigned int, int) __attribute__ ((unused));
+#endif
 static size_t sh_series_params_lmoffset(unsigned int l_max, unsigned int l, int m)
 {
 	return sh_series_moffset(l_max, m) + l - abs(m);
 }
 
 
+#ifndef SWIG
+static size_t sh_series_lmoffset(const struct sh_series *, unsigned int, int) __attribute__ ((unused));
+#endif
 static size_t sh_series_lmoffset(const struct sh_series *series, unsigned int l, int m)
 {
 	return sh_series_params_lmoffset(series->l_max, l, m);
@@ -192,6 +201,9 @@ static size_t sh_series_lmoffset(const struct sh_series *series, unsigned int l,
  */
 
 
+#ifndef SWIG
+static size_t sh_series_length(unsigned int, int) __attribute__ ((unused));
+#endif
 static size_t sh_series_length(unsigned int l_max, int polar)
 {
 	l_max += 1;
