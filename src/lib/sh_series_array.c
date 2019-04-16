@@ -45,8 +45,14 @@
 
 /*
  * The sh_series_array object is an array of sh_series objects all sharing
- * a single buffer for their coefficients.  This allows for faster
- * implementations of convolutions and simplifies some book-keeping tasks.
+ * a single buffer for their coefficients, with each sh_series object's
+ * coefficients placed immediately above the coefficients for the preceding
+ * sh_series object.  In this way there is a fixed stride from each
+ * coefficient to the same coefficient in the next sh_series.  This
+ * arrangement allows a sequence of sh_series objects to be operated on
+ * collectively using external libraries, for example a sequence of
+ * sh_series objects can be Fourier transformed using FFTW by passing the
+ * appropriate strides.
  */
 
 
