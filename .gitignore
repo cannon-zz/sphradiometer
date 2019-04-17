@@ -25,5 +25,6 @@ src/lib/sphradiometer.pc
 src/python/sphradiometer.py
 src/python/sphradiometer_wrap.c
 test/s2kit_validate
+test/sh_series_validate
 test/tests
 stamp-h1

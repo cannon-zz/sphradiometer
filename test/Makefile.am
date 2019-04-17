@@ -7,12 +7,18 @@ TESTS = \
 
 check_PROGRAMS = \
 	s2kit_validate \
+	sh_series_validate \
 	tests
 
 s2kit_validate_SOURCES = s2kit_validate.c
 s2kit_validate_CFLAGS = $(AM_CFLAGS) $(S2KIT_CFLAGS)
 s2kit_validate_LDFLAGS = $(AM_LDLAGS) $(S2KIT_LIBS)
 s2kit_validate_LDADD = ../src/lib/libsphradiometer.la
+
+sh_series_validate_SOURCES = sh_series_validate.c
+sh_series_validate_CFLAGS = $(AM_CFLAGS)
+sh_series_validate_LDFLAGS = $(AM_LDLAGS)
+sh_series_validate_LDADD = ../src/lib/libsphradiometer.la
 
 tests_SOURCES = tests.c
 tests_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
