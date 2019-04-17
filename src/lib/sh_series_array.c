@@ -68,6 +68,9 @@ struct sh_series_array *sh_series_array_new(int n, unsigned int l_max, int polar
 	complex double *coeff = malloc(n * sh_series_length(l_max, polar) * sizeof(*coeff));
 	int i;
 
+	/* sanitize input */
+	polar = polar ? 1 : 0;
+
 	if(!array || !series || !coeff) {
 		free(array);
 		free(series);
@@ -78,12 +81,12 @@ struct sh_series_array *sh_series_array_new(int n, unsigned int l_max, int polar
 	for(i = 0; i < n; i++)
 		series[i] = (struct sh_series) {
 			.l_max = l_max,
-			.polar = polar ? 1 : 0,
+			.polar = polar,
 			.coeff = coeff + i * sh_series_length(l_max, polar)
 		};
 
 	array->l_max = l_max;
-	array->polar = polar ? 1 : 0;
+	array->polar = polar,
 	array->n = n;
 	array->series = series;
 	array->coeff = coeff;
