@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
 	{
 	struct sh_series *a = random_sh_series(57, 1);
 	struct sh_series *b = sh_series_copy(a);
+	assert(sh_series_cmp(a, b) == 0);
 	sh_series_set_polar(a, 0);
 	assert(sh_series_cmp(a, b) == 0);
 	sh_series_set_polar(a, 1);
@@ -163,6 +164,7 @@ int main(int argc, char *argv[])
 	{
 	struct sh_series *a = random_sh_series(57, 1);
 	struct sh_series *b = sh_series_new(57, 0);
+	assert(sh_series_cmp(a, b) == 0);
 	sh_series_assign(b, a);
 	assert(sh_series_cmp(a, b) == 0);
 	sh_series_free(a);
