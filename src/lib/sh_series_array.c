@@ -212,6 +212,7 @@ struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *array,
 			series.polar = polar;
 			series.coeff = array->coeff + i * sh_series_length(array->l_max, polar);
 			sh_series_assign(&series, &array->series[i]);
+			array->series[i].polar = polar;
 		}
 
 		/* now resize memory */
@@ -240,9 +241,14 @@ struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *array,
 			series.polar = polar;
 			series.coeff = array->coeff + i * sh_series_length(array->l_max, polar);
 			sh_series_assign(&series, &array->series[i]);
+			array->series[i].polar = polar;
 		}
 	}
 
+	/* update metadata */
+	array->polar = polar;
+
+	/* done */
 	return array;
 }
 
