@@ -31,6 +31,21 @@ static struct sh_series *random_sh_series(int l_max, int polar)
 }
 
 
+static struct sh_series_array *random_sh_series_array(int l_max, int polar, int n)
+{
+	struct sh_series_array *array = sh_series_array_new(l_max, polar, n);
+	int i;
+
+	for(i = 0; i < n; i++) {
+		struct sh_series *series = random_sh_series(l_max, polar);
+		sh_series_assign(&array->series[i], series);
+		sh_series_free(series);
+	}
+
+	return array;
+}
+
+
 static int sh_series_cmp(const struct sh_series *a, const struct sh_series *b)
 {
 	/* coefficients must agree up to the smaller of the two, and then
@@ -48,6 +63,36 @@ static int sh_series_cmp(const struct sh_series *a, const struct sh_series *b)
 	for(i = len; i < b_len; i++)
 		if(b->coeff[i] != 0.)
 			return 1;
+
+	return 0;
+}
+
+
+static int sh_series_array_cmp(const struct sh_series_array *a, const struct sh_series_array *b)
+{
+	/* they need to pass sh_series_cmp() up to the shorter of the two
+	 * series, and then the longer must be zero beyond that */
+	int n = a->n < b->n ? a->n : b->n;
+	int i;
+	unsigned j;
+
+	for(i = 0; i < n; i++)
+		if(sh_series_cmp(&a->series[i], &b->series[i]))
+			return 1;
+
+	for(i = n; i < a->n; i++) {
+		struct sh_series *series = &a->series[i];
+		for(j = 0; j < sh_series_length(series->l_max, series->polar); j++)
+			if(series->coeff[j] != 0.)
+				return 1;
+	}
+
+	for(i = n; i < b->n; i++) {
+		struct sh_series *series = &b->series[i];
+		for(j = 0; j < sh_series_length(series->l_max, series->polar); j++)
+			if(series->coeff[j] != 0.)
+				return 1;
+	}
 
 	return 0;
 }
@@ -142,7 +187,8 @@ int main(int argc, char *argv[])
 	srandom(time(NULL));
 
 	/*
-	 * confirm that sh_series_set_polar() preserves the value
+	 * confirm that sh_series_set_polar() and
+	 * sh_series_array_set_polar() preserve the value
 	 */
 
 	{
@@ -155,6 +201,18 @@ int main(int argc, char *argv[])
 	assert(sh_series_cmp(a, b) == 0);
 	sh_series_free(a);
 	sh_series_free(b);
+	}
+
+	{
+	struct sh_series_array *a = random_sh_series_array(57, 1, 15);
+	struct sh_series_array *b = sh_series_array_copy(a);
+	assert(sh_series_array_cmp(a, b) == 0);
+	sh_series_array_set_polar(a, 0);
+	assert(sh_series_array_cmp(a, b) == 0);
+	sh_series_array_set_polar(a, 1);
+	assert(sh_series_array_cmp(a, b) == 0);
+	sh_series_array_free(a);
+	sh_series_array_free(b);
 	}
 
 	/*
