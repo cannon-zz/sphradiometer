@@ -192,13 +192,13 @@ struct sh_series *sh_series_assign(struct sh_series *dst, const struct sh_series
 		 * azimuthal symmetry and src doesn't, either way dst's
 		 * coefficients are a subset of src's so we can simply copy
 		 * them verbatim */
-		memcpy(dst->coeff, src->coeff, sh_series_length(dst->l_max, dst->polar) * sizeof(*dst->coeff));
+		memmove(dst->coeff, src->coeff, sh_series_length(dst->l_max, dst->polar) * sizeof(*dst->coeff));
 	} else {
-		/* src has azimuthal symmetry but dst doesn't, so zero all
-		 * of dst's coefficients, then copy the ones that are set
-		 * in src */
-		memset(dst->coeff, 0, sh_series_length(dst->l_max, dst->polar) * sizeof(*dst->coeff));
-		memcpy(dst->coeff, src->coeff, sh_series_length(src->l_max, src->polar) * sizeof(*dst->coeff));
+		/* src has azimuthal symmetry but dst doesn't, so copy the
+		 * coefficients that are available in src, then zero the
+		 * rest of dst's coefficients. */
+		memmove(dst->coeff, src->coeff, sh_series_length(src->l_max, src->polar) * sizeof(*dst->coeff));
+		memset(dst->coeff + sh_series_length(src->l_max, src->polar), 0, (sh_series_length(dst->l_max, dst->polar) - sh_series_length(src->l_max, src->polar)) * sizeof(*dst->coeff));
 	}
 
 	return dst;
