@@ -1,9 +1,11 @@
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
+#include <sphradiometer/diagnostics.h>
 #include <sphradiometer/sh_series.h>
 
 
@@ -54,6 +56,81 @@ static int sh_series_cmp(const struct sh_series *a, const struct sh_series *b)
 /*
  * ============================================================================
  *
+ *                              sh_series Tests
+ *
+ * ============================================================================
+ */
+
+
+/*
+ * Test projection.  The Y_{lm} test functions have been copied from
+ * Wikipedia.
+ */
+
+
+static complex double Y_00_00(double theta, double phi, void *nul)
+{
+	return 1.0 / 2 * sqrt(1 / M_PI);
+}
+
+
+static complex double Y_07_01(double theta, double phi, void *nul)
+{
+	return -1.0 / 64 * sqrt(105 / (2 * M_PI)) * cexp(I * phi) * sin(theta) * (429 * pow(cos(theta), 6) - 495 * pow(cos(theta), 4) + 135 * pow(cos(theta), 2) - 5);
+}
+
+
+static complex double Y_08_n7(double theta, double phi, void *nul)
+{
+	return 3.0 / 64 * sqrt(12155 / (2 * M_PI)) * cexp(I * -7 * phi) * pow(sin(theta), 7) * cos(theta);
+}
+
+
+static complex double Y_10_03(double theta, double phi, void *nul)
+{
+	return -3.0 / 256 * sqrt(5005 / M_PI) * cexp(I * 3 * phi) * pow(sin(theta), 3) * (323 * pow(cos(theta), 7) - 357 * pow(cos(theta), 5) + 105 * pow(cos(theta), 3) - 7 * cos(theta));
+}
+
+
+static int test_projection(void)
+{
+	struct sh_series *test = sh_series_new(20, 0);
+	struct sh_series *exact = sh_series_new(20, 0);
+
+	sh_series_from_func(test, Y_00_00, NULL);
+	sh_series_zero(exact);
+	sh_series_set(exact, 0, 0, 1);
+	fprintf(stderr, "Projection of Y_{0,0} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
+	sh_series_print(stderr, test);
+
+	sh_series_from_func(test, Y_07_01, NULL);
+	sh_series_zero(exact);
+	sh_series_set(exact, 7, 1, 1);
+	fprintf(stderr, "Projection of Y_{7,1} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
+	sh_series_print(stderr, test);
+
+	sh_series_from_func(test, Y_08_n7, NULL);
+	sh_series_zero(exact);
+	sh_series_set(exact, 8, -7, 1);
+	fprintf(stderr, "Projection of Y_{8,-7} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
+	sh_series_print(stderr, test);
+
+	sh_series_from_func(test, Y_10_03, NULL);
+	sh_series_zero(exact);
+	sh_series_set(exact, 10, 3, 1);
+	fprintf(stderr, "Projection of Y_{10,3} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
+	sh_series_print(stderr, test);
+
+	sh_series_free(test);
+	sh_series_free(exact);
+
+	return 0;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Entry Point
  *
  * ============================================================================
@@ -91,6 +168,12 @@ int main(int argc, char *argv[])
 	sh_series_free(a);
 	sh_series_free(b);
 	}
+
+	/*
+	 * test projections of real-valued functions
+	 */
+
+	test_projection();
 
 	exit(0);
 }
