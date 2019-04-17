@@ -533,7 +533,7 @@ int main(int argc, char *argv[])
 
 	const int n_gmst = 3;
 	double gmst[n_gmst];
-	int i, k;
+	int i;
 
 	test_projection();
 

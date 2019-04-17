@@ -12,8 +12,8 @@ int main(int argc, char *argv[])
 
 	for(l = 0; l <= l_max; l++)
 		for(m = -l; m <= l; m++)
-			if(seanindex(m, l, l_max + 1) != sh_series_params_lmoffset(l_max, l, m)) {
-				fprintf(stderr, "seanindex(%d, %d, %d) = %d but sh_series_params_lmoffset(%d, %d, %d) = %d\n", m, l, l_max + 1, seanindex(m, l, l_max + 1), l_max, l, m, sh_series_params_lmoffset(l_max, l, m));
+			if(seanindex(m, l, l_max + 1) != (int) sh_series_params_lmoffset(l_max, l, m)) {
+				fprintf(stderr, "seanindex(%d, %d, %d) = %d but sh_series_params_lmoffset(%d, %d, %d) = %zu\n", m, l, l_max + 1, seanindex(m, l, l_max + 1), l_max, l, m, sh_series_params_lmoffset(l_max, l, m));
 				exit(1);
 			}
 
