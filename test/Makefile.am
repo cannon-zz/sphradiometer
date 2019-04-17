@@ -22,8 +22,6 @@ s2kit_validate_LDFLAGS = $(AM_LDLAGS) $(S2KIT_LIBS)
 s2kit_validate_LDADD = ../src/lib/libsphradiometer.la
 
 sh_series_validate_SOURCES = sh_series_validate.c
-sh_series_validate_CFLAGS = $(AM_CFLAGS)
-sh_series_validate_LDFLAGS = $(AM_LDLAGS)
 sh_series_validate_LDADD = ../src/lib/libsphradiometer.la
 
 clean-local :
