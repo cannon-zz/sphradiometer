@@ -24,16 +24,16 @@ static struct sh_series *random_sh_series(int l_max, int polar)
 	int l, m;
 
 	for(l = 0; l <= l_max; l++)
-		for(m = polar ? 0 : -l; m <= polar ? 0 : l; m++)
+		for(m = (polar ? 0 : -l); m <= (polar ? 0 : +l); m++)
 			sh_series_set(series, l, m, random() / (double) RAND_MAX + I * random() / (double) RAND_MAX);
 
 	return series;
 }
 
 
-static struct sh_series_array *random_sh_series_array(int l_max, int polar, int n)
+static struct sh_series_array *random_sh_series_array(int n, int l_max, int polar)
 {
-	struct sh_series_array *array = sh_series_array_new(l_max, polar, n);
+	struct sh_series_array *array = sh_series_array_new(n, l_max, polar);
 	int i;
 
 	for(i = 0; i < n; i++) {
@@ -50,20 +50,41 @@ static int sh_series_cmp(const struct sh_series *a, const struct sh_series *b)
 {
 	/* coefficients must agree up to the smaller of the two, and then
 	 * be 0 in the larger of the two */
-	size_t a_len = sh_series_length(a->l_max, a->polar);
-	size_t b_len = sh_series_length(b->l_max , b->polar);
-	size_t len = a_len < b_len ? a_len : b_len;
-	size_t i;
+	int a_l_max = a->l_max;
+	int a_m_max = a->polar ? 0 : a_l_max;
+	int b_l_max = b->l_max;
+	int b_m_max = b->polar ? 0 : b_l_max;
+	int l_max = a_l_max < b_l_max ? a_l_max : b_l_max;
+	int m_max = a_m_max < b_m_max ? a_m_max : b_m_max;
+	int l, m;
 
-	if(memcmp(a->coeff, b->coeff, len * sizeof(*a->coeff)))
-		return 1;
-	for(i = len; i < a_len; i++)
-		if(a->coeff[i] != 0.)
-			return 1;
-	for(i = len; i < b_len; i++)
-		if(b->coeff[i] != 0.)
-			return 1;
+	/* check the l for which they both have coefficients */
+	for(l = 0; l <= l_max; l++) {
+		/* check +ve and -ve m.  wastes cpu cycles for m=0 but who
+		 * cares */
+		for(m = 0; m <= (l < m_max ? l : m_max); m++)
+			if(sh_series_get(a, l, m) != sh_series_get(b, l, m) || sh_series_get(a, l, -m) != sh_series_get(b, l, -m))
+				return 1;
+		/* any extra elements in a or b must be 0 */
+		for(m = m_max + 1; m <= (l < a_m_max ? l : a_m_max); m++)
+			if(sh_series_get(a, l, m) != 0.)
+				return 1;
+		for(m = m_max + 1; m <= (l < b_m_max ? l : b_m_max); m++)
+			if(sh_series_get(b, l, m) != 0.)
+				return 1;
+	}
 
+	/* any extra elements in a or b must be 0 */
+	for(l = l_max + 1; l <= a_l_max; l++)
+		for(m = 0; m <= (l < a_m_max ? l : a_m_max); m++)
+			if(sh_series_get(a, l, m) != 0.)
+				return 1;
+	for(l = l_max + 1; l <= b_l_max; l++)
+		for(m = 0; m <= (l < b_m_max ? l : b_m_max); m++)
+			if(sh_series_get(b, l, m) != 0.)
+				return 1;
+
+	/* they're equal */
 	return 0;
 }
 
@@ -204,7 +225,7 @@ int main(int argc, char *argv[])
 	}
 
 	{
-	struct sh_series_array *a = random_sh_series_array(57, 1, 15);
+	struct sh_series_array *a = random_sh_series_array(15, 7, 1);
 	struct sh_series_array *b = sh_series_array_copy(a);
 	assert(sh_series_array_cmp(a, b) == 0);
 	sh_series_array_set_polar(a, 0);
