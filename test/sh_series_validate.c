@@ -95,25 +95,18 @@ static int sh_series_array_cmp(const struct sh_series_array *a, const struct sh_
 	 * series, and then the longer must be zero beyond that */
 	int n = a->n < b->n ? a->n : b->n;
 	int i;
-	unsigned j;
 
 	for(i = 0; i < n; i++)
 		if(sh_series_cmp(&a->series[i], &b->series[i]))
 			return 1;
 
-	for(i = n; i < a->n; i++) {
-		struct sh_series *series = &a->series[i];
-		for(j = 0; j < sh_series_length(series->l_max, series->polar); j++)
-			if(series->coeff[j] != 0.)
-				return 1;
-	}
+	for(i = n * a->stride; i < a->n * a->stride; i++)
+		if(a->coeff[i] != 0.)
+			return 1;
 
-	for(i = n; i < b->n; i++) {
-		struct sh_series *series = &b->series[i];
-		for(j = 0; j < sh_series_length(series->l_max, series->polar); j++)
-			if(series->coeff[j] != 0.)
-				return 1;
-	}
+	for(i = n * b->stride; i < b->n * b->stride; i++)
+		if(b->coeff[i] != 0.)
+			return 1;
 
 	return 0;
 }
