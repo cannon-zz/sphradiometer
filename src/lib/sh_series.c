@@ -218,11 +218,8 @@ static struct sh_series *_sh_series_resize(struct sh_series *series, unsigned in
 {
 	complex double *newcoeff;
 	int m;
-	/* to what order the coefficients must be preserved (smaller of the
-	 * new and old orders) */
-	const int preserve_l_max = series->l_max < l_max ? series->l_max : l_max;
-	/* corresponding m limit */
-	const int m_max = series->polar ? 0 : preserve_l_max;
+	/* max m to index to preserve, the rest are set to 0 */
+	int m_max = series->polar ? 0 : series->l_max < l_max ? series->l_max : l_max;
 
 	if(l_max < series->l_max) {
 		/* shrinking:  move coefficients before resize */
@@ -230,9 +227,9 @@ static struct sh_series *_sh_series_resize(struct sh_series *series, unsigned in
 		/* copy the coefficients, moving foward through the array
 		 * */
 		for(m = 0; m <= m_max; m++)
-			memcpy(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (preserve_l_max - abs(m) + 1) * sizeof(*series->coeff));
+			memmove(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (l_max - abs(m) + 1) * sizeof(*series->coeff));
 		for(m = -m_max; m < 0; m++)
-			memcpy(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (preserve_l_max - abs(m) + 1) * sizeof(*series->coeff));
+			memmove(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (l_max - abs(m) + 1) * sizeof(*series->coeff));
 
 		/* reallocate coefficient array */
 		newcoeff = realloc(series->coeff, sh_series_length(l_max, series->polar) * sizeof(*series->coeff));
@@ -251,12 +248,26 @@ static struct sh_series *_sh_series_resize(struct sh_series *series, unsigned in
 		/* copy the coefficients, moving backward through the
 		 * array, and zeroing new coefficients */
 		for(m = -1; m >= -m_max; m--) {
-			memset(series->coeff + sh_series_params_lmoffset(series->l_max, preserve_l_max + 1, m), 0, (l_max - preserve_l_max) * sizeof(*series->coeff));
-			memcpy(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (preserve_l_max - abs(m) + 1) * sizeof(*series->coeff));
+			complex double *src = series->coeff + sh_series_moffset(series->l_max, m);
+			complex double *dst = series->coeff + sh_series_moffset(l_max, m);
+			/* # of coefficients to save */
+			int n = series->l_max + 1 - abs(m);
+			memset(dst + n, 0, (l_max - series->l_max) * sizeof(*dst));
+			memmove(dst, src, n * sizeof(*dst));
+		}
+		if(!series->polar) {
+			for(; m >= -(int) l_max; m--)
+				memset(series->coeff + sh_series_moffset(l_max, m), 0, (l_max + 1 - abs(m)) * sizeof(*series->coeff));
+			for(m = l_max; m > m_max; m--)
+				memset(series->coeff + sh_series_moffset(l_max, m), 0, (l_max + 1 - m) * sizeof(*series->coeff));
 		}
 		for(m = m_max; m >= 0; m--) {
-			memset(series->coeff + sh_series_params_lmoffset(series->l_max, preserve_l_max + 1, m), 0, (l_max - preserve_l_max) * sizeof(*series->coeff));
-			memcpy(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (preserve_l_max - abs(m) + 1) * sizeof(*series->coeff));
+			complex double *src = series->coeff + sh_series_moffset(series->l_max, m);
+			complex double *dst = series->coeff + sh_series_moffset(l_max, m);
+			/* # of coefficients to save */
+			int n = series->l_max + 1 - m;
+			memset(dst + n, 0, (l_max - series->l_max) * sizeof(*dst));
+			memmove(dst, src, n * sizeof(*dst));
 		}
 	}
 
