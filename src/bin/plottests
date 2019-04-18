@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2006--2009  Kipp C. Cannon
 #
@@ -29,7 +29,6 @@
 import math
 import matplotlib
 matplotlib.rcParams.update({
-	"numerix": "numpy",
 	"font.size": 8.0,
 	"axes.titlesize": 10.0,
 	"axes.labelsize": 10.0,
@@ -42,11 +41,10 @@ matplotlib.rcParams.update({
 })
 from matplotlib import figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import numarray
 from optparse import OptionParser
 import re
 
-from radiometer import *
+from sphradiometer import ioutils, plotutils
 
 
 #
@@ -67,17 +65,15 @@ class Injection(object):
 def parse_command_line():
 	parser = OptionParser()
 	parser.add_option("--injection-ra-dec", default = [], action = "append", help = "injection right-ascension and declination")
-	parser.add_option("--baseline-theta", default = math.pi / 2, help = "baseline theta")
-	parser.add_option("--baseline-phi", default = 0, help = "baseline phi")
+	parser.add_option("--baseline-theta", type = "float", default = math.pi / 2, help = "baseline theta")
+	parser.add_option("--baseline-phi", type = "float", default = 0., help = "baseline phi")
 	options, filenames = parser.parse_args()
 
 	for n, ra_dec, in enumerate(options.injection_ra_dec):
 		ra, dec = ra_dec.split(",")
 		options.injection_ra_dec[n] = Injection(float(ra), float(dec))
-	options.baseline_theta = float(options.baseline_theta)
-	options.baseline_phi = float(options.baseline_phi)
 
-	return options, (filenames or [None])
+	return options, filenames
 
 
 #
@@ -101,14 +97,14 @@ for filename in filenames:
 	l_T = int(l_T_str)
 	l_xi = int(l_xi_str)
 	gmst = float(gmst_str)
-	print filename
+	print(filename)
 
 
 	# Load data
-	exact = ioutils.read_sh_series(file(filename))
+	exact = ioutils.read_sh_series(open(filename))
 	template = "tests_%%s_%s_%s_%s_%s.%%s" % (N_T_str, l_T_str, l_xi_str, gmst_str)
-	fdaverg = ioutils.read_sh_series(file(template % ("fdaverage", "dat")))
-	tdaverg = ioutils.read_sh_series(file(template % ("tdaverage", "dat")))
+	fdaverg = ioutils.read_sh_series(open(template % ("fdaverage", "dat")))
+	tdaverg = ioutils.read_sh_series(open(template % ("tdaverage", "dat")))
 
 
 	# Mollweid projection
@@ -133,4 +129,4 @@ for filename in filenames:
 
 	template = "tests_%s_%s_%s_%s.%%s" % (N_T_str, l_T_str, l_xi_str, gmst_str.replace(".", "_"))
 	fig.savefig(template % "png")
-	fig.savefig(template % "eps")
+	#fig.savefig(template % "eps")
