@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006  Kipp C. Cannon
+ * Copyright (C) 2006--2009,2012,2019  Kipp C. Cannon
  * Copyright (C) 2010  Dan Stratman
  *
  * This program is free software; you can redistribute it and/or modify it

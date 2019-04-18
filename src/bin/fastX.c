@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2007  Kipp Cannon, Patrick Sutton
+ * Copyright (C) 2007--2009,2012,2019  Kipp Cannon
+ * Copyright (C) 2007  Patrick Sutton
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
