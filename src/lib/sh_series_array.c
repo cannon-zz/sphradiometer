@@ -182,13 +182,16 @@ struct sh_series_array *sh_series_array_resize_zero(struct sh_series_array *arra
 
 
 /*
- * Set the polar flag of an sh_series_array.  Any new coefficients are zeroed.
+ * Set the polar flag of an sh_series_array.  Any new coefficients are
+ * zeroed.  Returns array on success, NULL on failure.  On failure, the
+ * contents of the sh_series_array object are undefined.
  */
 
 
 struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *array, int polar)
 {
 	complex double *coeff;
+	int new_stride = sh_series_length(array->l_max, polar);
 	int i;
 
 	/* sanitize input */
@@ -202,54 +205,55 @@ struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *array,
 		/* making non-azimuthally symmetric sh_series objects
 		 * azimuthally symmetric, so the array of coefficients is
 		 * getting smaller, so move the coefficients first then
-		 * resize the memory */
+		 * resize the memory.  we retain the first coefficients
+		 * from each series */
 
 		/* go forwards, moving the coefficients at the start
-		 * downwards to not overwrite anything as we go.  use
-		 * sh_series_assign() to do the work of moving the
-		 * coefficients */
-		for(i = 0; i < array->n; i--) {
-			/* create an sh_series object pointing to the new
-			 * location of the coefficients */
-			struct sh_series series = array->series[i];
-			series.polar = polar;
-			series.coeff = array->coeff + i * sh_series_length(array->l_max, polar);
-			sh_series_assign(&series, &array->series[i]);
+		 * downwards to not overwrite anything as we go. */
+		for(i = 0; i < array->n; i++) {
+			memmove(array->coeff + i * new_stride, array->series[i].coeff, new_stride * sizeof(*coeff));
 			array->series[i].polar = polar;
 		}
 
-		/* now resize memory */
-		coeff = realloc(array->coeff, array->n * sh_series_length(array->l_max, polar) * sizeof(*coeff));
+		/* now resize memory and reset series coeff pointers */
+		coeff = realloc(array->coeff, array->n * new_stride * sizeof(*coeff));
 		if(!coeff)
 			return NULL;
 		array->coeff = coeff;
+		for(i = 0; i < array->n; i++)
+			array->series[i].coeff = array->coeff + i * new_stride;
 	} else {
 		/* making azimuthally symmetric sh_series objects
 		 * non-azimuthally symmetric, so the array of coefficients is
 		 * getting bigger, so resize memory first then move the
 		 * coefficients */
-		coeff = realloc(array->coeff, array->n * sh_series_length(array->l_max, polar) * sizeof(*coeff));
+		coeff = realloc(array->coeff, array->n * new_stride * sizeof(*coeff));
 		if(!coeff)
 			return NULL;
 		array->coeff = coeff;
+		for(i = 0; i < array->n; i++)
+			array->series[i].coeff = array->coeff + i * array->stride;
 
 		/* go backwards, moving the coefficients at the end upwards
 		 * to not overwrite anything as we go.  use
 		 * sh_series_assign() to do the work of moving the
 		 * coefficients */
 		for(i = array->n - 1; i >= 0; i--) {
-			/* create an sh_series object pointing to the new
+			/* create an sh_series object pointing to the old
 			 * location of the coefficients */
 			struct sh_series series = array->series[i];
-			series.polar = polar;
-			series.coeff = array->coeff + i * sh_series_length(array->l_max, polar);
-			sh_series_assign(&series, &array->series[i]);
+			/* point the real series object to the new location */
 			array->series[i].polar = polar;
+			array->series[i].coeff = array->coeff + i * new_stride;
+			/* move the coefficients */
+			if(!sh_series_assign(&array->series[i], &series))
+				return NULL;
 		}
 	}
 
 	/* update metadata */
 	array->polar = polar;
+	array->stride = new_stride;
 
 	/* done */
 	return array;
