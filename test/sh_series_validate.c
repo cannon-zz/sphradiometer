@@ -38,7 +38,7 @@ static struct sh_series_array *random_sh_series_array(int n, int l_max, int pola
 
 	for(i = 0; i < n; i++) {
 		struct sh_series *series = random_sh_series(l_max, polar);
-		sh_series_assign(&array->series[i], series);
+		assert(sh_series_assign(&array->series[i], series) != NULL);
 		sh_series_free(series);
 	}
 
@@ -208,17 +208,127 @@ int main(int argc, char *argv[])
 	srandom(time(NULL));
 
 	/*
+	 * confirm that sh_series_resize() preserves the value (of
+	 * coefficients that survive)
+	 */
+
+	/* source not azimuthally symmetric */
+	/* first test growing l_max */
+	{
+	struct sh_series *a = random_sh_series(8, 0);
+	struct sh_series *b = sh_series_copy(a);
+	assert(sh_series_cmp(a, b) == 0);
+	a = sh_series_resize(a, 15);
+	assert(a != NULL);
+	assert(sh_series_cmp(a, b) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+	/* now rely on that to make a series with 0'ed coefficients for use
+	 * in testing shrinking l_max */
+	{
+	struct sh_series *a = random_sh_series(8, 0);
+	a = sh_series_resize(a, 15);
+	struct sh_series *b = sh_series_copy(a);
+	assert(sh_series_cmp(a, b) == 0);
+	a = sh_series_resize(a, 8);
+	assert(a != NULL);
+	assert(sh_series_cmp(a, b) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+
+	/* azimuthally symmetric */
+	/* first test growing l_max */
+	{
+	struct sh_series *a = random_sh_series(8, 1);
+	struct sh_series *b = sh_series_copy(a);
+	assert(sh_series_cmp(a, b) == 0);
+	a = sh_series_resize(a, 15);
+	assert(a != NULL);
+	assert(sh_series_cmp(a, b) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+	/* now rely on that to make a series with 0'ed coefficients for use
+	 * in testing shrinking l_max */
+	{
+	struct sh_series *a = random_sh_series(8, 1);
+	a = sh_series_resize(a, 15);
+	struct sh_series *b = sh_series_copy(a);
+	assert(sh_series_cmp(a, b) == 0);
+	a = sh_series_resize(a, 8);
+	assert(a != NULL);
+	assert(sh_series_cmp(a, b) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+
+	/*
+	 * confirm that sh_series_assign() preserves the value
+	 */
+
+	/* source and destination both not azimuthally symmetric */
+	{
+	struct sh_series *a = random_sh_series(57, 0);
+	struct sh_series *b = sh_series_new(57, 0);
+	sh_series_assign(b, a);
+	assert(sh_series_cmp(a, b) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+
+	/* source azimuthally symmetric, destination not */
+	{
+	struct sh_series *a = random_sh_series(57, 1);
+	struct sh_series *b = sh_series_new(57, 0);
+	sh_series_assign(b, a);
+	assert(sh_series_cmp(a, b) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+
+	/* test with overlapping memory, both azimuthally symmetric */
+	{
+	struct sh_series *a = random_sh_series(7, 1);
+	struct sh_series *b = sh_series_copy(a);
+	struct sh_series c = *a;
+	c.coeff = a->coeff = realloc(a->coeff, 2 * sh_series_length(c.l_max, c.polar) * sizeof(*c.coeff));
+	assert(c.coeff != NULL);
+	c.coeff += 4;
+	sh_series_assign(&c, a);
+	assert(sh_series_cmp(b, &c) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+
+	/* test with overlapping memory, src azimuthal, dst not */
+	{
+	struct sh_series *a = random_sh_series(15, 1);
+	struct sh_series *b = sh_series_copy(a);
+	struct sh_series c = *a;
+	c.polar = 0;
+	c.coeff = a->coeff = realloc(a->coeff, 2 * sh_series_length(c.l_max, c.polar) * sizeof(*c.coeff));
+	assert(c.coeff != NULL);
+	c.coeff += 6;
+	sh_series_assign(&c, a);
+	assert(sh_series_cmp(b, &c) == 0);
+	sh_series_free(a);
+	sh_series_free(b);
+	}
+
+	/*
 	 * confirm that sh_series_set_polar() and
 	 * sh_series_array_set_polar() preserve the value
 	 */
 
 	{
-	struct sh_series *a = random_sh_series(57, 1);
+	struct sh_series *a = random_sh_series(7, 1);
 	struct sh_series *b = sh_series_copy(a);
 	assert(sh_series_cmp(a, b) == 0);
-	sh_series_set_polar(a, 0);
+	assert(sh_series_set_polar(a, 0) != NULL);
 	assert(sh_series_cmp(a, b) == 0);
-	sh_series_set_polar(a, 1);
+	assert(sh_series_set_polar(a, 1) != NULL);
 	assert(sh_series_cmp(a, b) == 0);
 	sh_series_free(a);
 	sh_series_free(b);
@@ -228,26 +338,12 @@ int main(int argc, char *argv[])
 	struct sh_series_array *a = random_sh_series_array(15, 7, 1);
 	struct sh_series_array *b = sh_series_array_copy(a);
 	assert(sh_series_array_cmp(a, b) == 0);
-	sh_series_array_set_polar(a, 0);
+	assert(sh_series_array_set_polar(a, 0) != NULL);
 	assert(sh_series_array_cmp(a, b) == 0);
-	sh_series_array_set_polar(a, 1);
+	assert(sh_series_array_set_polar(a, 1) != NULL);
 	assert(sh_series_array_cmp(a, b) == 0);
 	sh_series_array_free(a);
 	sh_series_array_free(b);
-	}
-
-	/*
-	 * confirm that sh_series_assig() preserves the value
-	 */
-
-	{
-	struct sh_series *a = random_sh_series(57, 1);
-	struct sh_series *b = sh_series_new(57, 0);
-	assert(sh_series_cmp(a, b) == 0);
-	sh_series_assign(b, a);
-	assert(sh_series_cmp(a, b) == 0);
-	sh_series_free(a);
-	sh_series_free(b);
 	}
 
 	/*
