@@ -104,7 +104,7 @@ class XYSlicePlot(object):
 	def yvals_from_sh_series(self, series):
 		yvals = numpy.zeros((len(self.phi),), dtype = "double")
 		for i in xrange(len(self.phi)):
-			yvals[i] = radiometer.sh_series_eval(series, self.theta[i], self.phi[i]).real
+			yvals[i] = sphradiometer.sh_series_eval(series, self.theta[i], self.phi[i]).real
 		return yvals
 
 	def plot_yvals(self, yvals, *args, **kwargs):
@@ -127,7 +127,7 @@ class SkyPlot(object):
 		samples = numpy.zeros((len(self.ra), len(self.dec)), dtype = "double")
 		for i, ra in enumerate(self.ra):
 			for j, dec in enumerate(self.dec):
-				samples[i, j] = radiometer.sh_series_eval(series, math.pi / 2 - dec, ra).real
+				samples[i, j] = sphradiometer.sh_series_eval(series, math.pi / 2 - dec, ra).real
 		return samples
 
 	def contourf(self, samples):

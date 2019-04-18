@@ -50,8 +50,8 @@ def read_sh_series(f):
 		lmax = max(lmax, l)
 		polar &= m == 0
 	if not lines:
-		return radiometer.sh_series_new_zero(0, 0)
-	series = radiometer.sh_series_new_zero(lmax, polar)
+		return sphradiometer.sh_series_new_zero(0, 0)
+	series = sphradiometer.sh_series_new_zero(lmax, polar)
 	for l, m, r, i in lines:
-		radiometer.sh_series_set(series, l, m, complex(r, i))
+		sphradiometer.sh_series_set(series, l, m, complex(r, i))
 	return series
