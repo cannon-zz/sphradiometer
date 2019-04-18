@@ -308,6 +308,8 @@ struct sh_series *sh_series_zero(struct sh_series *series)
 
 struct sh_series *sh_series_set_polar(struct sh_series *series, int polar)
 {
+	complex double *coeff;
+
 	/* sanitize input */
 	polar = polar ? 1 : 0;
 
@@ -315,9 +317,19 @@ struct sh_series *sh_series_set_polar(struct sh_series *series, int polar)
 	if(series->polar == polar)
 		return series;
 
-	/* use _sh_series_resize() do to the work */
+	/* resize the coefficients array */
+	coeff = realloc(series->coeff, sh_series_length(series->l_max, polar) * sizeof(*coeff));
+	if(!coeff)
+		return NULL;
+	series->coeff = coeff;
+
+	if(!polar)
+		/* array got bigger.  zero the new coefficients */
+		memset(series->coeff + sh_series_length(series->l_max, series->polar), 0, (sh_series_length(series->l_max, polar) - sh_series_length(series->l_max, series->polar)) * sizeof(*series->coeff));
+
+	/* update metadata.  done */
 	series->polar = polar;
-	return _sh_series_resize(series, series->l_max);
+	return series;
 }
 
 
