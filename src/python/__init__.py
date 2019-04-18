@@ -1,1 +1,1 @@
-__all__ = ["ioutils", "plotutils", "radiometer"]
+__all__ = ["ioutils", "plotutils", "sphradiometer"]

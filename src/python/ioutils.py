@@ -26,7 +26,7 @@
 
 import re
 
-import radiometer
+from . import sphradiometer
 
 
 #

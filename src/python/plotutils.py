@@ -38,7 +38,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from mpl_toolkits.basemap import Basemap
 import numpy
 
-import radiometer
+from . import sphradiometer
 
 
 #
