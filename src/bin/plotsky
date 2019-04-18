@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2006--2009  Kipp C. Cannon
 #
@@ -33,7 +33,7 @@ import numpy
 from optparse import OptionParser
 import re
 
-from radiometer import *
+from spradiometer import ioutils, plotutils, sphradiometer
 
 
 #
@@ -84,17 +84,15 @@ class Injection(object):
 def parse_command_line():
 	parser = OptionParser()
 	parser.add_option("--injection-ra-dec", default = [], action = "append", help = "injection right-ascension and declination")
-	parser.add_option("--baseline-theta", default = math.pi / 2, help = "baseline theta")
-	parser.add_option("--baseline-phi", default = 0, help = "baseline phi")
+	parser.add_option("--baseline-theta", type = "float", default = math.pi / 2, help = "baseline theta")
+	parser.add_option("--baseline-phi", type = "float", default = 0, help = "baseline phi")
 	options, filenames = parser.parse_args()
 
 	for n, ra_dec, in enumerate(options.injection_ra_dec):
 		ra, dec = ra_dec.split(",")
 		options.injection_ra_dec[n] = Injection(float(ra), float(dec))
-	options.baseline_theta = float(options.baseline_theta)
-	options.baseline_phi = float(options.baseline_phi)
 
-	return options, (filenames or [None])
+	return options, filenames
 
 
 #
@@ -168,24 +166,24 @@ options, filenames = parse_command_line()
 
 
 for fdname in filenames:
-	print fdname
+	print(fdname)
 	gmst = float(fdname[9:-4])
 
 	tdname = fdname[:6] + "td_" + fdname[9:]
 	tdavergname = "averg_td_" + fdname[9:]
 	fdavergname = "averg_fd_" + fdname[9:]
 
-	#tdpower = ioutils.read_sh_series(file(fdname))
-	fdpower = ioutils.read_sh_series(file(fdname))
-	#tdaverg = ioutils.read_sh_series(file(tdavergname))
-	fdaverg = ioutils.read_sh_series(file(fdavergname))
+	#tdpower = ioutils.read_sh_series(open(fdname))
+	fdpower = ioutils.read_sh_series(open(fdname))
+	#tdaverg = ioutils.read_sh_series(open(tdavergname))
+	fdaverg = ioutils.read_sh_series(open(fdavergname))
 
 	for injection in options.injection_ra_dec:
-		print "	injection at %s, %s:" % (plotutils.rad_to_hms_str(injection.ra), plotutils.rad_to_dms_str(injection.dec))
-		#print "		current td power = %g" % radiometer.sh_series_eval(tdpower, math.pi / 2 - injection.dec, injection.ra).real
-		#print "		time averaged td power = %g" % radiometer.sh_series_eval(tdaverg, math.pi / 2 - injection.dec, injection.ra).real
-		print "		current fd power = %g" % radiometer.sh_series_eval(fdpower, math.pi / 2 - injection.dec, injection.ra).real
-		print "		time averaged fd power = %g" % radiometer.sh_series_eval(fdaverg, math.pi / 2 - injection.dec, injection.ra).real
+		print("	injection at %s, %s:" % (plotutils.rad_to_hms_str(injection.ra), plotutils.rad_to_dms_str(injection.dec)))
+		#print("		current td power = %g" % sphradiometer.sh_series_eval(tdpower, math.pi / 2 - injection.dec, injection.ra).real)
+		#print("		time averaged td power = %g" % sphradiometer.sh_series_eval(tdaverg, math.pi / 2 - injection.dec, injection.ra).real)
+		print("		current fd power = %g" % sphradiometer.sh_series_eval(fdpower, math.pi / 2 - injection.dec, injection.ra).real)
+		print("		time averaged fd power = %g" % sphradiometer.sh_series_eval(fdaverg, math.pi / 2 - injection.dec, injection.ra).real)
 
 	#fig = mollweid(tdpower, tdaverg, gmst, options.injection_ra_dec)
 	#fig.savefig(fdname[:-4] + ".png")
