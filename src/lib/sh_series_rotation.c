@@ -411,25 +411,23 @@ struct sh_series *sh_series_rotate(struct sh_series *result, const struct sh_ser
 
 struct sh_series *sh_series_rotate_z(struct sh_series *result, const struct sh_series *series, double phi)
 {
-	unsigned int l;
-	int m;
-
 	if(result->l_max != series->l_max)
 		return NULL;
 
 	if(series->polar) {
 		/* no-op */
-		if(result != series) {
+		if(result != series)
 			/* copy coefficients and zero any unused */
-			memcpy(result->coeff, series->coeff, sh_series_length(series->l_max, series->polar) * sizeof(*series->coeff));
-			memset(result->coeff + sh_series_length(series->l_max, series->polar), 0, (sh_series_length(result->l_max, result->polar) - sh_series_length(series->l_max, series->polar)) * sizeof(*result->coeff));
-		}
+			sh_series_assign(result, series);
 	} else {
+		int m;
+
 		if(result->polar)
 			return NULL;
 
 		for(m = -(int) series->l_max; m <= (int) series->l_max; m++) {
 			const complex double factor = cexp(-I * m * phi);
+			unsigned int l;
 			for(l = abs(m); l <= series->l_max; l++)
 				sh_series_set(result, l, m, sh_series_get(series, l, m) * factor);
 		}
