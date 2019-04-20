@@ -67,10 +67,23 @@ double *euler_rotation_matrix(double gamma, double beta, double alpha)
 	if(!R)
 		return NULL;
 
+	/*
+	 * using rotation matrixes from
+	 *
+	 * https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions
+	 *
+	 * wxMaxima code to generate these expressions below:
+	 *
+	 * Rz(w) := matrix([cos(w), -sin(w), 0], [sin(w), cos(w), 0], [0, 0, 1]);
+	 * Ry(w) := matrix([cos(w), 0, sin(w)], [0, 1, 0], [-sin(w), 0, cos(w)]);
+	 *
+	 * Rz(alpha).Ry(beta).Rz(gamma);
+	 */
+
 	R[3 * x + x] =  cos(alpha) * cos(beta) * cos(gamma) - sin(alpha) * sin(gamma);
 	R[3 * x + y] = -cos(alpha) * cos(beta) * sin(gamma) - sin(alpha) * cos(gamma);
 	R[3 * x + z] =  cos(alpha) * sin(beta);
-	R[3 * y + x] =  sin(alpha) * cos(beta) * cos(gamma) - cos(alpha) * sin(gamma);
+	R[3 * y + x] =  sin(alpha) * cos(beta) * cos(gamma) + cos(alpha) * sin(gamma);
 	R[3 * y + y] = -sin(alpha) * cos(beta) * sin(gamma) + cos(alpha) * cos(gamma);
 	R[3 * y + z] =  sin(alpha) * sin(beta);
 	R[3 * z + x] = -sin(beta) * cos(gamma);
