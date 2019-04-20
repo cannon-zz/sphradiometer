@@ -3,11 +3,13 @@ AM_CPPFLAGS = -I../src/include
 TESTS = \
 	correlator_validate \
 	healpy_validate.py \
+	rotation_validate \
 	s2kit_validate \
 	sh_series_validate
 
 check_PROGRAMS = \
 	correlator_validate \
+	rotation_validate \
 	s2kit_validate \
 	sh_series_validate
 
@@ -20,6 +22,9 @@ s2kit_validate_SOURCES = s2kit_validate.c
 s2kit_validate_CFLAGS = $(AM_CFLAGS) $(S2KIT_CFLAGS)
 s2kit_validate_LDFLAGS = $(AM_LDLAGS) $(S2KIT_LIBS)
 s2kit_validate_LDADD = ../src/lib/libsphradiometer.la
+
+rotation_validate_SOURCES = rotation_validate.c
+rotation_validate_LDADD = ../src/lib/libsphradiometer.la
 
 sh_series_validate_SOURCES = sh_series_validate.c
 sh_series_validate_LDADD = ../src/lib/libsphradiometer.la
