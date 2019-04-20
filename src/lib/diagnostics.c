@@ -59,6 +59,55 @@ void diagnostics_dump_sh_series(const struct sh_series *series, char *name)
 
 
 /*
+ * Test two sh_series objects for equality.  Returns 0 if they describe the
+ * same function, 1 if they do not.
+ */
+
+
+int sh_series_cmp(const struct sh_series *a, const struct sh_series *b)
+{
+	/* coefficients must agree up to the smaller of the two, and then
+	 * be 0 in the larger of the two */
+	int a_l_max = a->l_max;
+	int a_m_max = a->polar ? 0 : a_l_max;
+	int b_l_max = b->l_max;
+	int b_m_max = b->polar ? 0 : b_l_max;
+	int l_max = a_l_max < b_l_max ? a_l_max : b_l_max;
+	int m_max = a_m_max < b_m_max ? a_m_max : b_m_max;
+	int l, m;
+
+	/* check the l for which they both have coefficients */
+	for(l = 0; l <= l_max; l++) {
+		/* check +ve and -ve m.  wastes cpu cycles for m=0 but who
+		 * cares */
+		for(m = 0; m <= (l < m_max ? l : m_max); m++)
+			if(sh_series_get(a, l, m) != sh_series_get(b, l, m) || sh_series_get(a, l, -m) != sh_series_get(b, l, -m))
+				return 1;
+		/* any extra elements in a or b must be 0 */
+		for(m = m_max + 1; m <= (l < a_m_max ? l : a_m_max); m++)
+			if(sh_series_get(a, l, m) != 0.)
+				return 1;
+		for(m = m_max + 1; m <= (l < b_m_max ? l : b_m_max); m++)
+			if(sh_series_get(b, l, m) != 0.)
+				return 1;
+	}
+
+	/* any extra elements in a or b must be 0 */
+	for(l = l_max + 1; l <= a_l_max; l++)
+		for(m = 0; m <= (l < a_m_max ? l : a_m_max); m++)
+			if(sh_series_get(a, l, m) != 0.)
+				return 1;
+	for(l = l_max + 1; l <= b_l_max; l++)
+		for(m = 0; m <= (l < b_m_max ? l : b_m_max); m++)
+			if(sh_series_get(b, l, m) != 0.)
+				return 1;
+
+	/* they're equal */
+	return 0;
+}
+
+
+/*
  * Compute the RMS difference between two functions on the sphere.
  */
 

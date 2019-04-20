@@ -45,6 +45,7 @@
 
 
 void diagnostics_dump_sh_series(const struct sh_series *, char *);
+int sh_series_cmp(const struct sh_series *, const struct sh_series *);
 double diagnostics_rms_error(const struct sh_series *, const struct sh_series *);
 void diagnostics_dump_correlator_plan_td_stats(FILE *, const struct correlator_plan_td *);
 void diagnostics_dump_correlator_plan_fd_stats(FILE *, const struct correlator_plan_fd *);
