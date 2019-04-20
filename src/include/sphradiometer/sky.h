@@ -54,27 +54,30 @@
  *
  * Reference:
  *
- * 	Wikipedia (http://en.wikipedia.org/wiki/Galactic_latitude)
+ * 	Wikipedia (https://en.wikipedia.org/wiki/Galactic_coordinate_system)
  */
 
 
-#define SKY_MW_Z_RA_RAD 3.3660334141941082 /* = 12h 51m 26.282s */
-#define SKY_MW_Z_DEC_RAD 0.47347878572656316 /* = 27o 07' 42.01" */
-#define SKY_MW_X_J2000_RA_RAD 4.6496461391047452 /* = 17h 45m 37.224s */
-#define SKY_MW_X_J2000_DEC_RAD -0.50503152668327012 /* = -28o 56' 10.23" */
+#define SKY_MW_Z_J2000_RA_RAD 3.3658674624710647 /* = 12h 51.4m */
+#define SKY_MW_Z_J2000_DEC_RAD 0.4735078260660616 /* = 27.13o */
+#define SKY_MW_X_J2000_RA_RAD 4.649557127312894 /* = 17 h 45.6 m */
+#define SKY_MW_X_J2000_DEC_RAD -0.5050982855271591 /* = -28.94o */
 
 
 /*
- * Equatorial co-ordinates for the galactic centre.
+ * Equatorial co-ordinates for the galactic centre.  NOTE:  Radio source
+ * Sagittarius A* is not at these co-ordinates, but it is within 0.1o of
+ * these co-ordinates which is the error budget for the 1958 co-ordinate
+ * system's definition
  *
  * Reference:
  *
- * 	Wikipedia (http://en.wikipedia.org/wiki/Galactic_latitude)
+ * 	Wikipedia (https://en.wikipedia.org/wiki/Galactic_coordinate_system)
  */
 
 
-#define SKY_MW_CENTRE_J2000_RA_RAD 4.6498509244036468 /* = 17 h 45 m 40.04 s */
-#define SKY_MW_CENTRE_J2000_DEC_RAD -0.50628171572274738 /* = -29o 00' 28.1" */
+#define SKY_MW_CENTRE_J2000_RA_RAD 4.649557127312894 /* = 17 h 45.6 m */
+#define SKY_MW_CENTRE_J2000_DEC_RAD -0.5050982855271591 /* = -28.94o */
 
 
 /*
