@@ -101,23 +101,33 @@ double *euler_inv_rotation_matrix(double gamma, double beta, double alpha)
 
 
 /*
- * The matrix returned by sh_series_equatorial_to_galactic_rot_matrix()
- * rotates the right-handed equatorial co-ordinate system whose x axis
- * points to the vernal equinox and whose z axis points to the Earth's
- * north celestial pole to the right-handed galactic co-ordinate system
- * whose x axis points to the galactic core and whose z axis points to the
- * galactic pole.  sky_galactic_to_equatorial_rot_matrix() returns the
- * inverse of this matrix.
+ * The matrix returned by sky_equatorial_to_galactic_rot_matrix() rotates
+ * the right-handed equatorial co-ordinate system whose x axis points to
+ * the vernal equinox and whose z axis points to the Earth's north
+ * celestial pole to the right-handed galactic co-ordinate system whose x
+ * axis points to the galactic core and whose z axis points to the galactic
+ * pole.  sky_galactic_to_equatorial_rot_matrix() returns the inverse of
+ * this matrix.
  */
 
 
 double *sky_equatorial_to_galactic_rot_matrix(void)
 {
-	return euler_rotation_matrix(-SKY_MW_Z_RA_RAD, M_PI_2 - SKY_MW_Z_DEC_RAD, SKY_MW_Z_RA_RAD - acos(cos(SKY_MW_X_J2000_DEC_RAD) * cos(SKY_MW_X_J2000_RA_RAD)));
+	/* the alpha parameter is the angle between the X axis and the line
+	 * of nodes.  this is obtained knowing the co-ordinates of those
+	 * two points and the law of spherical cosines
+	 *
+	 * the line of nodes is pi/2 from the positive Z axis, on a merdian
+	 * at right ascension = (pi/2 + Z axis RA).  the X axis is (pi/2 -
+	 * X axis DEC) from the positive Z axis, on a meridian at right
+	 * ascension = (X axis RA).
+	 */
+
+	return euler_rotation_matrix(-SKY_MW_Z_J2000_RA_RAD, SKY_MW_Z_J2000_DEC_RAD - M_PI_2, asin(cos(SKY_MW_X_J2000_DEC_RAD) * sin(SKY_MW_Z_J2000_RA_RAD - SKY_MW_X_J2000_RA_RAD)));
 }
 
 
 double *sky_galactic_to_equatorial_rot_matrix(void)
 {
-	return euler_rotation_matrix(SKY_MW_Z_RA_RAD - acos(cos(SKY_MW_X_J2000_DEC_RAD) * cos(SKY_MW_X_J2000_RA_RAD)), M_PI_2 - SKY_MW_Z_DEC_RAD, -SKY_MW_Z_RA_RAD);
+	return euler_inv_rotation_matrix(-SKY_MW_Z_J2000_RA_RAD, SKY_MW_Z_J2000_DEC_RAD - M_PI_2, asin(cos(SKY_MW_X_J2000_DEC_RAD) * sin(SKY_MW_Z_J2000_RA_RAD - SKY_MW_X_J2000_RA_RAD)));
 }
