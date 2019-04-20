@@ -42,14 +42,20 @@
 
 
 /*
- * The matrix returned by sky_rotation_matrix() rotates by alpha about the
- * positive z axis, then by beta about the positive y axis, then by gamma
- * about the positive z axis.  sky_inv_rotation_matrix() returns the
- * inverse of the same matrix.
+ * The matrix returned by euler_rotation_matrix() rotates by gamma about
+ * the positive z axis, then by beta about the positive y axis, then by
+ * alpha about the positive z axis.  euler_inv_rotation_matrix() returns
+ * the inverse of the same matrix.
+ *
+ * Compared to wikipedia's article on Euler angles, this is the
+ * "y-convention Geometrical definition", with our gamma = wikipedia's
+ * alpha, our beta = wikipedia's beta, our alpha = wikipedia's gamma.
+ *
+ * https://en.wikipedia.org/wiki/Euler_angles
  */
 
 
-double *sky_rotation_matrix(double alpha, double beta, double gamma)
+double *euler_rotation_matrix(double gamma, double beta, double alpha)
 {
 	enum {
 		x = 0,
@@ -61,23 +67,23 @@ double *sky_rotation_matrix(double alpha, double beta, double gamma)
 	if(!R)
 		return NULL;
 
-	R[3 * x + x] =  cos(gamma) * cos(beta) * cos(alpha) - sin(gamma) * sin(alpha);
-	R[3 * x + y] = -cos(gamma) * cos(beta) * sin(alpha) - sin(gamma) * cos(alpha);
-	R[3 * x + z] =  cos(gamma) * sin(beta);
-	R[3 * y + x] =  sin(gamma) * cos(beta) * cos(alpha) - cos(gamma) * sin(alpha);
-	R[3 * y + y] = -sin(gamma) * cos(beta) * sin(alpha) + cos(gamma) * cos(alpha);
-	R[3 * y + z] =  sin(gamma) * sin(beta);
-	R[3 * z + x] = -sin(beta) * cos(alpha);
-	R[3 * z + y] =  sin(beta) * sin(alpha);
+	R[3 * x + x] =  cos(alpha) * cos(beta) * cos(gamma) - sin(alpha) * sin(gamma);
+	R[3 * x + y] = -cos(alpha) * cos(beta) * sin(gamma) - sin(alpha) * cos(gamma);
+	R[3 * x + z] =  cos(alpha) * sin(beta);
+	R[3 * y + x] =  sin(alpha) * cos(beta) * cos(gamma) - cos(alpha) * sin(gamma);
+	R[3 * y + y] = -sin(alpha) * cos(beta) * sin(gamma) + cos(alpha) * cos(gamma);
+	R[3 * y + z] =  sin(alpha) * sin(beta);
+	R[3 * z + x] = -sin(beta) * cos(gamma);
+	R[3 * z + y] =  sin(beta) * sin(gamma);
 	R[3 * z + z] =  cos(beta);
 
 	return R;
 }
 
 
-double *sky_inv_rotation_matrix(double alpha, double beta, double gamma)
+double *euler_inv_rotation_matrix(double gamma, double beta, double alpha)
 {
-	return sky_rotation_matrix(-gamma, -beta, -alpha);
+	return euler_rotation_matrix(-alpha, -beta, -gamma);
 }
 
 
@@ -94,11 +100,11 @@ double *sky_inv_rotation_matrix(double alpha, double beta, double gamma)
 
 double *sky_equatorial_to_galactic_rot_matrix(void)
 {
-	return sky_rotation_matrix(-SKY_MW_Z_RA_RAD, M_PI_2 - SKY_MW_Z_DEC_RAD, SKY_MW_Z_RA_RAD - acos(cos(SKY_MW_X_J2000_DEC_RAD) * cos(SKY_MW_X_J2000_RA_RAD)));
+	return euler_rotation_matrix(-SKY_MW_Z_RA_RAD, M_PI_2 - SKY_MW_Z_DEC_RAD, SKY_MW_Z_RA_RAD - acos(cos(SKY_MW_X_J2000_DEC_RAD) * cos(SKY_MW_X_J2000_RA_RAD)));
 }
 
 
 double *sky_galactic_to_equatorial_rot_matrix(void)
 {
-	return sky_rotation_matrix(SKY_MW_Z_RA_RAD - acos(cos(SKY_MW_X_J2000_DEC_RAD) * cos(SKY_MW_X_J2000_RA_RAD)), M_PI_2 - SKY_MW_Z_DEC_RAD, -SKY_MW_Z_RA_RAD);
+	return euler_rotation_matrix(SKY_MW_Z_RA_RAD - acos(cos(SKY_MW_X_J2000_DEC_RAD) * cos(SKY_MW_X_J2000_RA_RAD)), M_PI_2 - SKY_MW_Z_DEC_RAD, -SKY_MW_Z_RA_RAD);
 }

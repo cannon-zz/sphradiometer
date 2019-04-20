@@ -84,7 +84,7 @@
 
 double *sh_series_rot_matrix(double theta, double phi)
 {
-	return sky_rotation_matrix(0, theta, phi);
+	return euler_rotation_matrix(0, theta, phi);
 }
 
 
@@ -98,7 +98,7 @@ double *sh_series_rot_matrix(double theta, double phi)
 
 double *sh_series_invrot_matrix(double theta, double phi)
 {
-	return sky_rotation_matrix(-phi, -theta, 0);
+	return euler_rotation_matrix(-phi, -theta, 0);
 }
 
 

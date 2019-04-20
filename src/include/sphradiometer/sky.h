@@ -99,8 +99,8 @@
  */
 
 
-double *sky_rotation_matrix(double, double, double);
-double *sky_inv_rotation_matrix(double, double, double);
+double *euler_rotation_matrix(double, double, double);
+double *euler_inv_rotation_matrix(double, double, double);
 
 
 double *sky_equatorial_to_galactic_rot_matrix(void);
