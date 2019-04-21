@@ -142,7 +142,7 @@ static struct options *command_line_options_new(void)
 	/* defaults */
 	*options = (struct options) {
 		.sample_frequency = 2048,
-		.trials = 5,
+		.trials = 1,
 	};
 
 	return options;
