@@ -26,25 +26,26 @@
  */
 
 
+#include <chealpix.h>
 #include <complex.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <getopt.h>
 #include <fftw3.h>
+#include <getopt.h>
 #include <gsl/gsl_math.h>
+#include <instruments.h>
+#include <math.h>
 #include <sphradiometer/instrument.h>
 #include <sphradiometer/sh_series.h>
 #include <sphradiometer/correlator.h>
 #include <sphradiometer/diagnostics.h>
-#include <instruments.h>
-#include <chealpix.h>
-#include <hdf5.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
 #include <lal/LALCache.h>
+#include <lal/LALFrameIO.h>
 #include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimulation.h>
@@ -65,14 +66,8 @@
 
 struct options {
 	struct instrument_array *instruments;
-	char *data1_cache_name;
-	char *data1_channel_name;
-	char *data2_cache_name;
-	char *data2_channel_name;
-	LIGOTimeGPS analysis_start;
-	double analysis_duration;
-	double integration_duration;
-	double integration_shift;
+	char *snr_cache;
+	char **channels;
 	char *output_name;
 };
 
@@ -88,18 +83,9 @@ static struct options *command_line_options_new(void)
 
 
 	*options = (struct options) {
-		.instruments = instrument_array_new(2),
-		.data1_cache_name = NULL,
-		.data1_channel_name = NULL,
-		.data2_cache_name = NULL,
-		.data2_channel_name = NULL,
-		.analysis_start = (LIGOTimeGPS) {
-			.gpsSeconds = 0,
-			.gpsNanoSeconds = 0,
-		},
-		.analysis_duration = 0.0,
-		.integration_duration = 0.0,
-		.integration_shift = 0.125,
+		.instruments = instrument_array_new(0),
+		.snr_cache = NULL,
+		.channels = NULL,
 		.output_name = NULL,
 	};
 
@@ -107,11 +93,28 @@ static struct options *command_line_options_new(void)
 }
 
 
-static struct options *command_line_set_instrument(struct options *options, int n, const char *name)
+static struct options *command_line_set_instrument(struct options *options, const char *name)
 {
 	char instrument_name[3] = {name[0], name[1], '\0'};
+	struct instrument *instrument = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector(instrument_name));
 
-	instrument_array_set(options->instruments, n, instrument_from_LALDetector(XLALDetectorPrefixToLALDetector(instrument_name)));
+	if(!instrument) {
+		XLALPrintError("failed to initiaize for instrument \"%s\"", instrument_name);
+		return NULL;
+	}
+
+	if(!instrument_array_append(options->instruments, instrument)) {
+		XLALPrintError("failed to append instrument \"%s\" to list", instrument_name);
+		return NULL;
+	}
+
+	options->channels = realloc(options->channels,  instrument_array_len(options->instruments) * sizeof(*options->channels));
+	if(!options->channels) {
+		/* FIXME:  leaks memory */
+		XLALPrintError("failed to resize channel list");
+		return NULL;
+	}
+	options->channels[instrument_array_len(options->instruments) - 1] = optarg;
 
 	return options;
 }
@@ -131,6 +134,8 @@ static void command_line_options_free(struct options *options)
 {
 	if(options) {
 		instrument_array_free(options->instruments);
+		/* don't free optarg memory, just the array of pointers to them */
+		free(options->channels);
 	}
 	free(options);
 }
@@ -147,14 +152,8 @@ struct options *command_line_parse(int argc, char *argv[])
 	int c;
 	int option_index;
 	struct option long_options[] = {
-		{"data1-cache-name",	required_argument,	NULL,	'A'},
-		{"data1-channel-name",	required_argument,	NULL,	'B'},
-		{"data2-cache-name",	required_argument,	NULL,	'a'},
-		{"data2-channel-name",	required_argument,	NULL,	'b'},
-		{"analysis-start-gps",	required_argument,	NULL,	'E'},
-		{"analysis-duration",	required_argument,	NULL,	'F'},
-		{"integration-duration",	required_argument,	NULL,	'G'},
-		{"integration-shift",	required_argument,	NULL,	'g'},
+		{"snr-cache",	required_argument,	NULL,	'A'},
+		{"snr-channel",	required_argument,	NULL,	'B'},
 		{"output",		required_argument,	NULL,	'H'},
 		{"help",		no_argument,		NULL,	'h'},
 		{NULL,	0,	NULL,	0}
@@ -165,46 +164,14 @@ struct options *command_line_parse(int argc, char *argv[])
 		return NULL;
 
 	do switch(c = getopt_long(argc, argv, "", long_options, &option_index)) {
-	/* data1-cache-name */
+	/* snr-cache */
 	case 'A':
-		options->data1_cache_name = optarg;
+		options->snr_cache = optarg;
 		break;
 
-	/* data1-channel-name */
+	/* snr-channel */
 	case 'B':
-		command_line_set_instrument(options, 0, optarg);
-		options->data1_channel_name = optarg;
-		break;
-
-	/* data2-cache-name */
-	case 'a':
-		options->data2_cache_name = optarg;
-		break;
-
-	/* data2-channel-name */
-	case 'b':
-		command_line_set_instrument(options, 1, optarg);
-		options->data2_channel_name = optarg;
-		break;
-
-	/* analysis-start-gps */
-	case 'E':
-		XLALStrToGPS(&options->analysis_start, optarg, NULL);
-		break;
-
-	/* analysis-duration */
-	case 'F':
-		options->analysis_duration = atof(optarg);
-		break;
-
-	/* integration-duration */
-	case 'G':
-		options->integration_duration = atof(optarg);
-		break;
-
-	/* integration-shift */
-	case 'g':
-		options->integration_shift = atof(optarg);
+		command_line_set_instrument(options, optarg);
 		break;
 
 	/* output */
@@ -252,22 +219,28 @@ struct options *command_line_parse(int argc, char *argv[])
  */
 
 
-static COMPLEX8TimeSeries *get_complex8series_from_cache(
+static COMPLEX16TimeSeries *get_complex16series_from_cache(
 	const char *cache_name,
-	const char *channel_name,
-	LIGOTimeGPS start,
-	double duration
+	const char *channel_name
 )
 {
+	char instrument[] = {channel_name[0], channel_name[1], '\0'};
 	LALCache *cache;
 	LALFrStream *stream;
 	COMPLEX8TimeSeries *data;
-	int gap;
+	COMPLEX16TimeSeries *result;
+	unsigned i;
 
 	/* construct stream */
 	cache = XLALCacheImport(cache_name);
 	if(!cache)
 		XLAL_ERROR_NULL(XLAL_EFUNC);
+	XLALCacheSieve(cache, 0, 0, instrument, NULL, NULL);
+	if(cache->length != 1) {
+		XLALPrintError("error: cache must contain exactly 1 file for instrument %s", instrument);
+		XLALDestroyCache(cache);
+		XLAL_ERROR_NULL(XLAL_EDATA);
+	}
 	stream = XLALFrStreamCacheOpen(cache);
 	XLALDestroyCache(cache);
 	if(!stream)
@@ -277,23 +250,77 @@ static COMPLEX8TimeSeries *get_complex8series_from_cache(
 	stream->mode = LAL_FR_STREAM_VERBOSE_MODE;
 
 	/* get data */
-	data = XLALFrStreamReadCOMPLEX8TimeSeries(stream, channel_name, &start, duration, 0);
+	data = XLALFrFileReadCOMPLEX8TimeSeries(stream->file, channel_name, 0);
 
 	/* check for gaps and close */
-	gap = stream->state & LAL_FR_STREAM_GAP;
 	XLALFrStreamClose(stream);
 
 	/* error checking */
 	if(!data)
 		XLAL_ERROR_NULL(XLAL_EFUNC);
-	if(gap) {
-		XLALDestroyCOMPLEX8TimeSeries(data);
-		XLALPrintError("error: gap detected in input data");
-		XLAL_ERROR_NULL(XLAL_EDATA);
-	}
+
+	/* convert to double precision */
+	result = XLALCreateCOMPLEX16TimeSeries(data->name, &data->epoch, data->f0, data->deltaT, &data->sampleUnits, data->data->length);
+	for(i = 0; i < data->data->length; i++)
+		result->data->data[i] = data->data->data[i];
+	XLALDestroyCOMPLEX8TimeSeries(data);
+	/*for(i = 0; i < result->data->length; i++) fprintf(stderr, "%g+I*%g\n", creal(result->data->data[i]), cimag(result->data->data[i]));*/
 
 	/* done */
-	return data;
+	{
+	char *s = XLALGPSToStr(NULL, &result->epoch);
+	fprintf(stderr, "%s: loaded \"%s\" at %s s, duration=%g s (%d samples)\n", instrument, result->name, s, result->data->length * result->deltaT, result->data->length);
+	LALFree(s);
+	}
+	return result;
+}
+
+
+/*
+ * make the time series span the same intervals
+ * FIXME:  this leaves the final GPS times slightly different.  why?
+ */
+
+
+static int time_series_pad(COMPLEX16TimeSeries **series, int n_series)
+{
+	int i;
+	LIGOTimeGPS start;
+	LIGOTimeGPS end;
+	double deltaT;
+	int length;
+
+	start = end = series[0]->epoch;
+	deltaT = series[0]->deltaT;
+	XLALGPSAdd(&end, series[0]->deltaT * series[0]->data->length);
+
+	for(i = 1; i < n_series; i++) {
+		LIGOTimeGPS this_end = series[i]->epoch;
+		XLALGPSAdd(&this_end, series[i]->deltaT * series[i]->data->length);
+		if(series[i]->deltaT != deltaT) {
+			fprintf(stderr, "sample rate mismatch\n");
+			exit(1);
+		}
+		if(XLALGPSCmp(&start, &series[i]->epoch) > 0)
+			start = series[i]->epoch;
+		if(XLALGPSCmp(&end, &this_end) < 0)
+			end = this_end;
+	}
+
+	length = round(XLALGPSDiff(&end, &start) / deltaT);
+
+	for(i = 0; i < n_series; i++) {
+		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / deltaT), length);
+		/*unsigned j; for(j = 0; j < series[i]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[i]->data->data[j]), cimag(series[i]->data->data[j])); fprintf(stderr, "\n");*/
+	}
+
+	for(i = 0; i < n_series; i++) {
+		char *s = XLALGPSToStr(NULL, &series[i]->epoch);
+		fprintf(stderr, "zero-padded interval for \"%s\": %s s, duration=%g s (%d samples)\n", series[i]->name, s, series[i]->data->length * series[i]->deltaT, series[i]->data->length);
+		LALFree(s);
+	}
+
+	return 0;
 }
 
 
@@ -321,8 +348,22 @@ static double gmst_from_epoch_and_offset(LIGOTimeGPS epoch, double offset)
  */
 
 
-/* if normalization is needed, set polarization = 1.
- * if it is NOT needed, set polarization = 0. */
+/*
+ * return the smallest power of 2 not smaller than x
+ */
+
+ int ceilpow2(int x)
+ {
+	int i;
+	for(i = 1; i > 0; i <<= 1)
+		if(i >= x)
+			return i;
+	return -1;	/* overflow */
+ }
+
+
+/* if normalization is needed, set normalization = 1.
+ * if it is NOT needed, set normalization = 0. */
 static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, double theta, double phi, int normalization)
 {
 	double twopsi;
@@ -392,17 +433,28 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 	result = sh_series_new(plan->delay_product->l_max, 0);
 	if(!result)
 		return NULL;
+	sh_series_array_set_polar(plan->delay_product, 0);
 	product_plan = sh_series_product_plan_new(result, &plan->delay_product->series[0], projection);
 	if(!product_plan) {
+		XLALPrintError("sh_series_product_plan_new() failed\n");
 		sh_series_free(result);
 		return NULL;
 	}
 
 	for(i = 0; i < plan->delay_product->n; i++) {
-		sh_series_product(result, &plan->delay_product->series[i], projection, product_plan);
-		sh_series_assign(&plan->delay_product->series[i], result);
+		if(!sh_series_product(result, &plan->delay_product->series[i], projection, product_plan)) {
+			XLALPrintError("sh_series_product() failed\n");
+			plan = NULL;
+			goto done;
+		}
+		if(!sh_series_assign(&plan->delay_product->series[i], result)) {
+			XLALPrintError("sh_series_assign() failed\n");
+			plan = NULL;
+			goto done;
+		}
 	}
 
+done:
 	sh_series_product_plan_free(product_plan);
 	sh_series_free(result);
 
@@ -410,7 +462,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 }
 
 
-static struct correlator_network_plan_fd *correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
+static void correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
 {
 	int i;
 	const struct instrument_array *instruments = plan->baselines->baselines[0]->instruments;
@@ -428,7 +480,8 @@ static struct correlator_network_plan_fd *correlator_network_plan_mult_by_projec
 			.n = instrument_array_len(instruments)
 		};
 		sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data);
-		correlator_plan_mult_by_projection(plan->plans[i], projection);
+		if(!correlator_plan_mult_by_projection(plan->plans[i], projection))
+			exit(1);
 		sh_series_free(projection);
 	}
 
@@ -445,72 +498,18 @@ static struct correlator_network_plan_fd *correlator_network_plan_mult_by_projec
  */
 
 
+#include <assert.h>
 int main(int argc, char *argv[])
 {
-	//struct options *options;
-	COMPLEX8TimeSeries *series[2];
+	struct options *options;
+	COMPLEX16TimeSeries **series;
 	struct correlator_network_baselines *baselines;
-	double *tseries;
-	REAL8Window *window;
-	complex double *fseries[2];
-	fftw_plan fftplans[2];
+	complex double **fseries;
+	fftw_plan *fftplans;
 	struct correlator_network_plan_fd *fdplans;
-	int sky_l_max;
 	struct sh_series *sky;
 	int k;
 	struct timeval t_start, t_end;
-	int start_sample, time_series_length;
-	double gmst;
-	const LALDetector det[2];
-	int i, j;
-	hid_t file_id, dataset_id, dataspace_id, filespace_id; //
-	herr_t status;
-	double *epoch;
-	int rank;
-	int length, n;
-
-
-	// FIXME: set tseries and initial_time
-	file_id = H5Fopen("output.h5", H5F_ACC_RDWR, H5P_DEFAULT);	// open an existing file
-	dataset_id = H5Dopen(file_id, "/data_length", H5P_DEFAULT);	// open an existing dataset
-	filespace_id = H5Dget_space(dataset_id);			// read the dataset
-	status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &length); //
-	fprintf(stderr, "data_length = %d\n", length);
-
-	dataset_id = H5Dopen(file_id, "/detector_number", H5P_DEFAULT);	// open an existing dataset
-	filespace_id = H5Dget_space(dataset_id);			// read the dataset
-	status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &n); //
-	fprintf(stderr, "detector_number = %d\n", n);
-
-	dataset_id = H5Dopen(file_id, "/epoch", H5P_DEFAULT);		// open an existing dataset
-	filespace_id = H5Dget_space(dataset_id);			// read the dataset
-	epoch = calloc(sizeof(double), 1);		//
-	status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, epoch); //
-	fprintf(stderr, "epoch = %f\n", *epoch);
-	
-	complex float **SNR = NULL;
-	float *SNR_real = NULL;
-	float *SNR_imag = NULL;
-	char *name = NULL;
-	SNR = (complex float **)malloc(n*sizeof(complex float *));
-	SNR_real = (float *)malloc(length*sizeof(float));
-	SNR_imag = (float *)malloc(length*sizeof(float));
-	name = (char *)malloc(11*sizeof(char));
-	for(i = 0; i < n; i++) SNR[i] = (complex float *)malloc(length*sizeof(complex float));
-	for(i = 0; i < n; i++){
-		snprintf(name, 11, "%s%d%s", "/SNR", i, "_real");
-		dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);	// open an existing dataset
-		filespace_id = H5Dget_space(dataset_id);			// read the dataset
-		status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, SNR_real); //
-
-		snprintf(name, 11, "%s%d%s", "/SNR", i, "_imag");
-		dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);	// open an existing dataset
-		filespace_id = H5Dget_space(dataset_id);			// read the dataset
-		status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, SNR_imag); //
-
-		for(j = 0; j < length; j++)
-			SNR[i][j] += SNR_real[j] + I*SNR_imag[j];
-	}
 
 
 	/*
@@ -518,13 +517,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-	//options = command_line_parse(argc, argv);
-	struct options *options = command_line_options_new();
-	options->integration_duration = length * 0.00048828125;
-	options->instruments->instruments[0] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector("H1"));
-	options->instruments->instruments[1] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector("L1"));
-	//options->instruments[2] = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector("V1"));
-	time_series_length = length; //
+	options = command_line_parse(argc, argv);
 
 
 	/*
@@ -532,43 +525,34 @@ int main(int argc, char *argv[])
 	 */
 
 
+	series = malloc(instrument_array_len(options->instruments) * sizeof(*series));
+	fseries = malloc(instrument_array_len(options->instruments) * sizeof(*fseries));
+	fftplans = malloc(instrument_array_len(options->instruments) * sizeof(*fftplans));
+	if(!series || !fseries || !fftplans) {
+		XLALPrintError("out of memory\n");
+		exit(1);
+	}
+	for(k = 0; k < instrument_array_len(options->instruments); k++) {
+		series[k] = get_complex16series_from_cache(options->snr_cache, options->channels[k]);
+		if(!series[k]) {
+			XLALPrintError("failure loading data\n");
+			exit(1);
+		}
+	}
+
 	/*
-	series[0] = get_complex8series_from_cache(options->data1_cache_name, options->data1_channel_name, options->analysis_start, options->analysis_duration);
-	series[1] = get_complex8series_from_cache(options->data2_cache_name, options->data2_channel_name, options->analysis_start, options->analysis_duration);
+	 * bring to a common interval
+	 */
 
-	if(!series[0] || !series[1]) {
-		XLALPrintError("failure loading data\n");
-		exit(1);
-	}
-	if(series[0]->deltaT != series[1]->deltaT) {
-		fprintf(stderr, "sample rate mismatch\n");
-		exit(1);
-	}
-	*/
 
-	LIGOTimeGPS epoch1, epoch2;
-	XLALINT8NSToGPS(&epoch1, epoch[0]);
-	XLALINT8NSToGPS(&epoch2, epoch[1]);
-	series[0] = XLALCreateCOMPLEX8TimeSeries("H1", &epoch1, 0, 0.00048828125, &lalSecondUnit, length);
-	free(series[0]->data->data);
-	series[0]->data->data = SNR[0];
-
-	series[1] = XLALCreateCOMPLEX8TimeSeries("L1", &epoch2, 0, 0.00048828125, &lalSecondUnit, length);
-	free(series[1]->data->data);
-	series[1]->data->data = SNR[1];
-
-	window = XLALCreateRectangularREAL8Window(options->integration_duration / series[0]->deltaT);
-	if(window->data->length * series[0]->deltaT != options->integration_duration) {
-		fprintf(stderr, "integration duration not an integer number of samples\n");
-		exit(1);
-	}
-
-	tseries = malloc(window->data->length * sizeof(*tseries));
-	fseries[0] = malloc(window->data->length * sizeof(**fseries));
-	fseries[1] = malloc(window->data->length * sizeof(**fseries));
-
-	fftplans[0] = correlator_tseries_to_fseries_plan(tseries, fseries[0], window->data->length);
-	fftplans[1] = correlator_tseries_to_fseries_plan(tseries, fseries[1], window->data->length);
+#if 1
+	for(k = 0; k < (int) series[0]->data->length; k++)
+		series[0]->data->data[k] = (double) random() / RAND_MAX + I*(double) random() / RAND_MAX - (0.5 + I*0.5);
+	for(k = 1; k < instrument_array_len(options->instruments); k++)
+		memcpy(series[k]->data->data, series[0]->data->data, series[0]->data->length * sizeof(*series[0]->data->data));
+	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < series[k]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[k]->data->data[j]), cimag(series[k]->data->data[j])); fprintf(stderr, "\n"); }*/
+#endif
+	time_series_pad(series, instrument_array_len(options->instruments));
 
 
 	/*
@@ -576,73 +560,84 @@ int main(int argc, char *argv[])
 	 */
 
 
+	for(k = 0; k < instrument_array_len(options->instruments); k++) {
+		complex double *save = malloc(series[k]->data->length * sizeof(*save));
+		memcpy(save, series[k]->data->data, series[k]->data->length * sizeof(*save));
+		fseries[k] = malloc(series[k]->data->length * sizeof(**fseries));
+		fftplans[k] = correlator_ctseries_to_fseries_plan(series[k]->data->data, fseries[k], series[k]->data->length);
+		memcpy(series[k]->data->data, save, series[k]->data->length * sizeof(*save));
+		free(save);
+	}
+
 	baselines = correlator_network_baselines_new(options->instruments);
-	fdplans = correlator_network_plan_fd_new(baselines, window->data->length, series[0]->deltaT);
-	sky_l_max = correlator_network_l_max(baselines, series[0]->deltaT);
-	sky = sh_series_new_zero(sky_l_max, 0);
+	fdplans = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
+	//correlator_network_plan_mult_by_projection(fdplans);
+	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT), 0);
 
 
 	/*
-	 * Loop over integration chunk.
+	 * Fourier transform data
 	 */
 
 
-	fprintf(stderr, "%d", time_series_length);
 	fprintf(stderr, "starting integration\n");
 	gettimeofday(&t_start, NULL);
-	for(start_sample = 0; start_sample + time_series_length <= series[0]->data->length; start_sample += time_series_length / 2) {
-		/*
-		 * Extract the data to integrate.
-		 */
 
-		
-		fprintf(stderr, "\t[%.3f s, %.3f s)\n", start_sample * series[0]->deltaT, (start_sample + time_series_length) * series[0]->deltaT);
-		for(k = 0; k < instrument_array_len(options->instruments); k++) {
-			memcpy(tseries, &series[k]->data->data[start_sample], time_series_length * sizeof(*tseries));
-			correlator_tseries_to_fseries(tseries, fseries[k], time_series_length, fftplans[k]);
+	for(k = 0; k < instrument_array_len(options->instruments); k++) {
+		correlator_ctseries_to_fseries(fftplans[k]);
+		unsigned i; for(i = 0; i < series[k]->data->length; i++) fprintf(stderr, "%g+I*%g\n", creal(fseries[k][i]), cimag(fseries[k][i])); fprintf(stderr, "\n");
+		int j = 0;	//
+		double temp = cabs(fseries[k][0]);	//
+		for(i = 1; i < series[k]->data->length; i++) {	//
+			if(temp < cabs(fseries[k][i])){
+				j = i;
+				temp = cabs(fseries[k][i]);
+			}
 		}
-
-
-		/*
-		 * Compute angular distribution of integrated cross power.
-		 */
-
-		correlator_network_integrate_power_fd(sky, fseries, fdplans);
-
-		/*
-		 * Rotate sky.
-		 */
-
-
-		gmst = gmst_from_epoch_and_offset(options->analysis_start, start_sample * series[0]->deltaT);
-		sh_series_rotate_z(sky, sky, gmst);
-
-
-		/*
-		 * Output.
-		 */
-
-
-		long int nside = 32;
-		long int npix = nside2npix(nside);
-		long int ipring;
-		float map[npix];
-		double theta, phi;
-		for(ipring = 0; ipring < npix; ipring++){
-			pix2ang_ring(nside, ipring, &theta, &phi);
-			map[i] = sh_series_eval(sky, theta, phi);
-		}
-
-		fprintf(stderr, "generate fits file\n");
-		write_healpix_map(map, nside, "map.fits", 0, "C");
-
-
-		/* FIXME: should probably do something here */
+		fprintf(stderr, "%d %g\n\n", j, temp);
 	}
+
+
+	/*
+	 * Compute angular distribution of integrated cross power.
+	 */
+
+
+	correlator_network_integrate_power_fd(sky, fseries, fdplans);
+
+
+	/*
+	 * Rotate sky.
+	 */
+
+
+	/*sh_series_rotate_z(sky, sky, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));*/
+
 	gettimeofday(&t_end, NULL);
 	fprintf(stderr, "finished integration\n");
+	/*sh_series_print(stderr, sky);*/
 
-	fprintf(stderr, "analyzed %g s of data in %g s chunks, overlapping 50%%, in %g s\n", series[0]->data->length * series[0]->deltaT, time_series_length * series[0]->deltaT, (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
+
+	/*
+	 * Output.
+	 */
+
+
+	long int nside = ceilpow2(ceil(sky->l_max / 2.));
+	long int npix = nside2npix(nside);
+	long int ipring;
+	float map[npix];
+	for(ipring = 0; ipring < npix; ipring++) {
+		double theta, phi;
+		pix2ang_ring(nside, ipring, &theta, &phi);
+		map[ipring] = creal(sh_series_eval(sky, theta, phi));
+	}
+
+	fprintf(stderr, "generate fits file\n");
+	write_healpix_map(map, nside, "map.fits", 0, "C");
+
+
+	fprintf(stderr, "analyzed %g s of data in %g s\n", series[0]->data->length * series[0]->deltaT, (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
 	fprintf(stderr, "data sample rate was %g Hz\n", 1.0 / series[0]->deltaT);
 	fprintf(stderr, "sky was computed to harmonic order l = %d\n", sky->l_max);
 
@@ -652,20 +647,16 @@ int main(int argc, char *argv[])
 	 */
 
 
-	free(tseries);
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
+		XLALDestroyCOMPLEX16TimeSeries(series[k]);
 		free(fseries[k]);
 		fftw_destroy_plan(fftplans[k]);
 	}
+	free(series);
 	correlator_network_plan_fd_free(fdplans);
 	correlator_network_baselines_free(baselines);
 	sh_series_free(sky);
 	command_line_options_free(options);
-
-	status = H5Dclose(dataset_id);	// close the dataset
-	status = H5Fclose(file_id);	// close the file
-	free(epoch);		//
-	free(SNR);		//
 
 	return 0;
 }
