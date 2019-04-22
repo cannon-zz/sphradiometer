@@ -134,7 +134,7 @@ struct sh_series *sh_series_new(unsigned int l_max, int polar)
 
 /*
  * Create a new sh_series object, with maximum l of l_max, and the
- * coefficients zeroed.  This marginally faster than sh_series_new() +
+ * coefficients zeroed.  This is marginally faster than sh_series_new() +
  * sh_series_zero().
  */
 
