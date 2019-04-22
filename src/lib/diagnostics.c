@@ -132,7 +132,7 @@ double diagnostics_rms_error(const struct sh_series *measured, const struct sh_s
 	}
 
 	/* compute the difference */
-	sh_series_sub(e_copy, 1.0, m_copy);
+	sh_series_add(e_copy, -1.0, m_copy);
 
 	/* compute the RMS of the difference */
 	rms_error = sqrt(creal(sh_series_dot(e_copy, e_copy)) / (4 * M_PI));

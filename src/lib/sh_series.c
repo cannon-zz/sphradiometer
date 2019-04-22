@@ -415,28 +415,6 @@ struct sh_series *sh_series_add(struct sh_series *a, const complex double z, con
 
 
 /*
- * Subtract z *  sh_series object b from sh_series object a in place,
- * returning a pointer to a or NULL on failure.
- */
-
-
-struct sh_series *sh_series_sub(struct sh_series *a, const complex double z, const struct sh_series *b)
-{
-	complex double *dst = a->coeff;
-	complex double *src = b->coeff;
-	unsigned int n = sh_series_length(b->l_max, b->polar);
-
-	if((a->l_max != b->l_max) || (a->polar != b->polar))
-		return NULL;
-
-	while(n--)
-		*dst++ -= z * *src++;
-
-	return a;
-}
-
-
-/*
  * Multiply the coefficients in the sh_series object a by the complex
  * factor z, returning a pointer to a or NULL on failure.
  */
