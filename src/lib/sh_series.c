@@ -379,39 +379,26 @@ complex double sh_series_set(struct sh_series *series, unsigned int l, int m, co
 
 /*
  * Add z * sh_series object b to sh_series object a in place, returning a
- * pointer to a or NULL on failure.
+ * pointer to a or NULL on failure.  "a" and "b" need not have the same
+ * order nor the same azimuthal symmetry, but the operation is not
+ * permitted to be lossy so "a" cannot have a subset of the coefficients of
+ * "b".
  */
 
 
 struct sh_series *sh_series_add(struct sh_series *a, const complex double z, const struct sh_series *b)
 {
-	complex double *dst = a->coeff;
-	complex double *src = b->coeff;
-	unsigned int n = sh_series_length(b->l_max, b->polar);
-
-	if((a->l_max != b->l_max) || (a->polar != b->polar))
-		return NULL;
-
-	while(n--)
-		*dst++ += z * *src++;
-
-	return a;
-}
-
-
-/*
- * Add z * sh_series object b to sh_series object a in place, returning a
- * pointer to a or NULL on failure.  Unlike the _add() function which
- * requires "a" and "b" to have identical orders, this function allows "a"
- * to have a higher order than "b".  For being more general, this
- * function is slower than _add().
- */
-
-
-struct sh_series *sh_series_add_into(struct sh_series *a, const complex double z, const struct sh_series *b)
-{
 	const int m_max = b->polar ? 0 : b->l_max;
 	int l, m;
+
+	if((a->l_max == b->l_max) && (a->polar == b->polar)) {
+		complex double *dst = a->coeff;
+		complex double *src = b->coeff;
+		unsigned int n = sh_series_length(b->l_max, b->polar);
+		while(n--)
+			*dst++ += z * *src++;
+		return a;
+	}
 
 	if((a->l_max < b->l_max) || (a->polar && !b->polar))
 		return NULL;

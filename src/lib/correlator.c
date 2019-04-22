@@ -779,7 +779,7 @@ struct sh_series *correlator_network_integrate_power_td(struct sh_series *sky, d
 	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
 			correlator_baseline_integrate_power_td(tseries[i], tseries[j], windows[k], tseries_length, plan->plans[k]);
-			sh_series_add_into(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);
+			sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);
 		}
 
 	return sky;
@@ -801,7 +801,7 @@ struct sh_series *correlator_network_integrate_power_fd(struct sh_series *sky, c
 	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
 			correlator_baseline_integrate_power_fd(fseries[i], fseries[j], plan->plans[k]);
-			sh_series_add_into(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);
+			sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);
 		}
 
 	return sky;

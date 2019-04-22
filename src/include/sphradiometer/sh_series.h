@@ -287,7 +287,6 @@ struct sh_series *sh_series_from_realfunc(struct sh_series *, double (*)(double,
 
 
 struct sh_series *sh_series_add(struct sh_series *, complex double, const struct sh_series *);
-struct sh_series *sh_series_add_into(struct sh_series *, complex double, const struct sh_series *);
 struct sh_series *sh_series_sub(struct sh_series *, complex double, const struct sh_series *);
 struct sh_series *sh_series_scale(struct sh_series *, complex double);
 struct sh_series *sh_series_conj(struct sh_series *);
