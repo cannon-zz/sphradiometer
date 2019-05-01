@@ -284,6 +284,45 @@ static int test_galactic_rotation_matrix(void)
 /*
  * ============================================================================
  *
+ *                           Wigner D Matrix Tests
+ *
+ * ============================================================================
+ */
+
+
+/*
+ * do rotations about the z axis produce diagonal D matrixes?
+ */
+
+static int wigner_D_test1(void)
+{
+	struct sh_series *series = sh_series_new(10, 0);
+	double omega;
+	int l, m, m_prime;
+
+	for(omega = 0.1; omega < 3.0; omega += 0.1) {
+		double *R = euler_rotation_matrix(omega, 0., 0.);
+		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
+		free(R);
+
+		for(l = 1; l < (int) series->l_max; l++)
+			for(m = -l; m <= +l; m++)
+				for(m_prime = -l; m_prime <= +l; m_prime++)
+					if(m_prime != m)
+						assert(sh_series_rotation_plan_wigner_D(plan, l, m, m_prime) == 0.);
+
+		sh_series_rotation_plan_free(plan);
+	}
+
+	sh_series_free(series);
+
+	return 0;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Entry Point
  *
  * ============================================================================
@@ -318,6 +357,7 @@ int main(int argc, char *argv[])
 
 	assert(test_euler_rotation_matrix() == 0);
 	assert(test_galactic_rotation_matrix() == 0);
+	assert(wigner_D_test1() == 0);
 
 	exit(0);
 }
