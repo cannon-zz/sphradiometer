@@ -343,6 +343,22 @@ void sh_series_rotation_plan_free(struct sh_series_rotation_plan *plan)
 
 
 /*
+ * Access a Wigner D matrix element in an sh_series_rotation_plan.  Returns
+ * the matrix element or complex NaN if the indexes do not correspond to a
+ * valid element.
+ */
+
+
+complex double sh_series_rotation_plan_wigner_D(const struct sh_series_rotation_plan *plan, unsigned l, int m, int m_prime)
+{
+	if(l > plan->l_max || (unsigned) abs(m) > l || (unsigned) abs(m_prime) > l)
+		return nan("") + I * nan("");
+
+	return l == 0 ? 1.0 : DElement(plan->D[l], l, m, m_prime);
+}
+
+
+/*
  * ============================================================================
  *
  *                    Spherical Harmonic Series Rotations
