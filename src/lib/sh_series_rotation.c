@@ -291,7 +291,8 @@ struct sh_series_rotation_plan *sh_series_rotation_plan_new(const struct sh_seri
 	complex double **D = malloc(series->l_max * sizeof(*D));
 	unsigned int l = 1;
 
-	if(!plan || !D)
+	/* if l_max = 0 then allow D to be NULL '*/
+	if(!plan || (series->l_max > 0 && !D))
 		goto error;
 
 	/* adjust so D[1] is the first matrix */
