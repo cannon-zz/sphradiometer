@@ -305,7 +305,7 @@ static int wigner_D_test1(void)
 		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
 		free(R);
 
-		for(l = 1; l < (int) series->l_max; l++)
+		for(l = 1; l <= (int) series->l_max; l++)
 			for(m = -l; m <= +l; m++)
 				for(m_prime = -l; m_prime <= +l; m_prime++)
 					if(m_prime != m)
