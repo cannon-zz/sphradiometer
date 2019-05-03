@@ -26,6 +26,7 @@
  */
 
 
+#include <assert.h>
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
@@ -53,12 +54,14 @@
 
 complex double sh_series_Y(unsigned int l, int m, double theta, double phi)
 {
+	assert(0. <= theta && theta <= M_PI);
 	return ((m < 0 && m & 1) ? -1.0 : +1.0) * (cos(m * phi) + I * sin(m * phi)) * gsl_sf_legendre_sphPlm(l, abs(m), cos(theta));
 }
 
 
 complex double sh_series_Yconj(unsigned int l, int m, double theta, double phi)
 {
+	assert(0. <= theta && theta <= M_PI);
 	return ((m < 0 && m & 1) ? -1.0 : +1.0) * (cos(m * phi) - I * sin(m * phi)) * gsl_sf_legendre_sphPlm(l, abs(m), cos(theta));
 }
 
@@ -75,6 +78,7 @@ complex double *sh_series_Y_array(complex double *array, unsigned int l_max, int
 	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexp(I * m * phi);
 	int i;
 
+	assert(0. <= theta && theta <= M_PI);
 	gsl_sf_legendre_sphPlm_array(l_max, abs(m), cos(theta), tmp);
 
 	for(i = 0; i <= (int) l_max - abs(m); i++)
@@ -90,6 +94,7 @@ complex double *sh_series_Yconj_array(complex double *array, unsigned int l_max,
 	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexp(I * -m * phi);
 	int i;
 
+	assert(0. <= theta && theta <= M_PI);
 	gsl_sf_legendre_sphPlm_array(l_max, abs(m), cos(theta), tmp);
 
 	for(i = 0; i <= (int) l_max - abs(m); i++)
