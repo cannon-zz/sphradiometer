@@ -45,6 +45,12 @@
  */
 
 
+static double randrange(double lo, double hi)
+{
+	return lo + (double) random() * (hi - lo) / RAND_MAX;
+}
+
+
 #if 0
 static double abs_fractional_difference(double x, double y)
 {
@@ -185,9 +191,9 @@ static int test_euler_rotation_matrix(void)
 	{
 	int i;
 	for(i = 0; i < 1000000; i++) {
-		double alpha = (double) random() / RAND_MAX;
-		double beta = (double) random() / RAND_MAX;
-		double gamma = (double) random() / RAND_MAX;
+		double alpha = randrange(0., 1.);
+		double beta = randrange(0., 1.);
+		double gamma = randrange(0., 1.);
 		double *R1 = euler_rotation_matrix(gamma, beta, alpha);
 		R = euler_inv_rotation_matrix(gamma, beta, alpha);
 		R_mult(R, R1);
@@ -338,8 +344,8 @@ int main(int argc, char *argv[])
 	{
 	int i;
 	for(i = 0; i < 1000000; i++) {
-		double ra = (double) random() / RAND_MAX * 2. * M_PI;
-		double dec = (double) random() / RAND_MAX * M_PI - M_PI_2;
+		double ra = randrange(0., 2 * M_PI);
+		double dec = randrange(-M_PI_2, +M_PI_2);
 		double ra1, dec1;
 		double *v = vector_from_radec(ra, dec);
 		radec_from_vector(&ra1, &dec1, v);
