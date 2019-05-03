@@ -191,9 +191,9 @@ static int test_euler_rotation_matrix(void)
 	{
 	int i;
 	for(i = 0; i < 1000000; i++) {
-		double alpha = randrange(0., 1.);
-		double beta = randrange(0., 1.);
-		double gamma = randrange(0., 1.);
+		double alpha = randrange(0., 2. * M_PI);
+		double beta = randrange(0., M_PI);
+		double gamma = randrange(0., 2. * M_PI);
 		double *R1 = euler_rotation_matrix(gamma, beta, alpha);
 		R = euler_inv_rotation_matrix(gamma, beta, alpha);
 		R_mult(R, R1);
@@ -360,7 +360,7 @@ static int wigner_D_test2(unsigned int l_max)
 {
 	int i;
 
-	for(i = 0; i < 10000; i++) {
+	for(i = 0; i < 100000; i++) {
 		double theta = randrange(0., M_PI);
 		double phi = randrange(0., 2. * M_PI);
 		double dtheta = randrange(0., M_PI) - theta;
@@ -376,10 +376,9 @@ static int wigner_D_test2(unsigned int l_max)
 		sh_series_rotation_plan_free(plan);
 		sh_series_free(series);
 
-		if(sh_series_cmp(result, correct, 1e-11) != 0) {
+		if(sh_series_cmp(result, correct, 1e-10) != 0) {
 			fprintf(stderr, "(theta,phi)=(%.16g,%.16g) (dtheta,dphi)=(%.16g,%.16g)\n", theta, phi, dtheta, dphi);
 			sh_series_add(result, -1., correct);
-			sh_series_clip(result, 1e-10);
 			sh_series_print(stderr, result);
 			assert(0);
 		}
@@ -448,7 +447,7 @@ int main(int argc, char *argv[])
 	assert(test_galactic_rotation_matrix() == 0);
 	assert(wigner_D_test1() == 0);
 	assert(wigner_D_test2(1) == 0);
-	assert(wigner_D_test2(8) == 0);
+	assert(wigner_D_test2(6) == 0);
 
 	exit(0);
 }
