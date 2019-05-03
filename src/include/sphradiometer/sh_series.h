@@ -280,6 +280,8 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *, double *);
 struct sh_series *sh_series_from_func(struct sh_series *, complex double (*)(double, double, void *), void *);
 struct sh_series *sh_series_from_realfunc(struct sh_series *, double (*)(double, double, void *), void *);
 
+struct sh_series *sh_series_impulse(unsigned int, double, double);
+
 
 /*
  * Arithmetic

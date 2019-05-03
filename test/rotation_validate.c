@@ -349,27 +349,6 @@ static int wigner_D_test1(void)
 
 
 /*
- * generate a band-limited impulse on the sphere by projecting the Dirac
- * delta function onto the spherical harmonic basis.
- */
-
-
-static struct sh_series *sh_series_impulse(unsigned int l_max, double theta, double phi)
-{
-	struct sh_series *series = sh_series_new(l_max, 0);
-	int m;
-
-	if(!series)
-		return NULL;
-
-	for(m = -(int) l_max; m <= (int) l_max; m++)
-		sh_series_Yconj_array(series->coeff + sh_series_moffset(l_max, m), l_max, m, theta, phi);
-
-	return series;
-}
-
-
-/*
  * generate an impulse at some co-ordinates, rotate by some arbitrary
  * angles, compare to correct answer by generating another impulse at the
  * new co-ordinates.  testing with l_max = 1 validates the D1 function in

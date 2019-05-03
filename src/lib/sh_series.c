@@ -870,6 +870,31 @@ struct sh_series *sh_series_from_realfunc(struct sh_series *series, double (*fun
 
 
 /*
+ * generate a band-limited impulse on the sphere, with bandwidth set by
+ * l_max.  the impulse is located at the co-ordinates (theta, phi).
+ * returns a newly allocated sh_series on success, or NULL on failure.
+ */
+
+
+struct sh_series *sh_series_impulse(unsigned int l_max, double theta, double phi)
+{
+	struct sh_series *series = sh_series_new(l_max, 0);
+	int m;
+
+	if(!series)
+		return NULL;
+
+	/* project a Dirac delta onto the spherical harmonic basis upto and
+	 * including order l_max */
+
+	for(m = -(int) l_max; m <= (int) l_max; m++)
+		sh_series_Yconj_array(series->coeff + sh_series_moffset(l_max, m), l_max, m, theta, phi);
+
+	return series;
+}
+
+
+/*
  * ============================================================================
  *
  *                              Differentiation
