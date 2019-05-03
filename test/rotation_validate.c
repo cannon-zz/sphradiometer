@@ -296,6 +296,28 @@ static int test_galactic_rotation_matrix(void)
  */
 
 
+static int sh_series_cmp(const struct sh_series *s1, const struct sh_series *s2, double tolerance)
+{
+	int l_max = s1->l_max > s2->l_max ? s1->l_max : s2->l_max;
+	int l, m;
+
+	for(l = 0; l <= l_max; l++)
+		for(m = -l; m <= +l; m++) {
+			complex double s1_coeff = l > (int) s1->l_max ? 0. : s1->polar && m ? 0. : sh_series_get(s1, l, m);
+			complex double s2_coeff = l > (int) s2->l_max ? 0. : s2->polar && m ? 0. : sh_series_get(s2, l, m);
+#if 0
+			double larger = cabs(s1_coeff) > cabs(s2_coeff) ? cabs(s1_coeff) : cabs(s2_coeff);
+			if(larger && cabs(s1_coeff - s2_coeff) / larger > tolerance)
+#else
+			if(cabs(s1_coeff - s2_coeff) > tolerance)
+#endif
+				return 1;
+		}
+
+	return 0;
+}
+
+
 /*
  * do rotations about the z axis produce diagonal D matrixes?
  */
@@ -321,6 +343,71 @@ static int wigner_D_test1(void)
 	}
 
 	sh_series_free(series);
+
+	return 0;
+}
+
+
+/*
+ * generate a band-limited impulse on the sphere by projecting the Dirac
+ * delta function onto the spherical harmonic basis.
+ */
+
+
+static struct sh_series *sh_series_impulse(unsigned int l_max, double theta, double phi)
+{
+	struct sh_series *series = sh_series_new(l_max, 0);
+	int m;
+
+	if(!series)
+		return NULL;
+
+	for(m = -(int) l_max; m <= (int) l_max; m++)
+		sh_series_Yconj_array(series->coeff + sh_series_moffset(l_max, m), l_max, m, theta, phi);
+
+	return series;
+}
+
+
+/*
+ * generate an impulse at some co-ordinates, rotate by some arbitrary
+ * angles, compare to correct answer by generating another impulse at the
+ * new co-ordinates.  testing with l_max = 1 validates the D1 function in
+ * the Wigner D matrix code, testing with l_max > 1 validates the recursion
+ * relation in the Wigner D matrix code.
+ */
+
+static int wigner_D_test2(unsigned int l_max)
+{
+	int i;
+
+	for(i = 0; i < 10000; i++) {
+		double theta = randrange(0., M_PI);
+		double phi = randrange(0., 2. * M_PI);
+		double dtheta = randrange(0., M_PI) - theta;
+		double dphi = randrange(0., 2. * M_PI) - phi;
+		struct sh_series *series = sh_series_impulse(l_max, theta, phi);
+		struct sh_series *result = sh_series_new(series->l_max, 0);
+		struct sh_series *correct = sh_series_impulse(series->l_max, theta + dtheta, phi + dphi);
+		double *R = euler_rotation_matrix(-phi, dtheta, phi + dphi);
+		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
+
+		free(R);
+		sh_series_rotate(result, series, plan);
+		sh_series_rotation_plan_free(plan);
+		sh_series_free(series);
+
+		if(sh_series_cmp(result, correct, 1e-11) != 0) {
+			fprintf(stderr, "(theta,phi)=(%.16g,%.16g) (dtheta,dphi)=(%.16g,%.16g)\n", theta, phi, dtheta, dphi);
+			sh_series_add(result, -1., correct);
+			sh_series_clip(result, 1e-10);
+			sh_series_print(stderr, result);
+			assert(0);
+		}
+
+		sh_series_free(correct);
+		sh_series_free(result);
+	}
 
 	return 0;
 }
@@ -357,6 +444,23 @@ int main(int argc, char *argv[])
 	}
 	}
 
+	{
+	int l, m;
+	/* should contain only m=0 components */
+	struct sh_series *series = sh_series_impulse(10, 0.0, 1.0);
+	for(l = 0; l <= (int) series->l_max; l++)
+		for(m = -l; m <= l; m++)
+			if(m != 0)
+				assert(sh_series_get(series, l, m) == 0.);
+	sh_series_free(series);
+	series = sh_series_impulse(10, M_PI, 2.0);
+	for(l = 0; l <= (int) series->l_max; l++)
+		for(m = -l; m <= l; m++)
+			if(m != 0)
+				assert(sh_series_get(series, l, m) == 0.);
+	sh_series_free(series);
+	}
+
 	/*
 	 * test of library
 	 */
@@ -364,6 +468,8 @@ int main(int argc, char *argv[])
 	assert(test_euler_rotation_matrix() == 0);
 	assert(test_galactic_rotation_matrix() == 0);
 	assert(wigner_D_test1() == 0);
+	assert(wigner_D_test2(1) == 0);
+	assert(wigner_D_test2(8) == 0);
 
 	exit(0);
 }
