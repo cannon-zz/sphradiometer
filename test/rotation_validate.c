@@ -306,7 +306,7 @@ static int wigner_D_test1(void)
 	double omega;
 	int l, m, m_prime;
 
-	for(omega = 0.1; omega < 3.0; omega += 0.1) {
+	for(omega = 0.125; omega < 7.0; omega += 0.125) {
 		double *R = euler_rotation_matrix(omega, 0., 0.);
 		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
 		free(R);
