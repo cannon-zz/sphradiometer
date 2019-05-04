@@ -30,8 +30,6 @@
  */
 
 
-#include <complex.h>
-#include <stdio.h>
 #include <gsl/gsl_vector.h>
 #include <sphradiometer/sh_series.h>
 
@@ -61,15 +59,6 @@ struct projection_delay_element_data {
 /*
  * ============================================================================
  *
- *                                   Macros
- *
- * ============================================================================
- */
-
-
-/*
- * ============================================================================
- *
  *                                 Prototypes
  *
  * ============================================================================
@@ -78,10 +67,6 @@ struct projection_delay_element_data {
 
 int projection_matrix_n_elements(double , double);
 unsigned int projection_matrix_l_max(double, double);
-
-
-int projection_matrix_write(const struct sh_series_array *, FILE *);
-struct sh_series_array *projection_matrix_read(FILE *file);
 
 
 double projection_delay_element(double, double, void *);
