@@ -250,7 +250,6 @@ struct sh_series *sh_series_resize(struct sh_series *, unsigned int);
 struct sh_series *sh_series_zero(struct sh_series *);
 struct sh_series *sh_series_set_polar(struct sh_series *, int);
 void sh_series_free(struct sh_series *);
-void sh_series_print(FILE *, const struct sh_series *);
 
 
 complex double sh_series_get(const struct sh_series *, unsigned int, int);
@@ -320,6 +319,15 @@ struct sh_series *sh_series_rotate_z(struct sh_series *, const struct sh_series 
 
 struct sh_series *sh_series_laplacian(struct sh_series *);
 struct sh_series *sh_series_invlaplacian(struct sh_series *);
+
+
+/*
+ * I/O
+ */
+
+
+void sh_series_print(FILE *, const struct sh_series *);
+int sh_series_write_healpix_map(const struct sh_series *, const char *);
 
 
 /*

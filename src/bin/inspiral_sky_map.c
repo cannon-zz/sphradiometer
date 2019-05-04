@@ -26,7 +26,6 @@
  */
 
 
-#include <chealpix.h>
 #include <complex.h>
 #include <fftw3.h>
 #include <getopt.h>
@@ -348,20 +347,6 @@ static double gmst_from_epoch_and_offset(LIGOTimeGPS epoch, double offset)
  */
 
 
-/*
- * return the smallest power of 2 not smaller than x
- */
-
- int ceilpow2(int x)
- {
-	int i;
-	for(i = 1; i > 0; i <<= 1)
-		if(i >= x)
-			return i;
-	return -1;	/* overflow */
- }
-
-
 /* if normalization is needed, set normalization = 1.
  * if it is NOT needed, set normalization = 0. */
 static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, double theta, double phi, int normalization)
@@ -623,18 +608,8 @@ int main(int argc, char *argv[])
 	 */
 
 
-	long int nside = ceilpow2(ceil(sky->l_max / 2.));
-	long int npix = nside2npix(nside);
-	long int ipring;
-	float map[npix];
-	for(ipring = 0; ipring < npix; ipring++) {
-		double theta, phi;
-		pix2ang_ring(nside, ipring, &theta, &phi);
-		map[ipring] = creal(sh_series_eval(sky, theta, phi));
-	}
-
 	fprintf(stderr, "generate fits file\n");
-	write_healpix_map(map, nside, "map.fits", 0, "C");
+	sh_series_write_healpix_map(sky, "map.fits");
 
 
 	fprintf(stderr, "analyzed %g s of data in %g s\n", series[0]->data->length * series[0]->deltaT, (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
