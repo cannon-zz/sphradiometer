@@ -323,15 +323,6 @@ struct sh_series *sh_series_invlaplacian(struct sh_series *);
 
 
 /*
- * I/O
- */
-
-
-int sh_series_write(const struct sh_series *, FILE *);
-int sh_series_read(struct sh_series *, FILE *);
-
-
-/*
  * ============================================================================
  *
  *                         sh_series_array Prototypes
