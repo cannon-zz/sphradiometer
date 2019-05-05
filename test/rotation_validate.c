@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sphradiometer/diagnostics.h>
 #include <sphradiometer/sky.h>
 #include <sphradiometer/sh_series.h>
 
@@ -296,28 +297,6 @@ static int test_galactic_rotation_matrix(void)
  */
 
 
-static int sh_series_cmp(const struct sh_series *s1, const struct sh_series *s2, double tolerance)
-{
-	int l_max = s1->l_max > s2->l_max ? s1->l_max : s2->l_max;
-	int l, m;
-
-	for(l = 0; l <= l_max; l++)
-		for(m = -l; m <= +l; m++) {
-			complex double s1_coeff = l > (int) s1->l_max ? 0. : s1->polar && m ? 0. : sh_series_get(s1, l, m);
-			complex double s2_coeff = l > (int) s2->l_max ? 0. : s2->polar && m ? 0. : sh_series_get(s2, l, m);
-#if 0
-			double larger = cabs(s1_coeff) > cabs(s2_coeff) ? cabs(s1_coeff) : cabs(s2_coeff);
-			if(larger && cabs(s1_coeff - s2_coeff) / larger > tolerance)
-#else
-			if(cabs(s1_coeff - s2_coeff) > tolerance)
-#endif
-				return 1;
-		}
-
-	return 0;
-}
-
-
 /*
  * do rotations about the z axis produce diagonal D matrixes?
  */
@@ -376,7 +355,7 @@ static int wigner_D_test2(unsigned int l_max)
 		sh_series_rotation_plan_free(plan);
 		sh_series_free(series);
 
-		if(sh_series_cmp(result, correct, 1e-10) != 0) {
+		if(diagnostics_rms_error(result, correct) >= 1e-10) {
 			fprintf(stderr, "(theta,phi)=(%.16g,%.16g) (dtheta,dphi)=(%.16g,%.16g)\n", theta, phi, dtheta, dphi);
 			sh_series_add(result, -1., correct);
 			sh_series_print(stderr, result);
