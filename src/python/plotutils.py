@@ -108,6 +108,12 @@ class XYSlicePlot(object):
 			yvals[i] = sphradiometer.sh_series_eval(series, self.theta[i], self.phi[i]).real
 		return yvals
 
+	def yvals_from_healpix_map(self, m):
+		yvals = numpy.zeros((len(self.phi),), dtype = "double")
+		for i in range(len(self.phi)):
+			yvals[i] = healpy.pixelfunc.get_interp_val(m,  self.theta[i], self.phi[i])
+		return yvals
+
 	def plot_yvals(self, yvals, *args, **kwargs):
 		self.axes.plot(self.phi, yvals, *args, **kwargs)
 
