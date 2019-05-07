@@ -24,9 +24,13 @@ s2kit_validate_LDFLAGS = $(AM_LDLAGS) $(S2KIT_LIBS)
 s2kit_validate_LDADD = ../src/lib/libsphradiometer.la
 
 rotation_validate_SOURCES = rotation_validate.c
+rotation_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
+#rotation_validate_LDFLAGS = $(AM_LDFLAGS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 rotation_validate_LDADD = ../src/lib/libsphradiometer.la
 
 sh_series_validate_SOURCES = sh_series_validate.c
+sh_series_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
+#sh_series_validate_LDFLAGS = $(AM_LDFLAGS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 sh_series_validate_LDADD = ../src/lib/libsphradiometer.la
 
 plots :

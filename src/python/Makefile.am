@@ -15,8 +15,8 @@ pkgpyexec_LTLIBRARIES = _sphradiometer.la
 
 _sphradiometer_la_SOURCES = sphradiometer_wrap.c
 _sphradiometer_la_CPPFLAGS = $(AM_CPPFLAGS) $(PYTHON_CPPFLAGS) $(AX_SWIG_PYTHON_CPPFLAGS)
-_sphradiometer_la_CFLAGS = $(AM_CFLAGS) $(PYTHON_CFLAGS) $(AX_SWIG_PYTHON_CFLAGS) $(TCL_CFLAGS)
-_sphradiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS) $(TCL_LIBS)
+_sphradiometer_la_CFLAGS = $(AM_CFLAGS) $(PYTHON_CFLAGS) $(AX_SWIG_PYTHON_CFLAGS) $(TCL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
+_sphradiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS) $(TCL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 _sphradiometer_la_LIBADD = ../lib/libsphradiometer.la
 
 sphradiometer.py sphradiometer_wrap.c : sphradiometer.swig ../include/sphradiometer/*.h

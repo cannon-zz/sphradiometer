@@ -29,8 +29,11 @@
 #include <math.h>
 #include <stdlib.h>
 #include <gsl/gsl_blas.h>
+#include <gsl/gsl_const.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
+#include <lal/LALDetectors.h>
+#include <lal/LALSimulation.h>
 #include <sphradiometer/instrument.h>
 
 
@@ -155,6 +158,29 @@ struct instrument *instrument_new_from_r_theta_phi(double r, double theta, doubl
 		data,
 		freefunc
 	);
+}
+
+
+struct instrument *instrument_new_from_LALDetector(const LALDetector *det)
+{
+	/* this copy is only being made to remove the const'edness */
+	LALDetector *copy = malloc(sizeof(*copy));
+	if(!copy)
+		return NULL;
+	*copy = *det;
+	return instrument_new(
+		det->location[0] / GSL_CONST_MKS_SPEED_OF_LIGHT,
+		det->location[1] / GSL_CONST_MKS_SPEED_OF_LIGHT,
+		det->location[2] / GSL_CONST_MKS_SPEED_OF_LIGHT,
+		copy,
+		free
+	);
+}
+
+
+struct instrument *instrument_new_from_name(const char *name)
+{
+	return instrument_new_from_LALDetector(XLALDetectorPrefixToLALDetector(name));
 }
 
 

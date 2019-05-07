@@ -41,7 +41,6 @@
 #include <sphradiometer/inject.h>
 #include <sphradiometer/correlator.h>
 #include <sphradiometer/diagnostics.h>
-#include <instruments.h>
 
 #include <gsl/gsl_spline.h>
 #include <lal/Units.h>
@@ -373,9 +372,9 @@ int main(int argc, char *argv[])
 	gsl_rng *rng = gsl_rng_alloc(gsl_rng_ranlxd1);
 
 	struct instrument_array *instruments = instrument_array_new(0);
-	instrument_array_append(instruments, instrument_from_name("H1"));
-	instrument_array_append(instruments, instrument_from_name("L1"));
-	/*instrument_array_append(instruments, instrument_from_name("G1"));*/
+	instrument_array_append(instruments, instrument_new_from_name("H1"));
+	instrument_array_append(instruments, instrument_new_from_name("L1"));
+	/*instrument_array_append(instruments, instrument_new_from_name("G1"));*/
 
 	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments);
 

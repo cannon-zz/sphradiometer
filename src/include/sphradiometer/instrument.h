@@ -31,6 +31,9 @@
 
 
 #include <gsl/gsl_vector.h>
+#ifndef SWIG
+#include <lal/LALDetectors.h>
+#endif
 
 
 /*
@@ -75,15 +78,6 @@ struct instrument_array {
 /*
  * ============================================================================
  *
- *                                   Macros
- *
- * ============================================================================
- */
-
-
-/*
- * ============================================================================
- *
  *                                 Prototypes
  *
  * ============================================================================
@@ -98,6 +92,10 @@ void vector_direction(const gsl_vector *, double *, double *);
 struct instrument *instrument_new(double, double, double, void *, void (*)(void *));
 void instrument_free(struct instrument *);
 struct instrument *instrument_new_from_r_theta_phi(double, double, double, void *, void (*)(void *));
+#ifndef SWIG
+struct instrument *instrument_new_from_LALDetector(const LALDetector *);
+#endif
+struct instrument *instrument_new_from_name(const char *);
 
 
 struct instrument_array *instrument_array_new(int);

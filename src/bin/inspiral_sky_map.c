@@ -30,7 +30,6 @@
 #include <fftw3.h>
 #include <getopt.h>
 #include <gsl/gsl_math.h>
-#include <instruments.h>
 #include <math.h>
 #include <sphradiometer/instrument.h>
 #include <sphradiometer/sh_series.h>
@@ -95,7 +94,7 @@ static struct options *command_line_options_new(void)
 static struct options *command_line_set_instrument(struct options *options, const char *name)
 {
 	char instrument_name[3] = {name[0], name[1], '\0'};
-	struct instrument *instrument = instrument_from_LALDetector(XLALDetectorPrefixToLALDetector(instrument_name));
+	struct instrument *instrument = instrument_new_from_name(instrument_name);
 
 	if(!instrument) {
 		XLALPrintError("failed to initiaize for instrument \"%s\"", instrument_name);

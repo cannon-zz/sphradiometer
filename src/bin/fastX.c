@@ -41,7 +41,6 @@
 #include <sphradiometer/sh_series.h>
 #include <sphradiometer/inject.h>
 #include <sphradiometer/correlator.h>
-#include <instruments.h>
 
 #include <lal/BandPassTimeSeries.h>
 #include <lal/Date.h>
@@ -184,7 +183,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	/* data1-channel-name */
 	case 'B': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
-		instrument_array_set(options->instruments, 0, instrument_from_name(inst_name));
+		instrument_array_set(options->instruments, 0, instrument_new_from_name(inst_name));
 		options->data1_channel_name = optarg;
 		break;
 	}
@@ -207,7 +206,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	/* data2-channel-name */
 	case 'b': {
 		char inst_name[3] = {optarg[0], optarg[1], '\0'};
-		instrument_array_set(options->instruments, 1, instrument_from_name(inst_name));
+		instrument_array_set(options->instruments, 1, instrument_new_from_name(inst_name));
 		options->data2_channel_name = optarg;
 		break;
 	}
