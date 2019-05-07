@@ -24,6 +24,7 @@
 #
 
 
+import healpy
 import math
 import matplotlib
 matplotlib.rcParams.update({
@@ -128,3 +129,12 @@ class SkyPlot(object):
 				samples[i, j] = sphradiometer.sh_series_eval(series, math.pi / 2. - dec, ra).real
 		x, y = self.map(*numpy.meshgrid(-self.ra * 180. / math.pi, self.dec * 180. / math.pi))
 		self.map.contourf(x, y, numpy.transpose(samples), cmap = cm.gray_r, scaling = colors.Normalize(-1.0, +1.0))
+
+	def healpix_map_contourf(self, m):
+		samples = numpy.zeros((len(self.ra), len(self.dec)), dtype = "double")
+		for i, ra in enumerate(self.ra):
+			for j, dec in enumerate(self.dec):
+				samples[i, j] = healpy.pixelfunc.get_interp_val(m,  math.pi / 2. - dec, ra)
+		x, y = self.map(*numpy.meshgrid(-self.ra * 180. / math.pi, self.dec * 180. / math.pi))
+		self.map.contourf(x, y, numpy.transpose(samples), cmap = cm.gray_r, scaling = colors.Normalize(-1.0, +1.0))
+
