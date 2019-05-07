@@ -29,6 +29,10 @@ rotation_validate_LDADD = ../src/lib/libsphradiometer.la
 sh_series_validate_SOURCES = sh_series_validate.c
 sh_series_validate_LDADD = ../src/lib/libsphradiometer.la
 
+plots :
+	-rm -vf tests_*.png
+	./plottests tests_*.fits
+
 clean-local :
 	-rm -f tests_{exact,fdaverage,tdaverage}_*.fits
 	-rm -f tests_*.png
