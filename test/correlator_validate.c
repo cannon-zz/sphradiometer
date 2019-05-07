@@ -400,12 +400,12 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 		/* solution output */
 		{
 		char filename[100];
-		sprintf(filename, "tests_tdaverage_%d_%d_%d_%020.17f.dat", N_T, l_T, l_xi, gmst[i]);
-		diagnostics_dump_sh_series(tdaverage, filename);
-		sprintf(filename, "tests_fdaverage_%d_%d_%d_%020.17f.dat", N_T, l_T, l_xi, gmst[i]);
-		diagnostics_dump_sh_series(fdaverage, filename);
-		sprintf(filename, "tests_exact_%d_%d_%d_%020.17f.dat", N_T, l_T, l_xi, gmst[i]);
-		diagnostics_dump_sh_series(solution, filename);
+		sprintf(filename, "tests_tdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
+		sh_series_write_healpix_map(tdaverage, filename);
+		sprintf(filename, "tests_fdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
+		sh_series_write_healpix_map(fdaverage, filename);
+		sprintf(filename, "tests_exact_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
+		sh_series_write_healpix_map(solution, filename);
 		}
 
 		/* prepare for next test */

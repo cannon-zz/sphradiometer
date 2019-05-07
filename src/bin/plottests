@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2006--2009  Kipp C. Cannon
+# Copyright (C) 2006--2009,2019  Kipp C. Cannon
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -26,6 +26,7 @@
 #
 
 
+import healpy
 import math
 import matplotlib
 matplotlib.rcParams.update({
@@ -88,7 +89,15 @@ def parse_command_line():
 options, filenames = parse_command_line()
 
 
-filename_pattern = re.compile(r"tests_(?P<name>\S+)_(?P<N_T>\S+)_(?P<l_T>\S+)_(?P<l_xi>\S+)_(?P<gmst>[0-9.]+).dat")
+def load_fits_map(filename):
+	m = healpy.fitsfunc.read_map(filename)
+	npix, = m.shape
+	nside = healpy.npix2nside(npix)
+	theta, phi = healpy.pixelfunc.pix2ang(nside, range(npix))
+	return theta, phi, m
+
+
+filename_pattern = re.compile(r"tests_(?P<name>\S+)_(?P<N_T>\S+)_(?P<l_T>\S+)_(?P<l_xi>\S+)_(?P<gmst>[0-9.]+).fits")
 for filename in filenames:
 	name, N_T_str, l_T_str, l_xi_str, gmst_str = re.search(filename_pattern, filename).groups()
 	if name != "exact":
@@ -101,10 +110,10 @@ for filename in filenames:
 
 
 	# Load data
-	exact = ioutils.read_sh_series(open(filename))
+	exact = load_fits_map(filename)
 	template = "tests_%%s_%s_%s_%s_%s.%%s" % (N_T_str, l_T_str, l_xi_str, gmst_str)
-	fdaverg = ioutils.read_sh_series(open(template % ("fdaverage", "dat")))
-	tdaverg = ioutils.read_sh_series(open(template % ("tdaverage", "dat")))
+	fdaverg = load_fits_map(template % ("fdaverage", "fits"))
+	tdaverg = load_fits_map(template % ("tdaverage", "fits"))
 
 
 	# Mollweid projection
@@ -113,20 +122,20 @@ for filename in filenames:
 	fig.set_size_inches(4.8, 2.4)
 
 	plot = plotutils.SkyPlot(fig.add_axes((0, 0.5, 0.5, 0.5)))
-	plot.sh_series_contourf(fdaverg)
+	plot.healpix_map_contourf(fdaverg[-1])
 
 	plot = plotutils.SkyPlot(fig.add_axes((0, 0, 0.5, 0.5)))
-	plot.sh_series_contourf(exact)
+	plot.healpix_map_contourf(exact[-1])
 
 
 	# x-y plane
 	plot = plotutils.XYSlicePlot(fig.add_axes((0.53, 0.06, .44, .88), polar = True))
 
-	plot.plot_yvals(plot.yvals_from_sh_series(exact) + 1, "k--", linewidth = 0.8)
-	plot.plot_yvals(plot.yvals_from_sh_series(fdaverg) + 1, "k", linewidth = 0.8)
+	plot.plot_yvals(plot.yvals_from_healpix_map(exact[-1]) + 1, "k--", linewidth = 0.8)
+	plot.plot_yvals(plot.yvals_from_healpix_map(fdaverg[-1]) + 1, "k", linewidth = 0.8)
 	plot.axes.set_rgrids((0.0, 0.5, 1.0, 1.5, 2.0, 2.5), ("-1", "", "0", "", "+1", ""))
 	#plot.axes.set_thetagrids(range(0, 360, 30), frac = 1.2)
 
 	template = "tests_%s_%s_%s_%s.%%s" % (N_T_str, l_T_str, l_xi_str, gmst_str.replace(".", "_"))
 	fig.savefig(template % "png")
-	#fig.savefig(template % "eps")
+	#fig.savefig(template % "svg")

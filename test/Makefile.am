@@ -30,5 +30,5 @@ sh_series_validate_SOURCES = sh_series_validate.c
 sh_series_validate_LDADD = ../src/lib/libsphradiometer.la
 
 clean-local :
-	-rm -f tests_{exact,fdaverage,tdaverage}_*.dat
+	-rm -f tests_{exact,fdaverage,tdaverage}_*.fits
 	-rm -f tests_*.png
