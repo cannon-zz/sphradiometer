@@ -145,16 +145,13 @@ def mollweid(power, averg, gmst, injections):
 
 	plot = plotutils.SkyPlot(fig.add_axes([0, 0.5, 1, 0.5]))
 
-	power_samples = plot.samples_from_sh_series(power)
-	averg_samples = plot.samples_from_sh_series(averg)
-
-	plot.contourf(power_samples)
+	plot.sh_series_contourf(power)
 	for injection in injections:
 		x, y = plot.map((-injection.ra * 180 / math.pi,), (injection.dec * 180 / math.pi,))
 		plot.map.plot(x, y, "r+")
 
 	plot = plotutils.SkyPlot(fig.add_axes([0, 0, 1, 0.5]))
-	plot.contourf(averg_samples)
+	plot.sh_series_contourf(averg)
 	for injection in injections:
 		x, y = plot.map((-injection.ra * 180 / math.pi,), (injection.dec * 180 / math.pi,))
 		plot.map.plot(x, y, "r+")

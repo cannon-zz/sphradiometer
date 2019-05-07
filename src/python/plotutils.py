@@ -119,16 +119,12 @@ class SkyPlot(object):
 
 		self.plot_delta = plot_delta
 		self.ra = numpy.arange(-math.pi, math.pi + plot_delta, plot_delta)
-		self.dec = numpy.arange(-math.pi / 2, math.pi / 2 + plot_delta, plot_delta)
+		self.dec = numpy.arange(-math.pi / 2., math.pi / 2. + plot_delta, plot_delta)
 
-		self.x, self.y = self.map(*numpy.meshgrid(-self.ra * 180 / math.pi, self.dec * 180 / math.pi))
-
-	def samples_from_sh_series(self, series):
+	def sh_series_contourf(self, series):
 		samples = numpy.zeros((len(self.ra), len(self.dec)), dtype = "double")
 		for i, ra in enumerate(self.ra):
 			for j, dec in enumerate(self.dec):
-				samples[i, j] = sphradiometer.sh_series_eval(series, math.pi / 2 - dec, ra).real
-		return samples
-
-	def contourf(self, samples):
-		self.map.contourf(self.x, self.y, numpy.transpose(samples), cmap = cm.gray_r, scaling = colors.Normalize(-1.0, +1.0))
+				samples[i, j] = sphradiometer.sh_series_eval(series, math.pi / 2. - dec, ra).real
+		x, y = self.map(*numpy.meshgrid(-self.ra * 180. / math.pi, self.dec * 180. / math.pi))
+		self.map.contourf(x, y, numpy.transpose(samples), cmap = cm.gray_r, scaling = colors.Normalize(-1.0, +1.0))

@@ -113,10 +113,10 @@ for filename in filenames:
 	fig.set_size_inches(4.8, 2.4)
 
 	plot = plotutils.SkyPlot(fig.add_axes((0, 0.5, 0.5, 0.5)))
-	plot.contourf(plot.samples_from_sh_series(fdaverg))
+	plot.sh_series_contourf(fdaverg)
 
 	plot = plotutils.SkyPlot(fig.add_axes((0, 0, 0.5, 0.5)))
-	plot.contourf(plot.samples_from_sh_series(exact))
+	plot.sh_series_contourf(exact)
 
 
 	# x-y plane
