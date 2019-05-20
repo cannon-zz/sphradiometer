@@ -26,6 +26,7 @@
  */
 
 
+#include <assert.h>
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
@@ -230,8 +231,7 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments);
 
 	const int sky_l_max = correlator_network_l_max(baselines, delta_t);
-	const double dump_interval = correlator_dump_interval(sky_l_max, 20);
-	const int time_series_length = dump_interval / delta_t;
+	const int time_series_length = correlator_dump_interval(sky_l_max, 20) / delta_t;
 
 	double injection[time_series_length];
 	double *tseries[] = {
@@ -324,7 +324,7 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 
 			/* time domain */
 			if(td) {
-				correlator_network_integrate_power_td(tdsky, tseries, time_series_length, windows, tdplans);
+				assert(correlator_network_integrate_power_td(tdsky, tseries, time_series_length, windows, tdplans) != NULL);
 				sh_series_rotate_z(tdsky, tdsky, gmst[i]);
 				sh_series_scale(tdaverage, (double) j / (j + 1));
 				sh_series_add(tdaverage, 1.0 / (j + 1), tdsky);
@@ -334,7 +334,7 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 			if(fd) {
 				for(k = 0; k < instrument_array_len(instruments); k++)
 					correlator_tseries_to_fseries(tseries[k], fseries[k], time_series_length, fftplans[k]);
-				correlator_network_integrate_power_fd(fdsky, fseries, fdplans);
+				assert(correlator_network_integrate_power_fd(fdsky, fseries, fdplans) != NULL);
 				sh_series_rotate_z(fdsky, fdsky, gmst[i]);
 				sh_series_scale(fdaverage, (double) j / (j + 1));
 				sh_series_add(fdaverage, 1.0 / (j + 1), fdsky);
