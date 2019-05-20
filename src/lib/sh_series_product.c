@@ -219,7 +219,13 @@ struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series
 		new->plan_length = _product_plan(microcode, dest_l_max, a->l_max, b->l_max);
 
 	/* shrink microcode to actual size */
-	new->microcode = realloc(new->microcode, new->plan_length * sizeof(*new->microcode));
+	microcode = realloc(new->microcode, new->plan_length * sizeof(*new->microcode));
+	if(!microcode) {
+		free(new->microcode);
+		free(new);
+		return NULL;
+	}
+	new->microcode = microcode;
 
 	/* sort the operations to optimize cache usage */
 	qsort(new->microcode, new->plan_length, sizeof(*new->microcode), op_cmp);
