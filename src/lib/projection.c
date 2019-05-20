@@ -121,7 +121,10 @@ struct sh_series_array *projection_matrix_delay(unsigned int n, unsigned int l_m
 		return NULL;
 
 	for(i = 0, data.k = -(int) (n - 1) / 2; i < (int) n; i++, data.k++)
-		sh_series_from_realfunc(&matrix->series[i], projection_delay_element, &data);
+		if(!sh_series_from_realfunc(&matrix->series[i], projection_delay_element, &data)) {
+			sh_series_array_free(matrix);
+			return NULL;
+		}
 
 	return matrix;
 }
