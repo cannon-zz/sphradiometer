@@ -3,12 +3,14 @@ AM_CPPFLAGS = -I../src/include
 TESTS = \
 	correlator_validate \
 	healpy_validate.py \
+	product_validate \
 	rotation_validate \
 	s2kit_validate \
 	sh_series_validate
 
 check_PROGRAMS = \
 	correlator_validate \
+	product_validate \
 	rotation_validate \
 	s2kit_validate \
 	sh_series_validate
@@ -18,15 +20,20 @@ correlator_validate_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFL
 correlator_validate_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 correlator_validate_LDADD = ../src/lib/libsphradiometer.la
 
-s2kit_validate_SOURCES = s2kit_validate.c
-s2kit_validate_CFLAGS = $(AM_CFLAGS) $(S2KIT_CFLAGS)
-s2kit_validate_LDFLAGS = $(AM_LDLAGS) $(S2KIT_LIBS)
-s2kit_validate_LDADD = ../src/lib/libsphradiometer.la
+product_validate_SOURCES = product_validate.c
+product_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
+#product_validate_LDFLAGS = $(AM_LDFLAGS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
+product_validate_LDADD = ../src/lib/libsphradiometer.la
 
 rotation_validate_SOURCES = rotation_validate.c
 rotation_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 #rotation_validate_LDFLAGS = $(AM_LDFLAGS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 rotation_validate_LDADD = ../src/lib/libsphradiometer.la
+
+s2kit_validate_SOURCES = s2kit_validate.c
+s2kit_validate_CFLAGS = $(AM_CFLAGS) $(S2KIT_CFLAGS)
+s2kit_validate_LDFLAGS = $(AM_LDLAGS) $(S2KIT_LIBS)
+s2kit_validate_LDADD = ../src/lib/libsphradiometer.la
 
 sh_series_validate_SOURCES = sh_series_validate.c
 sh_series_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
