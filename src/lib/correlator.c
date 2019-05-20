@@ -653,9 +653,8 @@ struct correlator_network_baselines *correlator_network_baselines_new(const stru
 		for(j = 0; j < i; j++, k++) {
 			baselines[k] = correlator_baseline_new(instruments, i, j);
 			if(!baselines[k]) {
-				do
+				while(--k >= 0)
 					correlator_baseline_free(baselines[k]);
-				while(k--);
 				free(new);
 				free(baselines);
 				return NULL;
