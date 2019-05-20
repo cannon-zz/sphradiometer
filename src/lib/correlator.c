@@ -324,14 +324,14 @@ struct correlator_plan_td *correlator_plan_td_new(const struct correlator_baseli
 	 * matrix */
 	gsl_vector_set(d_prime, 0, 0);
 	gsl_vector_set(d_prime, 1, 0);
-	gsl_vector_set(d_prime, 2, +d_length / 2);
+	gsl_vector_set(d_prime, 2, +d_length / 2.);
 	proj_a = projection_matrix_delay(projection_matrix_n_elements(vector_magnitude(d_prime), delta_t), a_l_max, d_prime, delta_t);
 
 	/* set d_prime to -d_length/2 * \hat{z}, and compute projection
 	 * matrix */
 	gsl_vector_set(d_prime, 0, 0);
 	gsl_vector_set(d_prime, 1, 0);
-	gsl_vector_set(d_prime, 2, -d_length / 2);
+	gsl_vector_set(d_prime, 2, -d_length / 2.);
 	proj_b = projection_matrix_delay(projection_matrix_n_elements(vector_magnitude(d_prime), delta_t), b_l_max, d_prime, delta_t);
 
 	product_plan = sh_series_product_plan_new(power_1d, sample_a, sample_b);
