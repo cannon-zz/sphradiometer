@@ -117,7 +117,8 @@ int correlator_transient(const struct sh_series_array *delay_a, const struct sh_
 
 /*
  * Construct a square window for a data series having n samples.  The first
- * zero_samples samples are set to 0, the rest are set to amplitude.
+ * and last zero_samples samples are set to 0, the rest are set to
+ * amplitude.
  *
  * The integral of the window function is
  *
