@@ -54,7 +54,13 @@
 
 unsigned int correlator_baseline_power_l_max(const struct correlator_baseline *baseline, double delta_t)
 {
-	const unsigned int l_max = M_PI / (2 * asin(delta_t / (2 * vector_magnitude(baseline->d)))) + 1;
+	double D = vector_magnitude(baseline->d);
+	unsigned int l_max;
+
+	if(delta_t <= 0. || D <= 0.)
+		return (unsigned int) -1;
+
+	l_max = floor(M_PI / (2. * asin(delta_t / (2. * D))) + 1.);
 
 #if 1
 	return l_max + 2;
@@ -124,7 +130,7 @@ double *correlator_square_window_new(const int n, const int zero_samples, const 
 	double *series = malloc(n * sizeof(*series));
 	int i;
 
-	if(!series || (2 * zero_samples > n)) {
+	if(!series || (2 * zero_samples > n) || zero_samples < 0) {
 		free(series);
 		return NULL;
 	}
@@ -174,7 +180,7 @@ double *correlator_tukey_window_new(const int n, const int zero_samples, const i
 	const double dtheta = M_PI_2 / taper_samples;
 	int i;
 
-	if(!series || (2 * (zero_samples + taper_samples) > n)) {
+	if(!series || (2 * (zero_samples + taper_samples) > n) || zero_samples < 0) {
 		free(series);
 		return NULL;
 	}
@@ -310,7 +316,7 @@ struct correlator_plan_td *correlator_plan_td_new(const struct correlator_baseli
 	struct sh_series_product_plan *product_plan = NULL;
 	struct sh_series_rotation_plan *rotation_plan = NULL;
 
-	if(!new || !d_prime || !sample_a || !sample_b || !product || !power_1d || !power_2d || !R)
+	if(!new || !d_prime || !sample_a || !sample_b || !product || !power_1d || !power_2d || !R || delta_t <= 0.)
 		goto error;
 
 	/* set d_prime to +d_length/2 * \hat{z}, and compute projection
@@ -400,12 +406,8 @@ struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseli
 	complex double phase_a, phase_b;
 	int i;
 
-	if(!new || !tdplan || !fseries_product) {
-		free(new);
-		correlator_plan_td_free(tdplan);
-		free(fseries_product);
-		return NULL;
-	}
+	if(!new || !tdplan || !fseries_product)
+		goto error;
 
 	delay_product = sh_series_array_new(n, tdplan->product->l_max, tdplan->product->polar);
 	if(!delay_product)
@@ -416,9 +418,11 @@ struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseli
 	 * transform */
 	phase_a = I * 2 * M_PI * ((tdplan->proj_a->n - 1) / 2) / n;
 	phase_b = I * 2 * M_PI * ((tdplan->proj_b->n - 1) / 2) / n;
-	sh_series_array_resize_zero(tdplan->proj_a, n);
+	if(!sh_series_array_resize_zero(tdplan->proj_a, n))
+		goto error;
+	if(!sh_series_array_resize_zero(tdplan->proj_b, n))
+		goto error;
 	sh_series_array_forward_fft(tdplan->proj_a);
-	sh_series_array_resize_zero(tdplan->proj_b, n);
 	sh_series_array_forward_fft(tdplan->proj_b);
 
 	/* rotate the phases so that it is as though the elements were
@@ -451,10 +455,12 @@ struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseli
 	 * inverted!  DC component is left in place, others are swapped,
 	 * negative<-->positive */
 	sh_series_conj(&tdplan->proj_a->series[0]);
-	sh_series_product(&delay_product->series[0], &tdplan->proj_a->series[0], &tdplan->proj_b->series[0], tdplan->product_plan);
+	if(!sh_series_product(&delay_product->series[0], &tdplan->proj_a->series[0], &tdplan->proj_b->series[0], tdplan->product_plan))
+		goto error;
 	for(i = 1; i < n; i++) {
 		sh_series_conj(&tdplan->proj_a->series[i]);
-		sh_series_product(&delay_product->series[n - i], &tdplan->proj_a->series[i], &tdplan->proj_b->series[i], tdplan->product_plan);
+		if(!sh_series_product(&delay_product->series[n - i], &tdplan->proj_a->series[i], &tdplan->proj_b->series[i], tdplan->product_plan))
+			goto error;
 	}
 
 	/* Apply one factor of 1/N to the delay product */
@@ -568,11 +574,14 @@ struct sh_series *correlator_baseline_integrate_power_td(const double *time_seri
 	while(n--) {
 		sh_series_array_dot(plan->sample_a, plan->proj_a, time_series_a++);
 		sh_series_array_dot(plan->sample_b, plan->proj_b, time_series_b++);
-		sh_series_product(plan->product, plan->sample_a, plan->sample_b, plan->product_plan);
-		sh_series_add(plan->power_1d, *window++, plan->product);
+		if(!sh_series_product(plan->product, plan->sample_a, plan->sample_b, plan->product_plan))
+			return NULL;
+		if(!sh_series_add(plan->power_1d, *window++, plan->product))
+			return NULL;
 	}
 
-	sh_series_rotate(plan->power_2d, plan->power_1d, plan->rotation_plan);
+	if(!sh_series_rotate(plan->power_2d, plan->power_1d, plan->rotation_plan))
+		return NULL;
 
 	return plan->power_2d;
 }
@@ -606,7 +615,8 @@ struct sh_series *correlator_baseline_integrate_power_fd(const complex double *f
 	sh_series_scale(plan->power_1d, 1.0 / plan->delay_product->n);
 
 	/* rotate to Earth-fixed equatorial co-ordinates */
-	sh_series_rotate(plan->power_2d, plan->power_1d, plan->rotation_plan);
+	if(!sh_series_rotate(plan->power_2d, plan->power_1d, plan->rotation_plan))
+		return NULL;
 
 	return plan->power_2d;
 }
@@ -704,9 +714,16 @@ struct correlator_network_plan_td *correlator_network_plan_td_new(struct correla
 		return NULL;
 	}
 
-	for(i = 0; i < baselines->n_baselines; i++)
-		/* FIXME: what if this fails? */
+	for(i = 0; i < baselines->n_baselines; i++) {
 		plans[i] = correlator_plan_td_new(baselines->baselines[i], delta_t);
+		if(!plans[i]) {
+			while(--i >= 0)
+				correlator_plan_td_free(plans[i]);
+			free(new);
+			free(plans);
+			return NULL;
+		}
+	}
 
 	new->baselines = baselines;
 	new->plans = plans;
@@ -743,9 +760,16 @@ struct correlator_network_plan_fd *correlator_network_plan_fd_new(struct correla
 		return NULL;
 	}
 
-	for(i = 0; i < baselines->n_baselines; i++)
-		/* FIXME: what if this fails? */
+	for(i = 0; i < baselines->n_baselines; i++) {
 		plans[i] = correlator_plan_fd_new(baselines->baselines[i], tseries_length, delta_t);
+		if(!plans[i]) {
+			while(--i >= 0)
+				correlator_plan_fd_free(plans[i]);
+			free(new);
+			free(plans);
+			return NULL;
+		}
+	}
 
 	new->baselines = baselines;
 	new->plans = plans;
@@ -778,8 +802,10 @@ struct sh_series *correlator_network_integrate_power_td(struct sh_series *sky, d
 	k = 0;
 	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
-			correlator_baseline_integrate_power_td(tseries[i], tseries[j], windows[k], tseries_length, plan->plans[k]);
-			sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);
+			if(!correlator_baseline_integrate_power_td(tseries[i], tseries[j], windows[k], tseries_length, plan->plans[k]))
+				return NULL;
+			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d))
+				return NULL;
 		}
 
 	return sky;
@@ -800,8 +826,10 @@ struct sh_series *correlator_network_integrate_power_fd(struct sh_series *sky, c
 	k = 0;
 	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
-			correlator_baseline_integrate_power_fd(fseries[i], fseries[j], plan->plans[k]);
-			sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d);
+			if(!correlator_baseline_integrate_power_fd(fseries[i], fseries[j], plan->plans[k]))
+				return NULL;
+			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d))
+				return NULL;
 		}
 
 	return sky;
