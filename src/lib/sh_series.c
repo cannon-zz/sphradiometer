@@ -701,7 +701,6 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 {
 	int ntheta, nphi;
 	double dtheta, dphi;
-	int n[1];
 	complex double *F;
 	double *P;
 	fftw_plan plan;
@@ -710,7 +709,6 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	samples_from_l_max(series->l_max, &ntheta, &nphi);
 	dtheta = M_PI / ntheta;
 	dphi = 2 * M_PI / nphi;
-	n[0] = nphi;
 	F = malloc(ntheta * nphi * sizeof(*F));
 	P = malloc(ntheta * (series->l_max + 1) * sizeof(*P));
 
@@ -721,7 +719,11 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	}
 
 	/* construct the FFTW plan */
+	{
+	int n[] = {nphi};
 	plan = fftw_plan_many_dft(1, n, ntheta, mesh, NULL, 1, nphi, F, NULL, 1, nphi, FFTW_FORWARD, FFTW_ESTIMATE);
+	}
+
 
 	/* multiply the function samples by dOmega = sin theta dtheta dphi
 	 * to save having to multiply by these factors in the inner-most
@@ -777,7 +779,6 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 {
 	int ntheta, nphi;
 	double dtheta, dphi;
-	int n[1];
 	complex double *F;
 	double *P;
 	fftw_plan plan;
@@ -786,7 +787,6 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	samples_from_l_max(series->l_max, &ntheta, &nphi);
 	dtheta = M_PI / ntheta;
 	dphi = 2 * M_PI / nphi;
-	n[0] = nphi;
 	F = malloc(ntheta * (nphi / 2 + 1) * sizeof(*F));
 	P = malloc(ntheta * (series->l_max + 1) * sizeof(*P));
 
@@ -797,7 +797,10 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	}
 
 	/* construct the FFTW plan */
+	{
+	int n[] = {nphi};
 	plan = fftw_plan_many_dft_r2c(1, n, ntheta, mesh, NULL, 1, nphi, F, NULL, 1, nphi / 2 + 1, FFTW_ESTIMATE);
+	}
 
 	/* multiply the function samples by dOmega = sin theta dtheta dphi
 	 * to save having to multiply by these factors in the inner-most
