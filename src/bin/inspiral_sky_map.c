@@ -530,12 +530,14 @@ int main(int argc, char *argv[])
 
 
 #if 1
+	// white noise
 	for(k = 0; k < (int) series[0]->data->length; k++)
 		series[0]->data->data[k] = (double) random() / RAND_MAX + I*(double) random() / RAND_MAX - (0.5 + I*0.5);
 	for(k = 1; k < instrument_array_len(options->instruments); k++)
 		memcpy(series[k]->data->data, series[0]->data->data, series[0]->data->length * sizeof(*series[0]->data->data));
 	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < series[k]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[k]->data->data[j]), cimag(series[k]->data->data[j])); fprintf(stderr, "\n"); }*/
 #endif
+	// zero padding
 	time_series_pad(series, instrument_array_len(options->instruments));	//
 
 
