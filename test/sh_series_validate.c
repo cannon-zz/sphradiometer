@@ -46,6 +46,12 @@
  */
 
 
+static double randrange(double lo, double hi)
+{
+	return lo + (double) random() * (hi - lo) / RAND_MAX;
+}
+
+
 static struct sh_series *random_sh_series(int l_max, int polar)
 {
 	struct sh_series *series = sh_series_new(l_max, polar);
@@ -53,7 +59,7 @@ static struct sh_series *random_sh_series(int l_max, int polar)
 
 	for(l = 0; l <= l_max; l++)
 		for(m = (polar ? 0 : -l); m <= (polar ? 0 : +l); m++)
-			sh_series_set(series, l, m, random() / (double) RAND_MAX + I * random() / (double) RAND_MAX);
+			sh_series_set(series, l, m, randrange(0., 1.) + I * randrange(0., 1.));
 
 	return series;
 }
@@ -130,9 +136,102 @@ static complex double Y_08_n7(double theta, double phi, void *nul)
 }
 
 
+static complex double Y_08_n6(double theta, double phi, void *nul)
+{
+	return 1.0 / 128 * sqrt(7293 / M_PI) * cexp(I * -6 * phi) * pow(sin(theta), 6) * (15 * pow(cos(theta), 2) - 1);
+}
+
+
+static complex double Y_08_06(double theta, double phi, void *nul)
+{
+	return 1.0 / 128 * sqrt(7293 / M_PI) * cexp(I * 6 * phi) * pow(sin(theta), 6) * (15 * pow(cos(theta), 2) - 1);
+}
+
+
+static complex double Y_08_07(double theta, double phi, void *nul)
+{
+	return -3.0 / 64 * sqrt(12155 / (2 * M_PI)) * cexp(I * 7 * phi) * pow(sin(theta), 7) * cos(theta);
+}
+
+
 static complex double Y_10_03(double theta, double phi, void *nul)
 {
 	return -3.0 / 256 * sqrt(5005 / M_PI) * cexp(I * 3 * phi) * pow(sin(theta), 3) * (323 * pow(cos(theta), 7) - 357 * pow(cos(theta), 5) + 105 * pow(cos(theta), 3) - 7 * cos(theta));
+}
+
+
+static int test_evaluation1(void)
+{
+	struct {
+		int l;
+		int m;
+		complex double (*func)(double, double, void *);
+	} tests[] = {
+		{0, 0, Y_00_00},
+		{7, 1, Y_07_01},
+		{8, -7, Y_08_n7},
+		{8, -6, Y_08_n6},
+		{8, +6, Y_08_06},
+		{8, +7, Y_08_07},
+		{10, 3, Y_10_03},
+		{0, 0, NULL}
+	};
+	int i, j;
+
+	for(i = 0; tests[i].func; i++)
+		for(j = 0; j < 100000; j++) {
+			double theta = randrange(0., M_PI);
+			double phi = randrange(0., 2. * M_PI);
+			complex double test = sh_series_Y(tests[i].l, tests[i].m, theta, phi);
+			complex double testconj = sh_series_Yconj(tests[i].l, tests[i].m, theta, phi);
+			complex double exact = tests[i].func(theta, phi, NULL);
+			double err = cabs(test - exact);
+			if(err > 1e-10) {
+				fprintf(stderr, "Y_{%d,%d}(%g, %g) failure:  expected %.16g+i*%.16g, got %.16g+i*%.16g, |err| = %g\n", tests[i].l, tests[i].m, theta, phi, creal(exact), cimag(exact), creal(test), cimag(test), err);
+				return -1;
+			}
+			if(cabs(test - conj(testconj)) > 1e-17) {
+				fprintf(stderr, "Y^*_{%d,%d}(%g, %g) != Yconj_{%d,%d}(%g, %g), got expected %.16g+i*%.16g, got %.16g+i*%.16g, |err| = %g\n", tests[i].l, tests[i].m, theta, phi, tests[i].l, tests[i].m, theta, phi, creal(exact), cimag(exact), creal(test), cimag(test), err);
+				return -1;
+			}
+		}
+
+	return 0;
+}
+
+
+static int test_evaluation2(void)
+{
+	int i;
+
+	for(i = 0; i < 100000; i++) {
+		int lmax = floor(randrange(0, 21));
+		int m = floor(randrange(-lmax, +lmax + 1));
+		complex double array[lmax - abs(m) + 1];
+		complex double arrayconj[lmax - abs(m) + 1];
+		double theta = randrange(0., M_PI);
+		double phi = randrange(0., 2. * M_PI);
+		int l;
+
+		sh_series_Y_array(array, lmax, m, theta, phi);
+		sh_series_Yconj_array(arrayconj, lmax, m, theta, phi);
+
+		for(l = abs(m); l <= lmax; l++) {
+			complex double expected = sh_series_Y(l, m, theta, phi);
+			complex double got = array[l - abs(m)];
+			double err = cabs(expected - got);
+			if(err > 1e-13) {
+				fprintf(stderr, "array Y_{%d,%d}(%g, %g) for lmax=%d failure:  expected %.16g+i*%.16g, got %.16g+i*%.16g, |err| = %g\n", l, m, theta, phi, lmax, creal(expected), cimag(expected), creal(got), cimag(got), err);
+				return -1;
+			}
+			if(cabs(array[l - abs(m)] - conj(arrayconj[l - abs(m)])) > 1e-16) {
+				fprintf(stderr, "array Yconj_{%d,%d}(%g, %g) for lmax=%d failed\n", l, m, theta, phi, lmax);
+				return -1;
+			}
+		}
+	}
+
+	return 0;
 }
 
 
@@ -140,30 +239,44 @@ static int test_projection(void)
 {
 	struct sh_series *test = sh_series_new(20, 0);
 	struct sh_series *exact = sh_series_new(20, 0);
+	struct {
+		int l;
+		int m;
+		complex double (*func)(double, double, void *);
+	} tests[] = {
+		{0, 0, Y_00_00},
+		{7, 1, Y_07_01},
+		{8, -7, Y_08_n7},
+		{8, -6, Y_08_n6},
+		{8, +6, Y_08_06},
+		{8, +7, Y_08_07},
+		{10, 3, Y_10_03},
+		{0, 0, NULL}
+	};
+	int i, j;
 
-	sh_series_from_func(test, Y_00_00, NULL);
-	sh_series_zero(exact);
-	sh_series_set(exact, 0, 0, 1);
-	fprintf(stderr, "Projection of Y_{0,0} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
-	sh_series_print(stderr, test);
-
-	sh_series_from_func(test, Y_07_01, NULL);
-	sh_series_zero(exact);
-	sh_series_set(exact, 7, 1, 1);
-	fprintf(stderr, "Projection of Y_{7,1} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
-	sh_series_print(stderr, test);
-
-	sh_series_from_func(test, Y_08_n7, NULL);
-	sh_series_zero(exact);
-	sh_series_set(exact, 8, -7, 1);
-	fprintf(stderr, "Projection of Y_{8,-7} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
-	sh_series_print(stderr, test);
-
-	sh_series_from_func(test, Y_10_03, NULL);
-	sh_series_zero(exact);
-	sh_series_set(exact, 10, 3, 1);
-	fprintf(stderr, "Projection of Y_{10,3} rms error = %g\n", diagnostics_rms_error(test, exact) / (4 * M_PI));
-	sh_series_print(stderr, test);
+	for(i = 0; tests[i].func; i++) {
+		double threshold = tests[i].l < 7 ? 1e-5 : tests[i].l < 8 ? 1e-8 : 1e-15;
+		double err;
+		sh_series_from_func(test, tests[i].func, NULL);
+		sh_series_zero(exact);
+		sh_series_set(exact, tests[i].l, tests[i].m, 1);
+		err = diagnostics_rms_error(test, exact);
+		if(err > threshold) {
+			fprintf(stderr, "Projection of Y_{%d,%d} rms error = %g\n", tests[i].l, tests[i].m, err);
+			sh_series_print(stderr, test);
+			return -1;
+		}
+		for(j = 0; j < 100; j++) {
+			double theta = randrange(0., M_PI);
+			double phi = randrange(0., 2. * M_PI);
+			err = cabs(sh_series_eval(exact, theta, phi) - tests[i].func(theta, phi, NULL));
+			if(err > 1e-13) {
+				fprintf(stderr, "sh_series_eval(..., %g, %g) failed for (l,m)=(%d,%d), |err|=%g\n", theta, phi, tests[i].l, tests[i].m, err);
+				return -1;
+			}
+		}
+	}
 
 	sh_series_free(test);
 	sh_series_free(exact);
@@ -325,10 +438,12 @@ int main(int argc, char *argv[])
 	}
 
 	/*
-	 * test projections of real-valued functions
+	 * other test functions
 	 */
 
-	test_projection();
+	assert(test_evaluation1() == 0);
+	assert(test_evaluation2() == 0);
+	assert(test_projection() == 0);
 
 	exit(0);
 }
