@@ -264,14 +264,6 @@ complex double sh_series_set(struct sh_series *, unsigned int, int, complex doub
 complex double sh_series_eval(const struct sh_series *, double, double);
 
 
-complex double *sh_series_mesh_new(unsigned int, int *, int *);
-double *sh_series_real_mesh_new(unsigned int, int *, int *);
-
-
-complex double *sh_series_mesh_from_func(unsigned int, complex double (*)(double, double, void *), void *, int *, int *);
-double *sh_series_mesh_from_realfunc(unsigned int, double (*)(double, double, void *), void *, int *, int *);
-
-
 struct sh_series *sh_series_from_mesh(struct sh_series *, complex double *);
 struct sh_series *sh_series_from_realmesh(struct sh_series *, double *);
 

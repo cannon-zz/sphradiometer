@@ -596,7 +596,7 @@ static void samples_from_l_max(unsigned l_max, int *ntheta, int *nphi)
 }
 
 
-complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
+static complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
 {
 	int nt, np;
 	complex double *f;
@@ -614,7 +614,7 @@ complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
 }
 
 
-double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
+static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
 {
 	int nt, np;
 	double *f;
@@ -638,7 +638,7 @@ double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
  */
 
 
-complex double *sh_series_mesh_from_func(unsigned int l_max, complex double (*func)(double, double, void *), void *data, int *ntheta, int *nphi)
+static complex double *sh_series_mesh_from_func(unsigned int l_max, complex double (*func)(double, double, void *), void *data, int *ntheta, int *nphi)
 {
 	int nt, np;
 	complex double *f = sh_series_mesh_new(l_max, &nt, &np);
@@ -663,7 +663,7 @@ complex double *sh_series_mesh_from_func(unsigned int l_max, complex double (*fu
 }
 
 
-double *sh_series_mesh_from_realfunc(unsigned int l_max, double (*func)(double, double, void *), void *data, int *ntheta, int *nphi)
+static double *sh_series_mesh_from_realfunc(unsigned int l_max, double (*func)(double, double, void *), void *data, int *ntheta, int *nphi)
 {
 	int nt, np;
 	double *f = sh_series_real_mesh_new(l_max, &nt, &np);
@@ -843,8 +843,7 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 /*
  * Given a function of theta, phi, project the function onto spherical
  * harmonics upto and including l = l_max, and return the coefficients as
- * an sh_series object.  Returns NULL on failure.  (Convenience wrappers of
- * sh_series_mesh_from_func() and sh_series_from_mesh()).
+ * an sh_series object.  Returns NULL on failure.
  */
 
 
