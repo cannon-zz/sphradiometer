@@ -36,6 +36,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fftw3.h>
+#include <gsl/gsl_integration.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_legendre.h>
 #include <sphradiometer/sh_series.h>
@@ -589,46 +590,70 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
  */
 
 
-static void samples_from_l_max(unsigned l_max, int *ntheta, int *nphi)
+static void samples_from_l_max(unsigned l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
 {
-	*ntheta = 32 * l_max;
-	*nphi = 2 * l_max;
+	unsigned int bw = l_max + 1;
+
+	gsl_integration_glfixed_table *t = gsl_integration_glfixed_table_alloc(2 * bw);
+	int i;
+
+	*ntheta = 2 * bw;
+	*nphi = 2 * bw;
+
+	*cos_theta_array = malloc(*ntheta * sizeof(**cos_theta_array));
+	*cos_theta_weights = malloc(*ntheta * sizeof(**cos_theta_weights));
+	if(!t || !*cos_theta_array || !*cos_theta_weights) {
+		gsl_integration_glfixed_table_free(t);
+		free(*cos_theta_array);
+		free(*cos_theta_weights);
+		*cos_theta_array = *cos_theta_weights = NULL;
+		return;
+	}
+
+	for(i = 0; i < *ntheta; i++)
+		gsl_integration_glfixed_point(-1., +1., i, &(*cos_theta_array)[i], &(*cos_theta_weights)[i], t);
+
+	gsl_integration_glfixed_table_free(t);
 }
 
 
-static complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
+static complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
 {
-	int nt, np;
-	complex double *f;
+	complex double *mesh;
 
-	samples_from_l_max(l_max, &nt, &np);
+	samples_from_l_max(l_max, ntheta, nphi, cos_theta_array, cos_theta_weights);
+	if(!*cos_theta_array)
+		return NULL;
 
-	f = malloc(nt * np * sizeof(*f));
+	mesh = malloc(*ntheta * *nphi * sizeof(*mesh));
+	if(mesh)
+		return mesh;
 
-	if(ntheta)
-		*ntheta = nt;
-	if(nphi)
-		*nphi = np;
-
-	return f;
+	free(*cos_theta_array);
+	free(*cos_theta_weights);
+	free(mesh);
+	*cos_theta_array = *cos_theta_weights = NULL;
+	return NULL;
 }
 
 
-static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi)
+static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
 {
-	int nt, np;
-	double *f;
+	double *mesh;
 
-	samples_from_l_max(l_max, &nt, &np);
+	samples_from_l_max(l_max, ntheta, nphi, cos_theta_array, cos_theta_weights);
+	if(!*cos_theta_array)
+		return NULL;
 
-	f = malloc(nt * np * sizeof(*f));
+	mesh = malloc(*ntheta * *nphi * sizeof(*mesh));
+	if(mesh)
+		return mesh;
 
-	if(ntheta)
-		*ntheta = nt;
-	if(nphi)
-		*nphi = np;
-
-	return f;
+	free(*cos_theta_array);
+	free(*cos_theta_weights);
+	free(mesh);
+	*cos_theta_array = *cos_theta_weights = NULL;
+	return NULL;
 }
 
 
@@ -641,23 +666,27 @@ static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nph
 static complex double *sh_series_mesh_from_func(unsigned int l_max, complex double (*func)(double, double, void *), void *data, int *ntheta, int *nphi)
 {
 	int nt, np;
-	complex double *f = sh_series_mesh_new(l_max, &nt, &np);
-	const double dtheta = M_PI / nt;
+	double *cos_theta_array, *cos_theta_weights;
+	complex double *f = sh_series_mesh_new(l_max, &nt, &np, &cos_theta_array, &cos_theta_weights);
 	const double dphi = 2 * M_PI / np;
 	int i, j;
+
+	if(!f)
+		return NULL;
 
 	if(ntheta)
 		*ntheta = nt;
 	if(nphi)
 		*nphi = np;
 
-	if(f)
-		/* fill f[][] with samples from the function to be projected */
-		for(i = 0; i < nt; i++) {
-			const double theta = dtheta * (i + 0.5);
-			for(j = 0; j < np; j++)
-				*(f + i * np + j) = func(theta, dphi * j, data);
-		}
+	for(i = 0; i < nt; i++) {
+		double theta = acos(cos_theta_array[i]);
+		for(j = 0; j < np; j++)
+			*(f + i * np + j) = func(theta, dphi * j, data);
+	}
+
+	free(cos_theta_array);
+	free(cos_theta_weights);
 
 	return f;
 }
@@ -666,23 +695,27 @@ static complex double *sh_series_mesh_from_func(unsigned int l_max, complex doub
 static double *sh_series_mesh_from_realfunc(unsigned int l_max, double (*func)(double, double, void *), void *data, int *ntheta, int *nphi)
 {
 	int nt, np;
-	double *f = sh_series_real_mesh_new(l_max, &nt, &np);
-	const double dtheta = M_PI / nt;
+	double *cos_theta_array, *cos_theta_weights;
+	double *f = sh_series_real_mesh_new(l_max, &nt, &np, &cos_theta_array, &cos_theta_weights);
 	const double dphi = 2 * M_PI / np;
 	int i, j;
+
+	if(!f)
+		return NULL;
 
 	if(ntheta)
 		*ntheta = nt;
 	if(nphi)
 		*nphi = np;
 
-	if(f)
-		/* fill f[][] with samples from the function to be projected */
-		for(i = 0; i < nt; i++) {
-			const double theta = dtheta * (i + 0.5);
-			for(j = 0; j < np; j++)
-				*(f + i * np + j) = func(theta, dphi * j, data);
-		}
+	for(i = 0; i < nt; i++) {
+		double theta = acos(cos_theta_array[i]);
+		for(j = 0; j < np; j++)
+			*(f + i * np + j) = func(theta, dphi * j, data);
+	}
+
+	free(cos_theta_array);
+	free(cos_theta_weights);
 
 	return f;
 }
@@ -691,58 +724,53 @@ static double *sh_series_mesh_from_realfunc(unsigned int l_max, double (*func)(d
 /*
  * Given a 2-D mesh of samples, project the data onto spherical harmonics,
  * and return the coefficients as an sh_series object.  Returns NULL on
- * failure.  See the functions above for how the mesh of samples is
- * defined.  Note that, as a side effect, these functions modify the
- * contents of the mesh array.
+ * failure.
  */
 
 
 struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *mesh)
 {
 	int ntheta, nphi;
-	double dtheta, dphi;
+	double *cos_theta_array, *cos_theta_weights;
 	complex double *F;
 	double *P;
-	fftw_plan plan;
 	int l, m, i, j;
 
-	samples_from_l_max(series->l_max, &ntheta, &nphi);
-	dtheta = M_PI / ntheta;
-	dphi = 2 * M_PI / nphi;
+	samples_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights);
 	F = malloc(ntheta * nphi * sizeof(*F));
 	P = malloc(ntheta * (series->l_max + 1) * sizeof(*P));
-
-	if(!F || !P) {
+	if(!F || !P || !cos_theta_array) {
 		free(F);
 		free(P);
+		free(cos_theta_array);
+		free(cos_theta_weights);
 		return NULL;
 	}
 
-	/* construct the FFTW plan */
+	/* Fourier transform the phi co-ordinate.  after this F[][]
+	 * contains H_{m}(theta) */
+
 	{
 	int n[] = {nphi};
-	plan = fftw_plan_many_dft(1, n, ntheta, mesh, NULL, 1, nphi, F, NULL, 1, nphi, FFTW_FORWARD, FFTW_ESTIMATE);
-	}
-
-
-	/* multiply the function samples by dOmega = sin theta dtheta dphi
-	 * to save having to multiply by these factors in the inner-most
-	 * loop below */
-	for(i = 0; i < ntheta; i++) {
-		const double domega = sin(dtheta * (i + 0.5)) * dtheta * dphi;
-		for(j = 0; j < nphi; j++)
-			*(mesh + i * nphi + j) *= domega;
-	}
-
-	/* execute the FFTW plan, after this F[][] contains the
-	 * H_{m}(theta) sin(theta) dtheta dphi factors */
+	fftw_plan plan = fftw_plan_many_dft(1, n, ntheta, mesh, NULL, 1, nphi, F, NULL, 1, nphi, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftw_execute(plan);
+	fftw_destroy_plan(plan);
+	}
+
+	/* multiply the samples by dphi to complete the normalization of
+	 * the Fourier transform, and also by the Gauss-Legendre weights
+	 * which are needed for the integral over cos(theta) below so we
+	 * don't do that in the inner loop */
+
+	for(i = 0; i < ntheta; i++)
+		for(j = 0; j < nphi; j++)
+			*(F + i * nphi + j) *= cos_theta_weights[i] * (2 * M_PI / nphi);
 
 	/* for each non-negative m, */
 	for(m = 0; m <= (int) (series->polar ? 0 : series->l_max); m++) {
 		/* populate P[][] with (normalized) P_{l m}(cos theta) */
 		for(i = 0; i < ntheta; i++)
-			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos(dtheta * (i + 0.5)), P + i * (series->l_max + 1) + m);
+			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * (series->l_max + 1) + m);
 		/* for each l s.t. m <= l <= l_max, */
 		for(l = m; l <= (int) series->l_max; l++) {
 			/* integrate H_{m}(theta) sin(theta) P_{l m}(cos
@@ -767,76 +795,76 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	}
 
 	/* clean up */
-	fftw_destroy_plan(plan);
 	free(P);
 	free(F);
+	free(cos_theta_array);
+	free(cos_theta_weights);
 
-	return sh_series_clip(series, 1e-10);
+	return series;
 }
 
 
 struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh)
 {
 	int ntheta, nphi;
-	double dtheta, dphi;
+	double *cos_theta_array, *cos_theta_weights;
 	complex double *F;
 	double *P;
-	fftw_plan plan;
 	int l, m, i, j;
 
-	samples_from_l_max(series->l_max, &ntheta, &nphi);
-	dtheta = M_PI / ntheta;
-	dphi = 2 * M_PI / nphi;
+	samples_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights);
 	F = malloc(ntheta * (nphi / 2 + 1) * sizeof(*F));
 	P = malloc(ntheta * (series->l_max + 1) * sizeof(*P));
-
-	if(!F || !P) {
+	if(!F || !P || !cos_theta_array) {
 		free(F);
 		free(P);
+		free(cos_theta_array);
+		free(cos_theta_weights);
 		return NULL;
 	}
 
-	/* construct the FFTW plan */
+	/* Fourier transform the phi co-ordinate.  after this F[][]
+	 * contains H_{m}(theta) */
+
 	{
 	int n[] = {nphi};
-	plan = fftw_plan_many_dft_r2c(1, n, ntheta, mesh, NULL, 1, nphi, F, NULL, 1, nphi / 2 + 1, FFTW_ESTIMATE);
-	}
-
-	/* multiply the function samples by dOmega = sin theta dtheta dphi
-	 * to save having to multiply by these factors in the inner-most
-	 * loop below */
-	for(i = 0; i < ntheta; i++) {
-		const double domega = sin(dtheta * (i + 0.5)) * dtheta * dphi;
-		for(j = 0; j < nphi; j++)
-			*(mesh + i * nphi + j) *= domega;
-	}
-
-	/* execute the FFTW plan, after this F[][] contains the
-	 * H_{m}(theta) sin(theta) dtheta dphi factors */
+	fftw_plan plan = fftw_plan_many_dft_r2c(1, n, ntheta, mesh, NULL, 1, nphi, F, NULL, 1, nphi / 2 + 1, FFTW_ESTIMATE);
 	fftw_execute(plan);
+	fftw_destroy_plan(plan);
+	}
+
+	/* multiply the samples by dphi to complete the normalization of
+	 * the Fourier transform, and also by the Gauss-Legendre weights
+	 * which are needed for the integral over cos(theta) below so we
+	 * don't do that in the inner loop */
+
+	for(i = 0; i < ntheta; i++)
+		for(j = 0; j < (nphi / 2 + 1); j++)
+			*(F + i * (nphi / 2 + 1) + j) *= cos_theta_weights[i] * (2 * M_PI / nphi);
 
 	/* for each non-negative m, */
 	for(m = 0; m <= (int) (series->polar ? 0 : series->l_max); m++) {
 		/* populate P[][] with (normalized) P_{lm}(cos theta) */
 		for(i = 0; i < ntheta; i++)
-			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos(dtheta * (i + 0.5)), P + i * (series->l_max + 1) + m);
+			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * (series->l_max + 1) + m);
 		/* for each l s.t. m <= l <= l_max, */
 		for(l = m; l <= (int) series->l_max; l++) {
 			/* integrate H_{m}(theta) sin(theta) P_{lm}(cos
 			 * theta) over theta for +/-m */
 			complex double c = 0.0;
 			for(i = 0; i < ntheta; i++)
-				c += *(F + i * (series->l_max + 1) + m) * *(P + i * (series->l_max + 1) + l);
+				c += *(F + i * (nphi / 2 + 1) + m) * *(P + i * (series->l_max + 1) + l);
 			sh_series_set(series, l, -m, (m & 1 ? -1 : 1) * conj(sh_series_set(series, l, m, c)));
 		}
 	}
 
 	/* clean up */
-	fftw_destroy_plan(plan);
 	free(P);
 	free(F);
+	free(cos_theta_array);
+	free(cos_theta_weights);
 
-	return sh_series_clip(series, 1e-10);
+	return series;
 }
 
 

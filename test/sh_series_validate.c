@@ -256,13 +256,12 @@ static int test_projection(void)
 	int i, j;
 
 	for(i = 0; tests[i].func; i++) {
-		double threshold = tests[i].l < 7 ? 1e-5 : tests[i].l < 8 ? 1e-8 : 1e-15;
 		double err;
 		sh_series_from_func(test, tests[i].func, NULL);
 		sh_series_zero(exact);
 		sh_series_set(exact, tests[i].l, tests[i].m, 1);
 		err = diagnostics_rms_error(test, exact);
-		if(err > threshold) {
+		if(err > 1e-14) {
 			fprintf(stderr, "Projection of Y_{%d,%d} rms error = %g\n", tests[i].l, tests[i].m, err);
 			sh_series_print(stderr, test);
 			return -1;
