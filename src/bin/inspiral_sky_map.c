@@ -418,6 +418,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 	if(!result)
 		return NULL;
 	sh_series_array_set_polar(plan->delay_product, 0);
+	fprintf(stderr, "A\n");
 	product_plan = sh_series_product_plan_new(result, &plan->delay_product->series[0], projection);
 	if(!product_plan) {
 		XLALPrintError("sh_series_product_plan_new() failed\n");
@@ -492,7 +493,7 @@ int main(int argc, char *argv[])
 	fftw_plan *fftplans;
 	struct correlator_network_plan_fd *fdplans;
 	struct sh_series *sky;
-	int k;
+	int k, j;
 	struct timeval t_start, t_end;
 
 
@@ -524,6 +525,20 @@ int main(int argc, char *argv[])
 		}
 	}
 
+
+	/* Down sampling */
+	for(k = 0; k < instrument_array_len(options->instruments); k++){
+		series[k]->deltaT *= 2;
+		series[k]->data->length /= 2;
+		// compression
+		for(j = 0; j < (int) series[k]->data->length; j++)
+			series[k]->data->data[j] = series[k]->data->data[2*j+1];
+		// delete
+		for(j = 0; j < (int) series[k]->data->length; j++)
+			series[k]->data->data[j+(int)series[k]->data->length] = 0;
+	}
+
+
 	/*
 	 * bring to a common interval
 	 */
@@ -538,7 +553,7 @@ int main(int argc, char *argv[])
 	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < series[k]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[k]->data->data[j]), cimag(series[k]->data->data[j])); fprintf(stderr, "\n"); }*/
 #endif
 	// zero padding
-	time_series_pad(series, instrument_array_len(options->instruments));	//
+	time_series_pad(series, instrument_array_len(options->instruments));
 
 
 	/*
@@ -557,7 +572,7 @@ int main(int argc, char *argv[])
 
 	baselines = correlator_network_baselines_new(options->instruments);
 	fdplans = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
-	//correlator_network_plan_mult_by_projection(fdplans);
+	correlator_network_plan_mult_by_projection(fdplans);
 	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT), 0);
 
 
@@ -597,7 +612,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-	/*sh_series_rotate_z(sky, sky, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));*/
+	sh_series_rotate_z(sky, sky, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
 
 	gettimeofday(&t_end, NULL);
 	fprintf(stderr, "finished integration\n");
