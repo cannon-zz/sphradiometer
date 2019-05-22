@@ -51,14 +51,14 @@ static double randrange(double lo, double hi)
 }
 
 
-static struct sh_series *randshfunc(unsigned int l_max, int polar)
+static struct sh_series *random_sh_series(int l_max, int polar)
 {
 	struct sh_series *series = sh_series_new(l_max, polar);
 	int l, m;
 
-	for(l = 0; l <= (int) l_max; l++)
-		for(m = polar ? 0 : -l; m <= (polar ? 0 : +l); m++)
-			sh_series_set(series, l, m, randrange(-1.0, +1.0) + I * randrange(-1.0, +1.0));
+	for(l = 0; l <= l_max; l++)
+		for(m = (polar ? 0 : -l); m <= (polar ? 0 : +l); m++)
+			sh_series_set(series, l, m, randrange(0., 1.) + I * randrange(0., 1.));
 
 	return series;
 }
@@ -75,8 +75,8 @@ static struct sh_series *randshfunc(unsigned int l_max, int polar)
 
 static int test1(unsigned int lmax1, int polar1, unsigned int lmax2, int polar2)
 {
-	struct sh_series *series1 = randshfunc(lmax1, polar1);
-	struct sh_series *series2 = randshfunc(lmax2, polar2);
+	struct sh_series *series1 = random_sh_series(lmax1, polar1);
+	struct sh_series *series2 = random_sh_series(lmax2, polar2);
 	struct sh_series *prod = sh_series_new(lmax1 + lmax2, polar1 && polar2);
 	struct sh_series_product_plan *plan = NULL;
 	double max_err = 0.;
