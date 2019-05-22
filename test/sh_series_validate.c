@@ -186,7 +186,7 @@ static int test_evaluation1(void)
 			complex double testconj = sh_series_Yconj(tests[i].l, tests[i].m, theta, phi);
 			complex double exact = tests[i].func(theta, phi, NULL);
 			double err = cabs(test - exact);
-			if(err > 1e-10) {
+			if(err > 1e-9) {
 				fprintf(stderr, "Y_{%d,%d}(%g, %g) failure:  expected %.16g+i*%.16g, got %.16g+i*%.16g, |err| = %g\n", tests[i].l, tests[i].m, theta, phi, creal(exact), cimag(exact), creal(test), cimag(test), err);
 				return -1;
 			}
