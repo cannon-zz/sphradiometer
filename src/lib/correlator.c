@@ -62,12 +62,14 @@ unsigned int correlator_baseline_power_l_max(const struct correlator_baseline *b
 
 	l_max = floor(M_PI / (2. * asin(delta_t / (2. * D))) + 1.);
 
-#if 1
-	return l_max + 2;
-#else
-	/* Alternative for tests done in Phys. Rev. paper. */
+	/* the expression above is the naive estimate, and in the Phys.
+	 * Rev.  paper I reported using l_max + 2 to achieve the desired
+	 * numerical accuracy.  since then it seems that improvements to
+	 * numerical stability in other parts of the library have allowed
+	 * this parameter to be reduced to the naive estimate, while
+	 * retaining the desired accurancy in the correlator output */
+
 	return l_max;
-#endif
 }
 
 

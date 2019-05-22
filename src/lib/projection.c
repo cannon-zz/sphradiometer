@@ -76,12 +76,14 @@ unsigned int projection_matrix_l_max(double r, double delta_t)
 {
 	const int l_max = M_PI * r / delta_t + 1;
 
-#if 1
-	return l_max + 4;
-#else
-	/* alternative for doing tests in Phys. Rev. paper */
+	/* the expression above is the naive estimate, and in the Phys.
+	 * Rev.  paper I reported using l_max + 4 to achieve the desired
+	 * numerical accuracy.  since then it seems that improvements to
+	 * numerical stability in other parts of the library have allowed
+	 * this parameter to be reduced to the naive estimate, while
+	 * retaining the desired accurancy in the correlator output */
+
 	return l_max;
-#endif
 }
 
 
