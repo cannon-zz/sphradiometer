@@ -172,6 +172,14 @@ static complex double Y_10_10(double theta, double phi, void *nul)
 }
 
 
+static double reY_wrapper(double theta, double phi, void *f)
+{
+	complex double (*Y)(double, double, void *) = f;
+
+	return creal(Y(theta, phi, NULL));
+}
+
+
 static int test_evaluation1(void)
 {
 	struct {
@@ -252,6 +260,7 @@ static int test_evaluation2(void)
 static int test_projection1(void)
 {
 	struct sh_series *test = sh_series_new(10, 0);
+	struct sh_series *realtest = sh_series_new(10, 0);
 	struct sh_series *exact = sh_series_new(10, 0);
 	struct {
 		int l;
@@ -274,6 +283,7 @@ static int test_projection1(void)
 	for(i = 0; tests[i].func; i++) {
 		double err;
 		sh_series_from_func(test, tests[i].func, NULL);
+		sh_series_from_realfunc(realtest, reY_wrapper, tests[i].func);
 		sh_series_zero(exact);
 		sh_series_set(exact, tests[i].l, tests[i].m, 1);
 		err = diagnostics_rms_error(test, exact);
@@ -289,6 +299,11 @@ static int test_projection1(void)
 			err = cabs(sh_series_eval(exact, theta, phi) - tests[i].func(theta, phi, NULL));
 			if(err > 1e-13) {
 				fprintf(stderr, "sh_series_eval(..., %g, %g) failed for (l,m)=(%d,%d), |err|=%g\n", theta, phi, tests[i].l, tests[i].m, err);
+				return -1;
+			}
+			err = cabs(creal(sh_series_eval(exact, theta, phi)) - sh_series_eval(realtest, theta, phi));
+			if(err > 1e-13) {
+				fprintf(stderr, "sh_series_from_realfunc() failed for (l,m)=(%d,%d), |err|=%g\n", tests[i].l, tests[i].m, err);
 				return -1;
 			}
 		}
