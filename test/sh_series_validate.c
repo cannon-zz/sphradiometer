@@ -154,9 +154,21 @@ static complex double Y_08_07(double theta, double phi, void *nul)
 }
 
 
+static complex double Y_10_n10(double theta, double phi, void *nul)
+{
+	return 1. / 1024 * sqrt(969969 / M_PI) * cexp(-I * 10 * phi) * pow(sin(theta), 10);
+}
+
+
 static complex double Y_10_03(double theta, double phi, void *nul)
 {
 	return -3.0 / 256 * sqrt(5005 / M_PI) * cexp(I * 3 * phi) * pow(sin(theta), 3) * (323 * pow(cos(theta), 7) - 357 * pow(cos(theta), 5) + 105 * pow(cos(theta), 3) - 7 * cos(theta));
+}
+
+
+static complex double Y_10_10(double theta, double phi, void *nul)
+{
+	return 1. / 1024 * sqrt(969969 / M_PI) * cexp(I * 10 * phi) * pow(sin(theta), 10);
 }
 
 
@@ -173,7 +185,9 @@ static int test_evaluation1(void)
 		{8, -6, Y_08_n6},
 		{8, +6, Y_08_06},
 		{8, +7, Y_08_07},
+		{10, -10, Y_10_n10},
 		{10, 3, Y_10_03},
+		{10, +10, Y_10_10},
 		{0, 0, NULL}
 	};
 	int i, j;
@@ -237,8 +251,8 @@ static int test_evaluation2(void)
 
 static int test_projection1(void)
 {
-	struct sh_series *test = sh_series_new(20, 0);
-	struct sh_series *exact = sh_series_new(20, 0);
+	struct sh_series *test = sh_series_new(10, 0);
+	struct sh_series *exact = sh_series_new(10, 0);
 	struct {
 		int l;
 		int m;
@@ -250,7 +264,9 @@ static int test_projection1(void)
 		{8, -6, Y_08_n6},
 		{8, +6, Y_08_06},
 		{8, +7, Y_08_07},
+		{10, -10, Y_10_n10},
 		{10, 3, Y_10_03},
+		{10, +10, Y_10_10},
 		{0, 0, NULL}
 	};
 	int i, j;
@@ -263,6 +279,7 @@ static int test_projection1(void)
 		err = diagnostics_rms_error(test, exact);
 		if(err > 1e-14) {
 			fprintf(stderr, "Projection of Y_{%d,%d} rms error = %g\n", tests[i].l, tests[i].m, err);
+			sh_series_clip(test, 1e-12);
 			sh_series_print(stderr, test);
 			return -1;
 		}
