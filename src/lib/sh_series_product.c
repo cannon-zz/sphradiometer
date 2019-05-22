@@ -198,37 +198,51 @@ struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series
 	struct sh_series_product_plan *new = malloc(sizeof(*new));
 	const int dest_l_max = dest->l_max <= a->l_max + b->l_max ? dest->l_max : a->l_max + b->l_max;
 	const int polar = a->polar && b->polar;
-	/* allocate worst-case size for microcode */
-	struct _sh_series_product_plan_op *microcode =  malloc(sh_series_length(dest_l_max, polar) * sh_series_length(a->l_max, polar) * sh_series_length(b->l_max, polar) * sizeof(*microcode));
+	struct _sh_series_product_plan_op *microcode;
 
-	if(!new || !microcode || (a->polar != b->polar) || (dest->polar && !polar)) {
+	if(!new || (a->polar != b->polar) || (dest->polar && !polar)) {
 		free(new);
-		free(microcode);
 		return NULL;
+	}
+
+	if(a->l_max > b->l_max ? a->l_max : b->l_max < 40) {
+		/* for small series, use frequency-domain algorithm */
+		/* allocate worst-case size for microcode */
+		microcode =  malloc(sh_series_length(dest_l_max, polar) * sh_series_length(a->l_max, polar) * sh_series_length(b->l_max, polar) * sizeof(*microcode));
+		if(!microcode) {
+			free(new);
+			return NULL;
+		}
+	} else {
+		/* for large series use pixel-domain algorithm */
+		microcode = NULL;
 	}
 
 	new->a_l_max = a->l_max;
 	new->b_l_max = b->l_max;
 	new->dest_l_max = dest_l_max;
 	new->polar = polar;
+	new->plan_length = 0;
 	new->microcode = microcode;
 
-	if(new->polar)
-		new->plan_length = _product_plan_polar(microcode, dest_l_max, a->l_max, b->l_max);
-	else
-		new->plan_length = _product_plan(microcode, dest_l_max, a->l_max, b->l_max);
+	if(microcode) {
+		if(new->polar)
+			new->plan_length = _product_plan_polar(microcode, dest_l_max, a->l_max, b->l_max);
+		else
+			new->plan_length = _product_plan(microcode, dest_l_max, a->l_max, b->l_max);
 
-	/* shrink microcode to actual size */
-	microcode = realloc(new->microcode, new->plan_length * sizeof(*new->microcode));
-	if(!microcode) {
-		free(new->microcode);
-		free(new);
-		return NULL;
+		/* shrink microcode to actual size */
+		microcode = realloc(new->microcode, new->plan_length * sizeof(*new->microcode));
+		if(!microcode) {
+			free(new->microcode);
+			free(new);
+			return NULL;
+		}
+		new->microcode = microcode;
+
+		/* sort the operations to optimize cache usage */
+		qsort(new->microcode, new->plan_length, sizeof(*new->microcode), op_cmp);
 	}
-	new->microcode = microcode;
-
-	/* sort the operations to optimize cache usage */
-	qsort(new->microcode, new->plan_length, sizeof(*new->microcode), op_cmp);
 
 	return new;
 }
@@ -256,20 +270,10 @@ void sh_series_product_plan_free(struct sh_series_product_plan *plan)
  */
 
 
-/*
- * Compute the product of two sh_series objects.  a and b can be the same
- * series, but dest must not point to either of them.
- */
-
-
-struct sh_series *sh_series_product(struct sh_series *dest, const struct sh_series *a, const struct sh_series *b, const struct sh_series_product_plan *plan)
+static struct sh_series *frequency_domain_product(struct sh_series *dest, const struct sh_series *a, const struct sh_series *b, const struct sh_series_product_plan *plan)
 {
 	const struct _sh_series_product_plan_op *op = plan->microcode;
 	const struct _sh_series_product_plan_op *last_op = plan->microcode + plan->plan_length;
-
-	/* check that the plan is appropriate */
-	if((plan->a_l_max != a->l_max) || (plan->b_l_max != b->l_max) || (plan->dest_l_max > dest->l_max) || (plan->polar != a->polar) || (plan->polar != b->polar) || (!plan->polar && dest->polar))
-		return NULL;
 
 	/* zero the destination */
 	sh_series_zero(dest);
@@ -279,5 +283,78 @@ struct sh_series *sh_series_product(struct sh_series *dest, const struct sh_seri
 		dest->coeff[op->dest_offset] += a->coeff[op->a_offset] * b->coeff[op->b_offset] * op->factor;
 
 	return dest;
+}
+
+
+static struct sh_series *pixel_domain_product(struct sh_series *dest, const struct sh_series *a, const struct sh_series *b)
+{
+	unsigned l_max = a->l_max + b->l_max;
+	struct sh_series *wrkspc;
+	complex double *a_mesh;
+	complex double *b_mesh;
+	int i;
+
+	wrkspc = sh_series_copy(a);
+	if(!wrkspc || !sh_series_resize(wrkspc, l_max)) {
+		sh_series_free(wrkspc);
+		return NULL;
+	}
+	a_mesh = sh_series_to_mesh(wrkspc);
+	sh_series_free(wrkspc);
+
+	wrkspc = sh_series_copy(b);
+	if(!wrkspc || !sh_series_resize(wrkspc, l_max)) {
+		sh_series_free(wrkspc);
+		free(a_mesh);
+		return NULL;
+	}
+	b_mesh = sh_series_to_mesh(wrkspc);
+	sh_series_free(wrkspc);
+
+	if(!a_mesh || !b_mesh) {
+		free(a_mesh);
+		free(b_mesh);
+		return NULL;
+	}
+
+	/* FIXME:  don't assume we know the mesh size */
+	for(i = 0; i < (int) (2 * (l_max + 1) * 2 * (l_max + 1)); i++)
+		a_mesh[i] *= b_mesh[i];
+	free(b_mesh);
+
+	wrkspc = sh_series_new(l_max, a->polar && b->polar);
+	if(!wrkspc || !sh_series_from_mesh(wrkspc, a_mesh)) {
+		sh_series_free(wrkspc);
+		free(a_mesh);
+		return NULL;
+	}
+	free(a_mesh);
+	if(!sh_series_resize(wrkspc, dest->l_max) || !sh_series_assign(dest, wrkspc)) {
+		sh_series_free(wrkspc);
+		return NULL;
+	}
+	sh_series_free(wrkspc);
+
+	return dest;
+}
+
+
+/*
+ * Compute the product of two sh_series objects.  a and b can be the same
+ * series, but dest must not point to either of them.
+ */
+
+
+struct sh_series *sh_series_product(struct sh_series *dest, const struct sh_series *a, const struct sh_series *b, const struct sh_series_product_plan *plan)
+{
+	/* check that the plan is appropriate */
+	/* FIXME:  this isn't really needed if we're using the pixel-domain
+	 * implementation */
+	if((plan->a_l_max != a->l_max) || (plan->b_l_max != b->l_max) || (plan->dest_l_max > dest->l_max) || (plan->polar != a->polar) || (plan->polar != b->polar) || (!plan->polar && dest->polar))
+		return NULL;
+
+	if(plan->microcode)
+		return frequency_domain_product(dest, a, b, plan);
+	return pixel_domain_product(dest, a, b);
 }
 
