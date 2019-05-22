@@ -235,7 +235,7 @@ static int test_evaluation2(void)
 }
 
 
-static int test_projection(void)
+static int test_projection1(void)
 {
 	struct sh_series *test = sh_series_new(20, 0);
 	struct sh_series *exact = sh_series_new(20, 0);
@@ -280,6 +280,29 @@ static int test_projection(void)
 	sh_series_free(test);
 	sh_series_free(exact);
 
+	return 0;
+}
+
+
+static int test_projection2(void)
+{
+	double err;
+	unsigned int lmax;
+
+	for(lmax = 1; lmax < 50; lmax++) {
+		struct sh_series *orig = random_sh_series(lmax, 0);
+		complex double *mesh = sh_series_to_mesh(orig);
+		struct sh_series *final = sh_series_new(lmax, 0);
+		sh_series_from_mesh(final, mesh);
+		err = diagnostics_rms_error(orig, final) / lmax / lmax;
+		free(mesh);
+		sh_series_free(orig);
+		sh_series_free(final);
+		if(err > 1e-12) {
+			fprintf(stderr, "sh_series_from_mesh(sh_series_to_mesh(x)) != x for lmax=%u. |err| = %g\n", lmax, err);
+			return -1;
+		}
+	}
 	return 0;
 }
 
@@ -442,7 +465,8 @@ int main(int argc, char *argv[])
 
 	assert(test_evaluation1() == 0);
 	assert(test_evaluation2() == 0);
-	assert(test_projection() == 0);
+	assert(test_projection1() == 0);
+	assert(test_projection2() == 0);
 
 	exit(0);
 }

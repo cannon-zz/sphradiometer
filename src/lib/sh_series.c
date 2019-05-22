@@ -903,6 +903,61 @@ struct sh_series *sh_series_from_realfunc(struct sh_series *series, double (*fun
 
 
 /*
+ * Compute a pixel mesh from an sh_series object.  The inverse of
+ * sh_series_from_mesh().
+ */
+
+
+complex double *sh_series_to_mesh(const struct sh_series *series)
+{
+	int ntheta, nphi;
+	double *cos_theta_array, *cos_theta_weights;
+	complex double *mesh = sh_series_mesh_new(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights);
+	complex double *F = calloc(ntheta * nphi, sizeof(*F));
+	double P[series->l_max + 1];
+	int i;
+	int l, m;
+
+	/* not needed */
+	free(cos_theta_weights);
+
+	if(!mesh || !F) {
+		free(mesh);
+		free(F);
+		free(cos_theta_array);
+		return NULL;
+	}
+
+	/* populate F[] */
+	for(i = 0; i < ntheta; i++)
+		for(m = (series->polar ? 0 : -(int) series->l_max); m <= (series->polar ? 0 : (int) series->l_max); m++) {
+			complex double *series_vals = series->coeff + sh_series_moffset(series->l_max, m);
+			complex double x;
+			/* compute (normalized) P_{lm}(cos theta) */
+			gsl_sf_legendre_sphPlm_array(series->l_max, abs(m), cos_theta_array[i], P + abs(m));
+			x = 0.;
+			for(l = abs(m); l <= (int) series->l_max; l++)
+				x += *series_vals++ * P[l];
+			*(F + i * nphi + (m + nphi) % nphi) = (m < 0) && (m & 1) ? -x : +x;
+		}
+
+	/* Fourier transform the m co-ordinate to the phi co-ordinate */
+	{
+	int n[] = {nphi};
+	fftw_plan plan = fftw_plan_many_dft(1, n, ntheta, F, NULL, 1, nphi, mesh, NULL, 1, nphi, FFTW_BACKWARD, FFTW_ESTIMATE);
+	fftw_execute(plan);
+	fftw_destroy_plan(plan);
+	}
+
+	/* clean up */
+	free(F);
+	free(cos_theta_array);
+
+	return mesh;
+}
+
+
+/*
  * generate a band-limited impulse on the sphere, with bandwidth set by
  * l_max.  the impulse is located at the co-ordinates (theta, phi).
  * returns a newly allocated sh_series on success, or NULL on failure.

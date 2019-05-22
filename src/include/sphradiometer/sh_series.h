@@ -266,6 +266,7 @@ complex double sh_series_eval(const struct sh_series *, double, double);
 
 struct sh_series *sh_series_from_mesh(struct sh_series *, complex double *);
 struct sh_series *sh_series_from_realmesh(struct sh_series *, double *);
+complex double *sh_series_to_mesh(const struct sh_series *);
 
 
 struct sh_series *sh_series_from_func(struct sh_series *, complex double (*)(double, double, void *), void *);
