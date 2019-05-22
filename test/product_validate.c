@@ -105,13 +105,13 @@ static int test1(unsigned int lmax1, int polar1, unsigned int lmax2, int polar2)
 		complex double val1 = sh_series_eval(series1, theta, phi);
 		complex double val2 = sh_series_eval(series2, theta, phi);
 		complex double valprod = sh_series_eval(prod, theta, phi);
-		double err = cabs(val1 * val2 - valprod);
+		double err = cabs(val1 * val2 - valprod) / (lmax1 * lmax1 + lmax2 * lmax2);
 		if(err > max_err) {
 			fprintf(stderr, "%g+i*%g * %g+i*%g = %g+i*%g, abs(error) = %g\n", creal(val1), cimag(val1), creal(val2), cimag(val2), creal(valprod), cimag(valprod), err);
 			max_err = err;
 		}
 	}
-	if(max_err > 1e-10)
+	if(max_err > 1e-12)
 		goto error;
 
 	sh_series_free(series1);
