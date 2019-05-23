@@ -212,6 +212,8 @@ double *correlator_tukey_window_new(const int n, const int zero_samples, const i
 
 fftw_plan correlator_tseries_to_fseries_plan(double *tseries, complex double *fseries, int n)
 {
+	if(!tseries || !fseries || n <= 0)
+		return NULL;
 	return fftw_plan_dft_r2c_1d(n, tseries, fseries, FFTW_MEASURE);
 }
 
