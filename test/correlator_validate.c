@@ -132,7 +132,6 @@ static void usage(void)
 
 struct options {
 	int sample_frequency;
-	int trials;
 };
 
 
@@ -142,8 +141,7 @@ static struct options *command_line_options_new(void)
 
 	/* defaults */
 	*options = (struct options) {
-		.sample_frequency = 2048,
-		.trials = 1,
+		.sample_frequency = 512,
 	};
 
 	return options;
@@ -165,7 +163,6 @@ struct options *parse_command_line(int argc, char *argv[])
 	struct option long_options[] = {
 		{"help",	0,	NULL,	'h'},
 		{"sample-frequency",	required_argument,	NULL,	'f'},
-		{"trials",	required_argument,	NULL,	't'},
 		{NULL,	0,	NULL,	0}
 	};
 	struct options *options = command_line_options_new();
@@ -183,11 +180,6 @@ struct options *parse_command_line(int argc, char *argv[])
 	case 'h':
 		usage();
 		exit(0);
-		break;
-
-	/* --trials */
-	case 't':
-		options->trials = atoi(optarg);
 		break;
 
 	/* option sets a flag */
@@ -226,7 +218,7 @@ static double dB(double x)
 }
 
 
-static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_array *instruments, double delta_t, double *gmst, int n_gmst, int trials)
+static int test1(gsl_rng *rng, struct instrument_array *instruments, double delta_t, double *gmst, int n_gmst)
 {
 	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments);
 
@@ -234,56 +226,51 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 	const int time_series_length = correlator_dump_interval(sky_l_max, 20) / delta_t;
 
 	double injection[time_series_length];
-	double *tseries[] = {
-		malloc(time_series_length * sizeof(**tseries)),
-		malloc(time_series_length * sizeof(**tseries))
-	};
-	complex double *fseries[] = {
-		malloc(time_series_length * sizeof(**fseries)),
-		malloc(time_series_length * sizeof(**fseries))
-	};
-	fftw_plan fftplans[] = {
-		correlator_tseries_to_fseries_plan(tseries[0], fseries[0], time_series_length),
-		correlator_tseries_to_fseries_plan(tseries[1], fseries[1], time_series_length)
-	};
+	double *tseries[instrument_array_len(instruments)];
+	complex double *fseries[instrument_array_len(instruments)];
+	fftw_plan fftplans[instrument_array_len(instruments)];
 
-	struct correlator_network_plan_fd *fdplans = fd ? correlator_network_plan_fd_new(baselines, time_series_length, delta_t) : NULL;
-	struct correlator_network_plan_td *tdplans = td ? correlator_network_plan_td_new(baselines, delta_t) : NULL;
+	struct correlator_network_plan_fd *fdplans = correlator_network_plan_fd_new(baselines, time_series_length, delta_t);
+	struct correlator_network_plan_td *tdplans = correlator_network_plan_td_new(baselines, delta_t);
 
-	double *windows[] = {
-		td ? correlator_square_window_new(time_series_length - 2 * tdplans->plans[0]->transient, 0, 1.0 / (time_series_length - 2 * tdplans->plans[0]->transient)) : NULL
-	};
-
-	struct sh_series *solution, *solution_lo;
+	double *windows[baselines->n_baselines];
 
 	struct sh_series *tdsky = sh_series_new_zero(sky_l_max, 0);
 	struct sh_series *fdsky = sh_series_new_zero(sky_l_max, 0);
-	struct sh_series *tdaverage = sh_series_new(sky_l_max, 0);
-	struct sh_series *fdaverage = sh_series_new(sky_l_max, 0);
 
 	const double variance = 1.0;
 
-	struct timeval tstart, tend;
-	double runtime;
-
 	int N_T, l_T, l_xi;
 
-	int i, j, k;
+	int i, j;
 
-	if(instrument_array_len(instruments) != 2) {
-		fprintf(stderr, "FIXME!!\n");
-		return;
+	for(j = 0; j < instrument_array_len(instruments); j++) {
+		tseries[j] = malloc(time_series_length * sizeof(**tseries));
+		fseries[j] = malloc(time_series_length * sizeof(**fseries));
+		fftplans[j] = correlator_tseries_to_fseries_plan(tseries[j], fseries[j], time_series_length);
+		if(!tseries[j] || !fseries[j] || !fftplans[j]) {
+			fprintf(stderr, "memory allocation failure\n");
+			while(--j >= 0) {
+				free(tseries[j]);
+				free(fseries[j]);
+				fftw_destroy_plan(fftplans[j]);
+			}
+			return -1;
+		}
+	}
+	for(j = 0; j < baselines->n_baselines; j++) {
+		windows[j] = correlator_square_window_new(time_series_length - 2 * tdplans->plans[j]->transient, 0, 1.0 / (time_series_length - 2 * tdplans->plans[j]->transient));
+		if(!windows[j]) {
+			fprintf(stderr, "memory allocation failure\n");
+			return -1;
+		}
 	}
 
 	fprintf(stderr, "=== Parameters ===\n");
-	if(td) {
-		fprintf(stderr, "=== Time-Domain Correlator ===\n");
-		diagnostics_dump_correlator_plan_td_stats(stderr, tdplans->plans[0]);
-	}
-	if(fd) {
-		fprintf(stderr, "=== Frequency-Domain Correlator ===\n");
-		diagnostics_dump_correlator_plan_fd_stats(stderr, fdplans->plans[0]);
-	}
+	fprintf(stderr, "=== Time-Domain Correlator ===\n");
+	diagnostics_dump_correlator_plan_td_stats(stderr, tdplans->plans[0]);
+	fprintf(stderr, "=== Frequency-Domain Correlator ===\n");
+	diagnostics_dump_correlator_plan_fd_stats(stderr, fdplans->plans[0]);
 	fprintf(stderr, "=== Other Numbers ===\n");
 	fprintf(stderr, "l_{xi} = %d\n", sky_l_max);
 	fprintf(stderr, "=== End Parameters ===\n");
@@ -296,50 +283,35 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 
 	/* loop over GMST */
 	for(i = 0; i < n_gmst; i++) {
+		struct sh_series *solution, *solution_lo;
+		struct timeval tstart, tend;
+		double runtime;
+
 		fprintf(stderr, "=== Begin Test ===\nGMST = %g\n", gmst[i]);
 
-		/* zero averages */
-		sh_series_zero(tdaverage);
-		sh_series_zero(fdaverage);
+		/* zero the instrument time series */
+		for(j = 0; j < instrument_array_len(instruments); j++)
+			memset(tseries[j], 0, time_series_length * sizeof(*tseries[j]));
+
+		/* inject point source at vernal equinox */
+		gaussian_white_noise(injection, time_series_length, variance, rng);
+		for(j = 0; j < instrument_array_len(instruments); j++)
+			inject_into(instrument_array_get(instruments, j), tseries[j], injection, time_series_length, delta_t, 0.0, 0.0, gmst[i]);
+
+		/* compute integrated cross power */
+
+		/* time domain */
+		assert(correlator_network_integrate_power_td(tdsky, tseries, time_series_length, windows, tdplans) != NULL);
+		sh_series_rotate_z(tdsky, tdsky, gmst[i]);
 
 		/* record the start time */
 		gettimeofday(&tstart, NULL);
 
-		/* repeated trials */
-		for(j = 0; j < trials; j++) {
-			fprintf(stderr, "trial %d / %d\n", j + 1, trials);
-
-			/* zero the instrument time series */
-			for(k = 0; k < instrument_array_len(instruments); k++)
-				memset(tseries[k], 0, time_series_length * sizeof(*tseries[k]));
-
-			/* inject point source at vernal equinox */
-			if(!speed) {
-				gaussian_white_noise(injection, time_series_length, variance, rng);
-				for(k = 0; k < instrument_array_len(instruments); k++)
-					inject_into(instrument_array_get(instruments, k), tseries[k], injection, time_series_length, delta_t, 0.0, 0.0, gmst[i]);
-			}
-
-			/* compute integrated cross power */
-
-			/* time domain */
-			if(td) {
-				assert(correlator_network_integrate_power_td(tdsky, tseries, time_series_length, windows, tdplans) != NULL);
-				sh_series_rotate_z(tdsky, tdsky, gmst[i]);
-				sh_series_scale(tdaverage, (double) j / (j + 1));
-				sh_series_add(tdaverage, 1.0 / (j + 1), tdsky);
-			}
-
-			/* frequency domain */
-			if(fd) {
-				for(k = 0; k < instrument_array_len(instruments); k++)
-					correlator_tseries_to_fseries(tseries[k], fseries[k], time_series_length, fftplans[k]);
-				assert(correlator_network_integrate_power_fd(fdsky, fseries, fdplans) != NULL);
-				sh_series_rotate_z(fdsky, fdsky, gmst[i]);
-				sh_series_scale(fdaverage, (double) j / (j + 1));
-				sh_series_add(fdaverage, 1.0 / (j + 1), fdsky);
-			}
-		}
+		/* frequency domain */
+		for(j = 0; j < instrument_array_len(instruments); j++)
+			correlator_tseries_to_fseries(tseries[j], fseries[j], time_series_length, fftplans[j]);
+		assert(correlator_network_integrate_power_fd(fdsky, fseries, fdplans) != NULL);
+		sh_series_rotate_z(fdsky, fdsky, gmst[i]);
 
 		/* record the end time */
 		gettimeofday(&tend, NULL);
@@ -347,63 +319,57 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 		/* compute the execution speed */
 		runtime = (tend.tv_sec - tstart.tv_sec) + 1e-6 * (tend.tv_usec - tstart.tv_usec);
 		fprintf(stderr, "=== Begin Speed ===\n");
-		fprintf(stderr, "%ld samples analyzed in %g seconds = %g samples/second\n", ((long int) time_series_length) * trials, runtime, ((long int) time_series_length) * trials / runtime);
+		fprintf(stderr, "%d samples analyzed by FD correlator in %g seconds = %.3g samples/second\n", time_series_length, runtime, time_series_length / runtime);
 		fprintf(stderr, "=== End Speed ===\n");
 
-		/* compute "exact" solution for source at vernal equinox */
+		/* compute exact-ish solution for source at vernal equinox.
+		 * we still compute it to some finite harmonic order, but
+		 * much higher than what the correlator will compute, so
+		 * the residual errors in this solution should not
+		 * contribute significantly to the overall error budget */
 		solution = gaussian_noise_solution(baselines->baselines[0], 2 * sky_l_max, variance, delta_t, 0.0, 0.0, gmst[i]);
-
-		/* compute exact solution for only those coefficients
-		 * generated by the correlator */
-		{
-		int l, m;
-		solution_lo = sh_series_copy(solution);
-		for(l = sky_l_max + 1; l <= (int) solution_lo->l_max; l++)
-			for(m = -l; m <= l; m++)
-				sh_series_set(solution_lo, l, m, 0.0);
+		for(j = 1; j < baselines->n_baselines; j++) {
+			struct sh_series *tmp = gaussian_noise_solution(baselines->baselines[j], 2 * sky_l_max, variance, delta_t, 0.0, 0.0, gmst[i]);
+			sh_series_add(solution, 1.0, tmp);
+			sh_series_free(tmp);
 		}
+		sh_series_scale(solution, 1. / baselines->n_baselines);
+
+		/* compute a version of the exact solution truncated to the
+		 * harmonic order of the correlator.  by comparing this to
+		 * the other, more exact, solution, we measure how much
+		 * error is coming from the truncation of the sky to finite
+		 * order.  any additional error observed in the correlator
+		 * output is from the correlator. */
+		solution_lo = sh_series_resize(sh_series_copy(solution), sky_l_max);
 
 		/* compute normalized RMS error */
 		fprintf(stderr, "=== Begin Errors ===\n");
-		{
-		double td_fractional_rms_error;
-		double fd_fractional_rms_error;
-		double fractional_rms_error_lxi;
-		double td_fractional_rms_error_N;
-		double fd_fractional_rms_error_N;
-
-		sh_series_clip(tdaverage, 1e-10);
-		sh_series_clip(fdaverage, 1e-10);
-
-		td_fractional_rms_error = diagnostics_rms_error(tdaverage, solution) / variance;
-		fd_fractional_rms_error = diagnostics_rms_error(fdaverage, solution) / variance;
-		fractional_rms_error_lxi = diagnostics_rms_error(solution_lo, solution) / variance;
-		td_fractional_rms_error_N = diagnostics_rms_error(tdaverage, solution_lo) / variance;
-		fd_fractional_rms_error_N = diagnostics_rms_error(fdaverage, solution_lo) / variance;
-
-		/* error output */
+		fprintf(stderr, "RMS (exact - order-reduced exact) = %g dB\n", dB(diagnostics_rms_error(solution_lo, solution) / variance));
 		fprintf(stderr, "=== Time-Domain Correlator Errors ===\n");
-		fprintf(stderr, "\\Delta \\bar{\\xi}_{\\mathrm{RMS}} = %g dB\n", dB(td_fractional_rms_error));
-		fprintf(stderr, "\\Delta \\bar{\\xi}_{l_{\\xi} \\mathrm{RMS}} = %g dB\n", dB(fractional_rms_error_lxi));
-		fprintf(stderr, "\\Delta \\bar{\\xi}_{\\delay \\mathrm{RMS}} = %g dB\n", dB(td_fractional_rms_error_N));
-		fprintf(stderr, "td fractional error @ source = %g dB\n", dB((creal(sh_series_eval(solution, 0.0, 0.0)) - creal(sh_series_eval(tdaverage, 0.0, 0.0))) / variance));
+		fprintf(stderr, "RMS (TD - exact) = %g dB\n", dB(diagnostics_rms_error(tdsky, solution) / variance));
+		fprintf(stderr, "RMS (TD - order-reduced exact) = %g dB\n", dB(diagnostics_rms_error(tdsky, solution_lo) / variance));
+		fprintf(stderr, "TD fractional error @ source = %g dB\n", dB((creal(sh_series_eval(solution, 0.0, 0.0)) - creal(sh_series_eval(tdsky, 0.0, 0.0))) / variance));
 
 		fprintf(stderr, "=== Frequency-Domain Correlator Errors ===\n");
-		fprintf(stderr, "\\Delta \\bar{\\xi}_{\\mathrm{RMS}} = %g dB\n", dB(fd_fractional_rms_error));
-		fprintf(stderr, "\\Delta \\bar{\\xi}_{l_{\\xi} \\mathrm{RMS}} = %g dB\n", dB(fractional_rms_error_lxi));
-		fprintf(stderr, "\\Delta \\bar{\\xi}_{\\delay \\mathrm{RMS}} = %g dB\n", dB(fd_fractional_rms_error_N));
-		fprintf(stderr, "fd fractional error @ source = %g dB\n", dB((creal(sh_series_eval(solution, 0.0, 0.0)) - creal(sh_series_eval(fdaverage, 0.0, 0.0))) / variance));
-		fprintf(stderr, "fractional RMS (td - fd) = %g dB\n", dB(diagnostics_rms_error(fdaverage, tdaverage) / variance));
-		}
+		fprintf(stderr, "fractional RMS (FD - exact) = %g dB\n", dB(diagnostics_rms_error(fdsky, solution) / variance));
+		fprintf(stderr, "fractional RMS (FD - order-reduced exact) = %g dB\n", dB(diagnostics_rms_error(fdsky, solution_lo) / variance));
+		fprintf(stderr, "FD fractional error @ source = %g dB\n", dB((creal(sh_series_eval(solution, 0.0, 0.0)) - creal(sh_series_eval(fdsky, 0.0, 0.0))) / variance));
+		fprintf(stderr, "fractional RMS (TD - FD) = %g dB\n", dB(diagnostics_rms_error(fdsky, tdsky) / variance));
 		fprintf(stderr, "=== End Errors ===\n");
+
+		if(dB(diagnostics_rms_error(tdsky, solution_lo) / variance) > -21. || dB(diagnostics_rms_error(fdsky, solution_lo) / variance) > -21.) {
+			fprintf(stderr, "accuracy failure.\n");
+			return -1;
+		}
 
 		/* solution output */
 		{
 		char filename[100];
 		sprintf(filename, "tests_tdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(tdaverage, filename);
+		sh_series_write_healpix_map(tdsky, filename);
 		sprintf(filename, "tests_fdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(fdaverage, filename);
+		sh_series_write_healpix_map(fdsky, filename);
 		sprintf(filename, "tests_exact_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
 		sh_series_write_healpix_map(solution, filename);
 		}
@@ -419,20 +385,20 @@ static void test1(int td, int fd, int speed, gsl_rng *rng, struct instrument_arr
 	 * Clean up
 	 */
 
-	for(k = 0; k < instrument_array_len(instruments); k++) {
-		free(tseries[k]);
-		free(fseries[k]);
-		fftw_destroy_plan(fftplans[k]);
+	for(j = 0; j < instrument_array_len(instruments); j++) {
+		free(tseries[j]);
+		free(fseries[j]);
+		fftw_destroy_plan(fftplans[j]);
 	}
-	for(k = 0; k < baselines->n_baselines; k++)
-		free(windows[k]);
+	for(j = 0; j < baselines->n_baselines; j++)
+		free(windows[j]);
 	correlator_network_plan_fd_free(fdplans);
 	correlator_network_plan_td_free(tdplans);
 	correlator_network_baselines_free(baselines);
 	sh_series_free(tdsky);
 	sh_series_free(fdsky);
-	sh_series_free(tdaverage);
-	sh_series_free(fdaverage);
+
+	return 0;
 }
 
 
@@ -451,8 +417,10 @@ int main(int argc, char *argv[])
 	gsl_rng *rng = gsl_rng_alloc(gsl_rng_ranlxd1);
 
 	struct instrument_array *instruments = instrument_array_new(0);
-	instrument_array_append(instruments, instrument_new_from_r_theta_phi(+0.005, M_PI_2, 0, NULL, NULL));
-	instrument_array_append(instruments, instrument_new_from_r_theta_phi(-0.005, M_PI_2, 0, NULL, NULL));
+	instrument_array_append(instruments, instrument_new_from_name("H1"));
+	instrument_array_append(instruments, instrument_new_from_name("L1"));
+	instrument_array_append(instruments, instrument_new_from_name("V1"));
+	instrument_array_append(instruments, instrument_new_from_name("K1"));
 
 	const double delta_t = 1.0 / options->sample_frequency;
 
@@ -465,7 +433,7 @@ int main(int argc, char *argv[])
 	for(i = 0; i < n_gmst; i++)
 		gmst[i] = i * (M_PI / 4);
 
-	test1(1, 1, 0, rng, instruments, delta_t, gmst, n_gmst, options->trials);
+	assert(test1(rng, instruments, delta_t, gmst, n_gmst) == 0);
 
 
 	/*
