@@ -24,6 +24,7 @@ AC_SUBST([pkgconfigdir],[${libdir}/pkgconfig])
 
 # Checks for programs
 AC_PROG_CC_C99
+AC_PROG_CXX
 AC_PROG_INSTALL
 LT_INIT
 PKG_PROG_PKG_CONFIG()
@@ -39,11 +40,6 @@ AX_SWIG_PYTHON
 
 # Check for math library
 AC_CHECK_LIB([m], [main], , [AC_MSG_ERROR([cannot find the math library])])
-
-# Check for chealpix
-PKG_CHECK_MODULES([CHEALPIX], [chealpix], , [echo "Not Found!" ; exit 1])
-AC_SUBST([CHEALPIX_CFLAGS])
-AC_SUBST([CHEALPIX_LIBS])
 
 # Check for FFTW
 PKG_CHECK_MODULES([FFTW], [fftw3], , [echo "Not Found!" ; exit 1])
@@ -61,6 +57,17 @@ AC_SUBST([MIN_HDF5_VERSION], [1.10])
 PKG_CHECK_MODULES([HDF5], [hdf5 >= ${MIN_HDF5_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([HDF5_CFLAGS])
 AC_SUBST([HDF5_LIBS])
+
+# Check for healpix
+AC_SUBST([MIN_CHEALPIX_VERSION], [3.30])
+PKG_CHECK_MODULES([CHEALPIX], [chealpix], , [echo "Not Found!" ; exit 1])
+AC_SUBST([CHEALPIX_CFLAGS])
+AC_SUBST([CHEALPIX_LIBS])
+
+AC_SUBST([MIN_HEALPIXCXX_VERSION], [3.30])
+PKG_CHECK_MODULES([HEALPIXCXX], [healpix_cxx], , [echo "Not Found!" ; exit 1])
+AC_SUBST([HEALPIXCXX_CFLAGS])
+AC_SUBST([HEALPIXCXX_LIBS])
 
 # Check for LAPACK
 AC_SUBST([MIN_LAPACK_VERSION], [3.0])
@@ -102,10 +109,13 @@ AX_PYTHON_MODULE([mpl_toolkits.basemap])
 AX_PYTHON_MODULE([numpy])
 AX_PYTHON_MODULE([scipy])
 
-# CFLAGS
+# CFLAGS, CXXFLAGS
 AX_CFLAGS_WARN_ALL([AM_CFLAGS])
 AM_CFLAGS="$AM_CFLAGS -Wextra -Wno-missing-field-initializers -Wno-unused-parameter"    # extra gcc-specific stuff
 AC_SUBST([AM_CFLAGS])
+AX_CXXFLAGS_WARN_ALL([AM_CXXFLAGS])
+AM_CXXFLAGS="$AM_CXXFLAGS -Wextra"
+AC_SUBST([AM_CXXFLAGS])
 
 # Generate configured output files
 AC_PROG_MAKE_SET
