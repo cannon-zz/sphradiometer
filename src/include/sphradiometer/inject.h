@@ -34,6 +34,12 @@
 #include <sphradiometer/instrument.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -51,6 +57,12 @@ double *inject_transform_point_source(const struct instrument *, double *, const
 
 
 double *inject_into(const struct instrument *, double *, const double *, int, double, double, double, double);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif  /* __RADIOMETER_INJECT_H__ */

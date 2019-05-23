@@ -35,6 +35,12 @@
 #include <stdlib.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -80,7 +86,7 @@
 struct sh_series {
 	unsigned int l_max;
 	int polar;
-	complex double *coeff;
+	double complex *coeff;
 };
 
 
@@ -113,7 +119,7 @@ struct sh_series_product_plan {
 
 struct sh_series_rotation_plan {
 	unsigned int l_max;
-	complex double **D;
+	double complex **D;
 };
 
 
@@ -131,7 +137,7 @@ struct sh_series_array {
 	int polar;
 	int n;
 	struct sh_series *series;
-	complex double *coeff;
+	double complex *coeff;
 	int stride;
 };
 
@@ -222,10 +228,10 @@ static size_t sh_series_length(unsigned int l_max, int polar)
  */
 
 
-complex double sh_series_Y(unsigned int, int, double, double);
-complex double sh_series_Yconj(unsigned int, int, double, double);
-complex double *sh_series_Y_array(complex double *, unsigned int, int, double, double);
-complex double *sh_series_Yconj_array(complex double *, unsigned int, int, double, double);
+double complex sh_series_Y(unsigned int, int, double, double);
+double complex sh_series_Yconj(unsigned int, int, double, double);
+double complex *sh_series_Y_array(double complex *, unsigned int, int, double, double);
+double complex *sh_series_Yconj_array(double complex *, unsigned int, int, double, double);
 
 
 /*
@@ -252,8 +258,8 @@ struct sh_series *sh_series_set_polar(struct sh_series *, int);
 void sh_series_free(struct sh_series *);
 
 
-complex double sh_series_get(const struct sh_series *, unsigned int, int);
-complex double sh_series_set(struct sh_series *, unsigned int, int, complex double);
+double complex sh_series_get(const struct sh_series *, unsigned int, int);
+double complex sh_series_set(struct sh_series *, unsigned int, int, double complex);
 
 
 /*
@@ -261,15 +267,15 @@ complex double sh_series_set(struct sh_series *, unsigned int, int, complex doub
  */
 
 
-complex double sh_series_eval(const struct sh_series *, double, double);
+double complex sh_series_eval(const struct sh_series *, double, double);
 
 
-struct sh_series *sh_series_from_mesh(struct sh_series *, complex double *);
+struct sh_series *sh_series_from_mesh(struct sh_series *, double complex *);
 struct sh_series *sh_series_from_realmesh(struct sh_series *, double *);
-complex double *sh_series_to_mesh(const struct sh_series *);
+double complex *sh_series_to_mesh(const struct sh_series *);
 
 
-struct sh_series *sh_series_from_func(struct sh_series *, complex double (*)(double, double, void *), void *);
+struct sh_series *sh_series_from_func(struct sh_series *, double complex (*)(double, double, void *), void *);
 struct sh_series *sh_series_from_realfunc(struct sh_series *, double (*)(double, double, void *), void *);
 
 struct sh_series *sh_series_impulse(unsigned int, double, double);
@@ -280,11 +286,11 @@ struct sh_series *sh_series_impulse(unsigned int, double, double);
  */
 
 
-struct sh_series *sh_series_add(struct sh_series *, complex double, const struct sh_series *);
-struct sh_series *sh_series_scale(struct sh_series *, complex double);
+struct sh_series *sh_series_add(struct sh_series *, double complex, const struct sh_series *);
+struct sh_series *sh_series_scale(struct sh_series *, double complex);
 struct sh_series *sh_series_conj(struct sh_series *);
 struct sh_series *sh_series_clip(struct sh_series *, double);
-complex double sh_series_dot(const struct sh_series *, const struct sh_series *);
+double complex sh_series_dot(const struct sh_series *, const struct sh_series *);
 
 struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series *, const struct sh_series *, const struct sh_series *);
 void sh_series_product_plan_free(struct sh_series_product_plan *);
@@ -300,7 +306,7 @@ double *sh_series_rot_matrix(double, double);
 double *sh_series_invrot_matrix(double, double);
 struct sh_series_rotation_plan *sh_series_rotation_plan_new(const struct sh_series *, const double *);
 void sh_series_rotation_plan_free(struct sh_series_rotation_plan *);
-complex double sh_series_rotation_plan_wigner_D(const struct sh_series_rotation_plan *, unsigned, int, int);
+double complex sh_series_rotation_plan_wigner_D(const struct sh_series_rotation_plan *, unsigned, int, int);
 struct sh_series *sh_series_rotate(struct sh_series *, const struct sh_series *, const struct sh_series_rotation_plan *);
 struct sh_series *sh_series_rotate_z(struct sh_series *, const struct sh_series *, double);
 
@@ -344,7 +350,7 @@ struct sh_series_array *sh_series_array_resize_zero(struct sh_series_array *, in
 struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *, int);
 struct sh_series_array *sh_series_array_copy(const struct sh_series_array *);
 struct sh_series_array *sh_series_array_assign(struct sh_series_array *, const struct sh_series_array *);
-struct sh_series_array *sh_series_array_scale(struct sh_series_array *, complex double);
+struct sh_series_array *sh_series_array_scale(struct sh_series_array *, double complex);
 
 
 /*
@@ -353,11 +359,11 @@ struct sh_series_array *sh_series_array_scale(struct sh_series_array *, complex 
 
 
 struct sh_series *sh_series_array_dot(struct sh_series *, const struct sh_series_array *, const double *);
-struct sh_series *sh_series_array_dotc(struct sh_series *, const struct sh_series_array *, const complex double *);
+struct sh_series *sh_series_array_dotc(struct sh_series *, const struct sh_series_array *, const double complex *);
 
 
 struct sh_series_array *sh_series_array_window(struct sh_series_array *, const double *);
-struct sh_series_array *sh_series_array_windowc(struct sh_series_array *, const complex double *);
+struct sh_series_array *sh_series_array_windowc(struct sh_series_array *, const double complex *);
 
 
 /*
@@ -367,6 +373,12 @@ struct sh_series_array *sh_series_array_windowc(struct sh_series_array *, const 
 
 struct sh_series_array *sh_series_array_forward_fft(struct sh_series_array *);
 struct sh_series_array *sh_series_array_reverse_fft(struct sh_series_array *);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif	/* __RADIOMETER_SH_SERIES_H__ */

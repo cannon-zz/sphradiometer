@@ -36,6 +36,12 @@
 #endif
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -108,6 +114,12 @@ void instrument_array_free(struct instrument_array *);
 
 double instrument_r(const struct instrument *);
 gsl_vector *instrument_baseline(const struct instrument *, const struct instrument *);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif  /* __RADIOMETER_INSTRUMENT_H__ */

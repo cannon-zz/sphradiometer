@@ -33,6 +33,12 @@
 #include <sphradiometer/sh_series.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -42,7 +48,13 @@
  */
 
 
-complex double *sh_series_array_orthogonalize(struct sh_series_array *);
+double complex *sh_series_array_orthogonalize(struct sh_series_array *);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif  /* __RADIOMETER_DECONVOLUTION_H__ */

@@ -35,6 +35,12 @@
 #include <sphradiometer/correlator.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -51,6 +57,12 @@ void diagnostics_dump_correlator_plan_td_stats(FILE *, const struct correlator_p
 void diagnostics_dump_correlator_plan_fd_stats(FILE *, const struct correlator_plan_fd *);
 void diagnostics_dump_network_plan_td_stats(FILE *, const struct correlator_network_plan_td *);
 void diagnostics_dump_network_plan_fd_stats(FILE *, const struct correlator_network_plan_fd *);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif /* __RADIOMETER_BIN_DIAGNOSTICS_H__ */

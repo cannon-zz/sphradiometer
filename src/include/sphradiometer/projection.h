@@ -34,6 +34,12 @@
 #include <sphradiometer/sh_series.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -71,6 +77,12 @@ unsigned int projection_matrix_l_max(double, double);
 
 double projection_delay_element(double, double, void *);
 struct sh_series_array *projection_matrix_delay(unsigned int, unsigned int, const gsl_vector *, double);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif  /* __RADIOMETER_PROJECTION_H__ */

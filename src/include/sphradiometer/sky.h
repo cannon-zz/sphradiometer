@@ -30,6 +30,12 @@
  */
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -99,6 +105,12 @@ double *euler_inv_rotation_matrix(double, double, double);
 
 double *sky_equatorial_to_galactic_rot_matrix(void);
 double *sky_galactic_to_equatorial_rot_matrix(void);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif  /* __RADIOMETER_SKY_H__ */

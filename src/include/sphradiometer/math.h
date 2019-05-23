@@ -41,6 +41,12 @@
 #include <math.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -51,31 +57,37 @@
 
 
 /*
- * fma() for complex double * complex double + complex double.
+ * fma() for double complex * double complex + double complex.
  */
 
 
 #ifndef SWIG
-static complex double ccma(complex double, complex double, complex double) __attribute__ ((unused));
+static double complex ccma(double complex, double complex, double complex) __attribute__ ((unused));
 #endif
-static complex double ccma(complex double x, complex double y, complex double z)
+static double complex ccma(double complex x, double complex y, double complex z)
 {
 	return fma(-cimag(x), cimag(y), fma(creal(x), creal(y), creal(z))) + I * fma(cimag(x), creal(y), fma(creal(x), cimag(y), cimag(z)));
 }
 
 
 /*
- * fma() for complex double * double + complex double.
+ * fma() for double complex * double + double complex.
  */
 
 
 #ifndef SWIG
-static complex double cma(complex double, double, complex double) __attribute__ ((unused));
+static double complex cma(double complex, double, double complex) __attribute__ ((unused));
 #endif
-static complex double cma(complex double x, double y, complex double z)
+static double complex cma(double complex x, double y, double complex z)
 {
 	return fma(creal(x), y, creal(z)) + I * fma(cimag(x), y, cimag(z));
 }
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif	/* __RADIOMETER_MATH_H__ */

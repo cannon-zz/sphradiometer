@@ -35,6 +35,12 @@
 #include <sphradiometer/sh_series.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#define complex _Complex
+#endif
+
+
 /*
  * ============================================================================
  *
@@ -108,7 +114,7 @@ struct correlator_plan_fd {
 	double delta_t;
 	int transient;
 	struct sh_series_array *delay_product;
-	complex double *fseries_product;
+	double complex *fseries_product;
 	struct sh_series *power_1d;
 	struct sh_series *power_2d;
 	struct sh_series_rotation_plan *rotation_plan;
@@ -190,10 +196,10 @@ double *correlator_square_window_new(int, int, double);
  */
 
 
-fftw_plan correlator_tseries_to_fseries_plan(double *, complex double *, int);
-void correlator_tseries_to_fseries(double *, complex double *, int, fftw_plan);
+fftw_plan correlator_tseries_to_fseries_plan(double *, double complex *, int);
+void correlator_tseries_to_fseries(double *, double complex *, int, fftw_plan);
 
-fftw_plan correlator_ctseries_to_fseries_plan(complex double *, complex double *, int);
+fftw_plan correlator_ctseries_to_fseries_plan(double complex *, double complex *, int);
 void correlator_ctseries_to_fseries(fftw_plan);
 
 
@@ -240,13 +246,19 @@ void correlator_network_plan_fd_free(struct correlator_network_plan_fd *);
 struct sh_series *correlator_baseline_integrate_power_td(const double *, const double *, const double *, int, struct correlator_plan_td *);
 
 
-struct sh_series *correlator_baseline_integrate_power_fd(const complex double *, const complex double *, struct correlator_plan_fd *);
+struct sh_series *correlator_baseline_integrate_power_fd(const double complex *, const double complex *, struct correlator_plan_fd *);
 
 
 struct sh_series *correlator_network_integrate_power_td(struct sh_series *, double **, int, double **, struct correlator_network_plan_td *);
 
 
-struct sh_series *correlator_network_integrate_power_fd(struct sh_series *, complex double **, struct correlator_network_plan_fd *);
+struct sh_series *correlator_network_integrate_power_fd(struct sh_series *, double complex **, struct correlator_network_plan_fd *);
+
+
+#ifdef __cplusplus
+#undef complex
+}
+#endif
 
 
 #endif  /* __RADIOMETER_CORRELATOR_H__ */
