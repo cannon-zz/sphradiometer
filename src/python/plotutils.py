@@ -91,7 +91,7 @@ def rad_to_dms_str(a):
 
 
 class XYSlicePlot(object):
-	def __init__(self, axes, plot_delta = math.pi / 256):
+	def __init__(self, axes, plot_delta = math.pi / 4096):
 		self.axes = axes
 		self.plot_delta = plot_delta
 
