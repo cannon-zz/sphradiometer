@@ -418,7 +418,6 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 	if(!result)
 		return NULL;
 	sh_series_array_set_polar(plan->delay_product, 0);
-	fprintf(stderr, "A\n");
 	product_plan = sh_series_product_plan_new(result, &plan->delay_product->series[0], projection);
 	if(!product_plan) {
 		XLALPrintError("sh_series_product_plan_new() failed\n");
@@ -493,7 +492,7 @@ int main(int argc, char *argv[])
 	fftw_plan *fftplans;
 	struct correlator_network_plan_fd *fdplans;
 	struct sh_series *sky;
-	int k, j;
+	int k;
 	struct timeval t_start, t_end;
 
 
@@ -524,19 +523,9 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 	}
-
-
 	/* Down sampling */
-	for(k = 0; k < instrument_array_len(options->instruments); k++){
-		series[k]->deltaT *= 2;
-		series[k]->data->length /= 2;
-		// compression
-		for(j = 0; j < (int) series[k]->data->length; j++)
-			series[k]->data->data[j] = series[k]->data->data[2*j+1];
-		// delete
-		for(j = 0; j < (int) series[k]->data->length; j++)
-			series[k]->data->data[j+(int)series[k]->data->length] = 0;
-	}
+	//for(k = 0; k < instrument_array_len(options->instruments); k++)
+	//	series[k]->deltaT *= 2;
 
 
 	/*
@@ -544,7 +533,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-#if 1
+#if 0
 	// white noise
 	for(k = 0; k < (int) series[0]->data->length; k++)
 		series[0]->data->data[k] = (double) random() / RAND_MAX + I*(double) random() / RAND_MAX - (0.5 + I*0.5);
@@ -586,6 +575,7 @@ int main(int argc, char *argv[])
 
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		correlator_ctseries_to_fseries(fftplans[k]);
+		/*
 		unsigned i; for(i = 0; i < series[k]->data->length; i++) fprintf(stderr, "%g+I*%g\n", creal(fseries[k][i]), cimag(fseries[k][i])); fprintf(stderr, "\n");
 		int j = 0;	//
 		double temp = cabs(fseries[k][0]);	//
@@ -596,6 +586,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		fprintf(stderr, "%d %g\n\n", j, temp);
+		*/
 	}
 
 
