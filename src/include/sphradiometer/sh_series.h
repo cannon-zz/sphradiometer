@@ -327,6 +327,8 @@ struct sh_series *sh_series_invlaplacian(struct sh_series *);
 
 void sh_series_print(FILE *, const struct sh_series *);
 int sh_series_write_healpix_map(const struct sh_series *, const char *);
+int sh_series_write_healpix_alm(const struct sh_series *, const char *);
+struct sh_series *sh_series_read_healpix_alm(const char *);
 
 
 /*

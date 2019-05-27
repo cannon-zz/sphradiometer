@@ -4,6 +4,7 @@ pkgconfig_DATA = sphradiometer.pc
 
 lib_LTLIBRARIES = libsphradiometer.la
 
-libsphradiometer_la_SOURCES = sky.c inject.c sh_series.c sh_series_array.c sh_series_product.c sh_series_rotation.c sh_series_io.c instrument.c projection.c correlator.c deconvolution.c diagnostics.c
+libsphradiometer_la_SOURCES = sky.c inject.c sh_series.c sh_series_array.c sh_series_product.c sh_series_rotation.c sh_series_io.c sh_series_healpix.cc instrument.c projection.c correlator.c deconvolution.c diagnostics.c
 libsphradiometer_la_CFLAGS = $(AM_CFLAGS) $(CHEALPIX_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS)
-libsphradiometer_la_LDFLAGS = $(AM_LDFLAGS) $(CHEALPIX_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS)
+libsphradiometer_la_CXXFLAGS = $(AM_CXXFLAGS) $(HEALPIXCXX_CFLAGS)
+libsphradiometer_la_LDFLAGS = $(AM_LDFLAGS) $(CHEALPIX_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS) $(HEALPIXCXX_LIBS)
