@@ -205,18 +205,21 @@ struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series
 		return NULL;
 	}
 
-	if((a->l_max > b->l_max ? a->l_max : b->l_max) < 40) {
-		/* for small series, use frequency-domain algorithm */
+	/* for small series, use frequency-domain algorithm, for large
+	 * series use pixel-domain algorithm.  unfortunately "small" and
+	 * "large", here, are defined by the stability of GSL's Wigner 3-j
+	 * implementation, not by which approach is actually fastest.  we
+	 * need to switch to the pixel domain implementation at smaller l's
+	 * than those for which it is actually faster to do so */
+	if(dest_l_max < 60) {
 		/* allocate worst-case size for microcode */
 		microcode =  malloc(sh_series_length(dest_l_max, polar) * sh_series_length(a->l_max, polar) * sh_series_length(b->l_max, polar) * sizeof(*microcode));
 		if(!microcode) {
 			free(new);
 			return NULL;
 		}
-	} else {
-		/* for large series use pixel-domain algorithm */
+	} else
 		microcode = NULL;
-	}
 
 	new->a_l_max = a->l_max;
 	new->b_l_max = b->l_max;
