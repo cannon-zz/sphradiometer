@@ -358,6 +358,8 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 
 	// store fp, fc
 	for(i = 0; i < n; i++)
+		/* gmst is rotated at the end of this code.
+		 * So we can set zero. */
 		XLALComputeDetAMResponse(&fplus[i], &fcross[i], det[i]->response, phi, M_PI_2 - theta, 0.0, 0.0);
 
 	// dominant polarization angle
@@ -367,20 +369,26 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 		normcross2 += fcross[i] * fcross[i];
 		product += fplus[i] * fcross[i];
 	}
-	twopsi = atan(2.0 * product / (normplus2 - normcross2)) / 2.;
-
-	// normalization if necessary
-	if(normalization)
-		for(i = 0; i < n; i++){
-			fplus[i] /= sqrt(normplus2);
-			fcross[i] /= sqrt(normcross2);
-		}
+	twopsi = atan2(2.0 * product, normplus2 - normcross2) / 2.;
 
 	// set fp, fc
 	for(i = 0; i < n; i++){
 		double temp = cos(twopsi) * fplus[i] + sin(twopsi) * fcross[i];
 		fcross[i] = -sin(twopsi) * fplus[i] + cos(twopsi) * fcross[i];
 		fplus[i] = temp;
+	}
+
+	// normalization if necessary
+	if(normalization){
+		normplus2 = normcross2 = 0.0;
+		for(i = 0; i < n; i++){
+			normplus2 += fplus[i] * fplus[i];
+			normcross2 += fcross[i] * fcross[i];
+		}
+		for(i = 0; i < n; i++){
+			fplus[i] /= sqrt(normplus2);
+			fcross[i] /= sqrt(normcross2);
+		}
 	}
 }
 
@@ -525,7 +533,7 @@ int main(int argc, char *argv[])
 	}
 	/* Down sampling */
 	//for(k = 0; k < instrument_array_len(options->instruments); k++)
-	//	series[k]->deltaT *= 2;
+	//	series[k]->deltaT *= 1;
 
 
 	/*
@@ -533,7 +541,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-#if 0
+#if 1
 	// white noise
 	for(k = 0; k < (int) series[0]->data->length; k++)
 		series[0]->data->data[k] = (double) random() / RAND_MAX + I*(double) random() / RAND_MAX - (0.5 + I*0.5);
