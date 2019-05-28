@@ -10,7 +10,12 @@ EXTRA_DIST = sphradiometer.swig
 
 BUILT_SOURCES = sphradiometer.py sphradiometer_wrap.c
 
-pkgpython_PYTHON = __init__.py ioutils.py plotutils.py sphradiometer.py
+pkgpython_PYTHON = \
+	__init__.py \
+	healpix.py \
+	ioutils.py \
+	plotutils.py \
+	sphradiometer.py
 pkgpyexec_LTLIBRARIES = _sphradiometer.la
 
 _sphradiometer_la_SOURCES = sphradiometer_wrap.c

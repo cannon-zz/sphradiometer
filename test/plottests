@@ -26,7 +26,6 @@
 #
 
 
-import healpy
 import math
 import matplotlib
 matplotlib.rcParams.update({
@@ -46,6 +45,7 @@ from optparse import OptionParser
 import re
 
 from sphradiometer import ioutils, plotutils
+from sphradiometer import healpix as sphhealpix
 
 
 #
@@ -90,11 +90,11 @@ options, filenames = parse_command_line()
 
 
 def load_fits_map(filename):
-	m = healpy.fitsfunc.read_map(filename)
-	npix, = m.shape
-	nside = healpy.npix2nside(npix)
-	theta, phi = healpy.pixelfunc.pix2ang(nside, range(npix))
-	return theta, phi, m
+	return sphhealpix.read_fits_healpy_map(filename)
+
+# version for alms
+#def load_fits_map(filename):
+#	return sphhealpix.healpy_alm_to_map(*sphhealpix.read_fits_healpy_alm(filename))
 
 
 filename_pattern = re.compile(r"tests_(?P<name>\S+)_(?P<N_T>\S+)_(?P<l_T>\S+)_(?P<l_xi>\S+)_(?P<gmst>[0-9.]+).fits")
