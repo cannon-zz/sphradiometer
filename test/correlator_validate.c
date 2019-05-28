@@ -343,6 +343,17 @@ static int test1(gsl_rng *rng, struct instrument_array *instruments, double delt
 		 * output is from the correlator. */
 		solution_lo = sh_series_resize(sh_series_copy(solution), sky_l_max);
 
+		/* solution output */
+		{
+		char filename[100];
+		sprintf(filename, "tests_tdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
+		sh_series_write_healpix_map(tdsky, filename);
+		sprintf(filename, "tests_fdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
+		sh_series_write_healpix_map(fdsky, filename);
+		sprintf(filename, "tests_exact_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
+		sh_series_write_healpix_map(solution, filename);
+		}
+
 		/* compute normalized RMS error */
 		fprintf(stderr, "=== Begin Errors ===\n");
 		fprintf(stderr, "RMS (exact - order-reduced exact) = %g dB\n", dB(diagnostics_rms_error(solution_lo, solution) / variance));
@@ -361,17 +372,6 @@ static int test1(gsl_rng *rng, struct instrument_array *instruments, double delt
 		if(dB(diagnostics_rms_error(tdsky, solution_lo) / variance) > -21. || dB(diagnostics_rms_error(fdsky, solution_lo) / variance) > -21.) {
 			fprintf(stderr, "accuracy failure.\n");
 			return -1;
-		}
-
-		/* solution output */
-		{
-		char filename[100];
-		sprintf(filename, "tests_tdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(tdsky, filename);
-		sprintf(filename, "tests_fdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(fdsky, filename);
-		sprintf(filename, "tests_exact_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(solution, filename);
 		}
 
 		/* prepare for next test */
@@ -446,4 +446,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
