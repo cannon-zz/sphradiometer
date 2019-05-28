@@ -250,11 +250,11 @@ static int test1(gsl_rng *rng, struct instrument_array *instruments, double delt
 		fftplans[j] = correlator_tseries_to_fseries_plan(tseries[j], fseries[j], time_series_length);
 		if(!tseries[j] || !fseries[j] || !fftplans[j]) {
 			fprintf(stderr, "memory allocation failure\n");
-			while(--j >= 0) {
+			do {
 				free(tseries[j]);
 				free(fseries[j]);
 				fftw_destroy_plan(fftplans[j]);
-			}
+			} while(--j >= 0);
 			return -1;
 		}
 	}
