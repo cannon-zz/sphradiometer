@@ -107,7 +107,103 @@ complex double *sh_series_Yconj_array(complex double *array, unsigned int l_max,
 /*
  * ============================================================================
  *
- *                       Spherical Harmonic Transforms
+ *                                 Pixel Mesh
+ *
+ * ============================================================================
+ */
+
+
+/*
+ * Compute and return the parameters of the pixel mesh.  The pixel mesh is
+ * rectangular in (theta, phi), with phi = i * (2 pi / nphi) for integer i
+ * in [0, nphi), and cos(theta) being the ntheta = (2*l_max + 2)
+ * Gauss-Legendre quadrature points on the interval [-1, +1].  The pixel
+ * order is m[j * nphi + i] for co-ordinates (theta[j], phi[i]).
+ */
+
+
+static int pixels_from_l_max(unsigned l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
+{
+	unsigned int bw = l_max + 1;
+
+	gsl_integration_glfixed_table *t = gsl_integration_glfixed_table_alloc(2 * bw);
+	int i;
+
+	*ntheta = 2 * bw;
+	*nphi = 2 * bw;
+
+	*cos_theta_array = malloc(*ntheta * sizeof(**cos_theta_array));
+	*cos_theta_weights = malloc(*ntheta * sizeof(**cos_theta_weights));
+	if(!t || !*cos_theta_array || !*cos_theta_weights) {
+		gsl_integration_glfixed_table_free(t);
+		free(*cos_theta_array);
+		free(*cos_theta_weights);
+		*cos_theta_array = *cos_theta_weights = NULL;
+		return -1;
+	}
+
+	for(i = 0; i < *ntheta; i++)
+		gsl_integration_glfixed_point(-1., +1., i, &(*cos_theta_array)[i], &(*cos_theta_weights)[i], t);
+
+	gsl_integration_glfixed_table_free(t);
+
+	/* reverse the cos_theta_array and cos_theta_weights so that the
+	 * co-ordinates are ordered by theta instead of by cos(theta).  we
+	 * don't really have to reverse the weights because they're
+	 * symmetric about the origin */
+
+	for(i = 0; i < *ntheta / 2; i++) {
+		double tmp = (*cos_theta_array)[i];
+		(*cos_theta_array)[i] = (*cos_theta_array)[*ntheta - 1 - i];
+		(*cos_theta_array)[*ntheta - 1 - i] = tmp;
+	}
+
+	return 0;
+}
+
+
+static complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
+{
+	complex double *mesh;
+
+	if(pixels_from_l_max(l_max, ntheta, nphi, cos_theta_array, cos_theta_weights))
+		return NULL;
+
+	mesh = malloc(*ntheta * *nphi * sizeof(*mesh));
+	if(mesh)
+		return mesh;
+
+	free(*cos_theta_array);
+	free(*cos_theta_weights);
+	free(mesh);
+	*cos_theta_array = *cos_theta_weights = NULL;
+	return NULL;
+}
+
+
+static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
+{
+	double *mesh;
+
+	if(pixels_from_l_max(l_max, ntheta, nphi, cos_theta_array, cos_theta_weights))
+		return NULL;
+
+	mesh = malloc(*ntheta * *nphi * sizeof(*mesh));
+	if(mesh)
+		return mesh;
+
+	free(*cos_theta_array);
+	free(*cos_theta_weights);
+	free(mesh);
+	*cos_theta_array = *cos_theta_weights = NULL;
+	return NULL;
+}
+
+
+/*
+ * ============================================================================
+ *
+ *                        sh_series Object Evaluation
  *
  * ============================================================================
  */
@@ -148,81 +244,11 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
 
 
 /*
- * Given a function of theta, phi, evaluate it on a 2-dimensional mesh of
- * points, for later input to a projection function.
- */
-
-
-static void samples_from_l_max(unsigned l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
-{
-	unsigned int bw = l_max + 1;
-
-	gsl_integration_glfixed_table *t = gsl_integration_glfixed_table_alloc(2 * bw);
-	int i;
-
-	*ntheta = 2 * bw;
-	*nphi = 2 * bw;
-
-	*cos_theta_array = malloc(*ntheta * sizeof(**cos_theta_array));
-	*cos_theta_weights = malloc(*ntheta * sizeof(**cos_theta_weights));
-	if(!t || !*cos_theta_array || !*cos_theta_weights) {
-		gsl_integration_glfixed_table_free(t);
-		free(*cos_theta_array);
-		free(*cos_theta_weights);
-		*cos_theta_array = *cos_theta_weights = NULL;
-		return;
-	}
-
-	for(i = 0; i < *ntheta; i++)
-		gsl_integration_glfixed_point(-1., +1., i, &(*cos_theta_array)[i], &(*cos_theta_weights)[i], t);
-
-	gsl_integration_glfixed_table_free(t);
-}
-
-
-static complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
-{
-	complex double *mesh;
-
-	samples_from_l_max(l_max, ntheta, nphi, cos_theta_array, cos_theta_weights);
-	if(!*cos_theta_array)
-		return NULL;
-
-	mesh = malloc(*ntheta * *nphi * sizeof(*mesh));
-	if(mesh)
-		return mesh;
-
-	free(*cos_theta_array);
-	free(*cos_theta_weights);
-	free(mesh);
-	*cos_theta_array = *cos_theta_weights = NULL;
-	return NULL;
-}
-
-
-static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
-{
-	double *mesh;
-
-	samples_from_l_max(l_max, ntheta, nphi, cos_theta_array, cos_theta_weights);
-	if(!*cos_theta_array)
-		return NULL;
-
-	mesh = malloc(*ntheta * *nphi * sizeof(*mesh));
-	if(mesh)
-		return mesh;
-
-	free(*cos_theta_array);
-	free(*cos_theta_weights);
-	free(mesh);
-	*cos_theta_array = *cos_theta_weights = NULL;
-	return NULL;
-}
-
-
-/*
- * This fills the array with samples of f in the same order and evaluated
- * at the same points on the sphere as required by the functions in S2kit.
+ * ============================================================================
+ *
+ *                       Spherical Harmonic Transforms
+ *
+ * ============================================================================
  */
 
 
@@ -299,10 +325,11 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	double *P;
 	int l, m, i, j;
 
-	samples_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights);
+	if(pixels_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights))
+		return NULL;
 	F = malloc(ntheta * nphi * sizeof(*F));
 	P = malloc(ntheta * (series->l_max + 1) * sizeof(*P));
-	if(!F || !P || !cos_theta_array) {
+	if(!F || !P) {
 		free(F);
 		free(P);
 		free(cos_theta_array);
@@ -375,10 +402,11 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	double *P;
 	int l, m, i, j;
 
-	samples_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights);
+	if(pixels_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights))
+		return NULL;
 	F = malloc(ntheta * (nphi / 2 + 1) * sizeof(*F));
 	P = malloc(ntheta * (series->l_max + 1) * sizeof(*P));
-	if(!F || !P || !cos_theta_array) {
+	if(!F || !P) {
 		free(F);
 		free(P);
 		free(cos_theta_array);
