@@ -31,8 +31,10 @@
 #include <complex.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fftw3.h>
 #include <gsl/gsl_integration.h>
+#include <gsl/gsl_spline2d.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_legendre.h>
 #include <sphradiometer/sh_series.h>
@@ -240,6 +242,164 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
 	}
 
 	return val;
+}
+
+
+/*
+ * sh_series_eval_interp
+ */
+
+
+struct sh_series_eval_interp {
+	int ntheta, nphi;
+	double *theta;
+	gsl_interp_accel *theta_acc;
+	double *phi;
+	gsl_interp_accel *phi_acc;
+	gsl_spline2d *re;
+	gsl_spline2d *im;
+};
+
+
+struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *series)
+{
+	struct sh_series_eval_interp *interp = malloc(sizeof(*interp));
+	double *tmp;
+	complex double *mesh;
+	double *interp_mesh;
+	int i, j;
+	if(!interp)
+		return NULL;
+
+	if(pixels_from_l_max(series->l_max, &interp->ntheta, &interp->nphi, &interp->theta, &tmp)) {
+		free(interp);
+		return NULL;
+	}
+	free(tmp);
+
+	for(j = 0; j < interp->ntheta; j++)
+		interp->theta[j] = acos(interp->theta[j]);
+
+	/* to ensure periodicity in phi, 4 extra columns are added and two
+	 * rows.  the real array of phi is the central nphi columns, with
+	 * two columns on the left and on the right providing duplicate
+	 * copies of the other end of the array thereby inducing the
+	 * interpolator to construct a periodic function.  the theta array
+	 * gets the north and south poles added to prevent "y value out of
+	 * range" errors in the GSL interpolator. */
+	tmp = realloc(interp->theta, (interp->ntheta + 2) * sizeof(*interp->theta));
+	interp->phi = malloc((interp->nphi + 4) * sizeof(*interp->phi));
+	interp->re = gsl_spline2d_alloc(gsl_interp2d_bicubic, interp->nphi + 4, interp->ntheta + 2);
+	interp->im = gsl_spline2d_alloc(gsl_interp2d_bicubic, interp->nphi + 4, interp->ntheta + 2);
+	interp->theta_acc = gsl_interp_accel_alloc();
+	interp->phi_acc = gsl_interp_accel_alloc();
+	mesh = sh_series_to_mesh(series);
+	interp_mesh = malloc((interp->nphi + 4) * (interp->ntheta + 2) * sizeof(*interp_mesh));
+	if(!tmp || !interp->phi || !interp->re || !interp->im || !interp->theta_acc || !interp->phi_acc || !mesh || !interp_mesh) {
+		free(interp->theta);
+		free(interp->phi);
+		gsl_spline2d_free(interp->re);
+		gsl_spline2d_free(interp->im);
+		gsl_interp_accel_free(interp->theta_acc);
+		gsl_interp_accel_free(interp->phi_acc);
+		free(mesh);
+		free(interp_mesh);
+		free(interp);
+		return NULL;
+	}
+	interp->theta = tmp;
+
+	/* === can now use sh_series_eval_interp_free() for clean up === */
+
+	/* add poles to theta co-ordinate array */
+
+	memmove(interp->theta + 1, interp->theta, interp->ntheta * sizeof(*interp->theta));
+	interp->theta[0] = 0.;
+	interp->theta[interp->ntheta + 1] = M_PI;
+
+	/* initialize the phi co-ordinate array */
+	for(i = -2; i < interp->nphi + 2; i++)
+		interp->phi[i + 2] = (2. * M_PI / interp->nphi) * i;
+
+	/* initialize the real part interpolator */
+	{
+	complex double x;
+	x = sh_series_eval(series, 0., 0.);
+	for(i = 0; i < interp->nphi + 4; i++)
+		interp_mesh[(0) * (interp->nphi + 4) + i] = creal(x);
+	x = sh_series_eval(series, M_PI, 0.);
+	for(i = 0; i < interp->nphi + 4; i++)
+		interp_mesh[(interp->ntheta + 1) * (interp->nphi + 4) + i] = creal(x);
+	}
+	for(j = 0; j < interp->ntheta; j++) {
+		interp_mesh[(j + 1) * (interp->nphi + 4) + 0] = creal(mesh[j * interp->nphi + interp->nphi - 2]);
+		interp_mesh[(j + 1) * (interp->nphi + 4) + 1] = creal(mesh[j * interp->nphi + interp->nphi - 1]);
+		for(i = 0; i < interp->nphi; i++)
+			interp_mesh[(j + 1) * (interp->nphi + 4) + i + 2] = creal(mesh[j * interp->nphi + i]);
+		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 2] = creal(mesh[j * interp->nphi + 0]);
+		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 3] = creal(mesh[j * interp->nphi + 1]);
+		}
+	if(gsl_spline2d_init(interp->re, interp->phi, interp->theta, interp_mesh, interp->nphi + 4, interp->ntheta + 2)) {
+		free(mesh);
+		free(interp_mesh);
+		sh_series_eval_interp_free(interp);
+		return NULL;
+	}
+
+	/* initialize the imaginary part interpolator */
+	{
+	double x;
+	x = creal(sh_series_eval(series, 0., 0.));
+	for(i = 0; i < interp->nphi + 4; i++)
+		interp_mesh[(0) * (interp->nphi + 4) + i] = x;
+	x = cimag(sh_series_eval(series, M_PI, 0.));
+	for(i = 0; i < interp->nphi + 4; i++)
+		interp_mesh[(interp->ntheta + 1) * (interp->nphi + 4) + i] = x;
+	}
+	for(j = 0; j < interp->ntheta; j++) {
+		interp_mesh[(j + 1) * (interp->nphi + 4) + 0] = cimag(mesh[j * interp->nphi + interp->nphi - 2]);
+		interp_mesh[(j + 1) * (interp->nphi + 4) + 1] = cimag(mesh[j * interp->nphi + interp->nphi - 1]);
+		for(i = 0; i < interp->nphi; i++)
+			interp_mesh[(j + 1) * (interp->nphi + 4) + i + 2] = cimag(mesh[j * interp->nphi + i]);
+		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 2] = cimag(mesh[j * interp->nphi + 0]);
+		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 3] = cimag(mesh[j * interp->nphi + 1]);
+		}
+	if(gsl_spline2d_init(interp->im, interp->phi, interp->theta, interp_mesh, interp->nphi + 4, interp->ntheta + 2)) {
+		free(mesh);
+		free(interp_mesh);
+		sh_series_eval_interp_free(interp);
+		return NULL;
+	}
+
+	free(mesh);
+	free(interp_mesh);
+
+	return interp;
+}
+
+
+void sh_series_eval_interp_free(struct sh_series_eval_interp *interp)
+{
+	if(interp) {
+		free(interp->theta);
+		free(interp->phi);
+		gsl_spline2d_free(interp->re);
+		gsl_spline2d_free(interp->im);
+		gsl_interp_accel_free(interp->theta_acc);
+		gsl_interp_accel_free(interp->phi_acc);
+	}
+	free(interp);
+}
+
+
+double complex sh_series_eval_interp(const struct sh_series_eval_interp *interp, double theta, double phi)
+{
+	if(phi < 0.)
+		phi += 2. * M_PI * (floor(phi / (2. * M_PI)) + 1.);
+	else if(phi >= 2. * M_PI)
+		phi -= 2. * M_PI * floor(phi / (2. * M_PI));
+	assert(0. <= theta && theta <= M_PI);
+	return gsl_spline2d_eval(interp->re, phi, theta, interp->phi_acc, interp->theta_acc) + I * gsl_spline2d_eval(interp->im, phi, theta, interp->phi_acc, interp->theta_acc);
 }
 
 

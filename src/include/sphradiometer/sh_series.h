@@ -143,6 +143,14 @@ struct sh_series_array {
 
 
 /*
+ * opaque interpolator object
+ */
+
+
+struct sh_series_eval_interp;
+
+
+/*
  * ============================================================================
  *
  *                                   Macros
@@ -268,6 +276,9 @@ double complex sh_series_set(struct sh_series *, unsigned int, int, double compl
 
 
 double complex sh_series_eval(const struct sh_series *, double, double);
+struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *);
+void sh_series_eval_interp_free(struct sh_series_eval_interp *);
+double complex sh_series_eval_interp(const struct sh_series_eval_interp *, double, double);
 
 
 struct sh_series *sh_series_from_mesh(struct sh_series *, double complex *);

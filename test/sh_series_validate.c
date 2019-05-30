@@ -339,6 +339,41 @@ static int test_projection2(void)
 }
 
 
+static complex double interp_wrapper(double theta, double phi, void *interp)
+{
+	return sh_series_eval_interp((struct sh_series_eval_interp *) interp, theta, phi);
+}
+
+
+static int test_interpolation(void)
+{
+	unsigned int lmax;
+
+	for(lmax = 1; lmax < 50; lmax++) {
+		struct sh_series *orig = random_sh_series(lmax, 0);
+		struct sh_series_eval_interp *interp = sh_series_eval_interp_new(orig);
+		struct sh_series *final = sh_series_new(2 * lmax, 0);
+		double err;
+		sh_series_from_func(final, interp_wrapper, interp);
+		sh_series_eval_interp_free(interp);
+		err = diagnostics_rms_error(orig, final) / lmax;
+		/* FIXME:  this is surprisingly large, but it seems to be
+		 * correct ... investigate */
+		if(err > 0.03) {
+			fprintf(stderr, "orig:\n");
+			sh_series_print(stderr, orig);
+			fprintf(stderr, "final:\n");
+			sh_series_print(stderr, final);
+			fprintf(stderr, "sh_series_from_func(sh_series_eval_interp(x)) != x for lmax=%u. |err| = %g\n", lmax, err);
+			return -1;
+		}
+		sh_series_free(final);
+		sh_series_free(orig);
+	}
+	return 0;
+}
+
+
 /*
  * ============================================================================
  *
@@ -499,6 +534,7 @@ int main(int argc, char *argv[])
 	assert(test_evaluation2() == 0);
 	assert(test_projection1() == 0);
 	assert(test_projection2() == 0);
+	assert(test_interpolation() == 0);
 
 	exit(0);
 }
