@@ -347,11 +347,11 @@ static int test1(gsl_rng *rng, struct instrument_array *instruments, double delt
 		{
 		char filename[100];
 		sprintf(filename, "tests_tdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(tdsky, filename);
+		assert(sh_series_write_healpix_map(tdsky, filename) == 0);
 		sprintf(filename, "tests_fdaverage_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(fdsky, filename);
+		assert(sh_series_write_healpix_map(fdsky, filename) == 0);
 		sprintf(filename, "tests_exact_%d_%d_%d_%020.17f.fits", N_T, l_T, l_xi, gmst[i]);
-		sh_series_write_healpix_map(solution, filename);
+		assert(sh_series_write_healpix_map(solution, filename) == 0);
 		}
 
 		/* compute normalized RMS error */
