@@ -306,6 +306,8 @@ double complex sh_series_dot(const struct sh_series *, const struct sh_series *)
 struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series *, const struct sh_series *, const struct sh_series *);
 void sh_series_product_plan_free(struct sh_series_product_plan *);
 struct sh_series *sh_series_product(struct sh_series *, const struct sh_series *, const struct sh_series *, const struct sh_series_product_plan *);
+int sh_series_is_nan(const struct sh_series *);
+int sh_series_is_inf(const struct sh_series *);
 
 
 /*

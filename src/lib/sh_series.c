@@ -304,6 +304,38 @@ complex double sh_series_set(struct sh_series *series, unsigned int l, int m, co
 
 
 /*
+ * Are any coefficients NaN?
+ */
+
+
+int sh_series_is_nan(const struct sh_series *series)
+{
+	complex double *coeff = series->coeff;
+	complex double *last = coeff + sh_series_length(series->l_max, series->polar);
+	for(; coeff < last; coeff++)
+		if(isnan(creal(*coeff)) || isnan(cimag(*coeff)))
+			return 1;
+	return 0;
+}
+
+
+/*
+ * Are any coefficients inf?
+ */
+
+
+int sh_series_is_inf(const struct sh_series *series)
+{
+	complex double *coeff = series->coeff;
+	complex double *last = coeff + sh_series_length(series->l_max, series->polar);
+	for(; coeff < last; coeff++)
+		if(isinf(creal(*coeff)) || isinf(cimag(*coeff)))
+			return 1;
+	return 0;
+}
+
+
+/*
  * ============================================================================
  *
  *                     Simple sh_series Object Arithmetic
