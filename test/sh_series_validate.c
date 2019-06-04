@@ -297,7 +297,7 @@ static int test_projection1(void)
 			double theta = randrange(0., M_PI);
 			double phi = randrange(0., 2. * M_PI);
 			err = cabs(sh_series_eval(exact, theta, phi) - tests[i].func(theta, phi, NULL));
-			if(err > 2e-13) {
+			if(err > 1e-12) {
 				fprintf(stderr, "sh_series_eval(..., %g, %g) failed for (l,m)=(%d,%d), |err|=%g\n", theta, phi, tests[i].l, tests[i].m, err);
 				return -1;
 			}
