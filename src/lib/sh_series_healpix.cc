@@ -27,6 +27,7 @@
 
 
 #include <complex>
+#include <unistd.h>
 #include <alm.h>
 #include <alm_fitsio.h>
 #include <fitshandle.h>
@@ -123,6 +124,19 @@ int sh_series_write_healpix_alm(const struct sh_series *series, const char *file
 		alms = sh_series_to_healpix_Alm(series);
 	} catch (std::exception &e) {
 		return -1;
+	}
+
+	/* FITS barfs if the file exists, which is annoying, so delete it
+	 * first because people expect functions like this to overwrite the
+	 * target file if it exists.  ignore errors from unlink() because
+	 * the file might not exist, and if the delete fails then
+	 * write_healpfix() will fail and we'll let it produce the error
+	 * message */
+
+	{
+	int errsv = errno;
+	unlink(filename);
+	errno = errsv;
 	}
 
 	try {
