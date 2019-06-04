@@ -423,9 +423,9 @@ struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseli
 	 * transform */
 	phase_a = I * 2 * M_PI * ((tdplan->proj_a->n - 1) / 2) / n;
 	phase_b = I * 2 * M_PI * ((tdplan->proj_b->n - 1) / 2) / n;
-	if(!sh_series_array_resize_zero(tdplan->proj_a, n))
+	if(!sh_series_array_set_len(tdplan->proj_a, n))
 		goto error;
-	if(!sh_series_array_resize_zero(tdplan->proj_b, n))
+	if(!sh_series_array_set_len(tdplan->proj_b, n))
 		goto error;
 	sh_series_array_forward_fft(tdplan->proj_a);
 	sh_series_array_forward_fft(tdplan->proj_b);

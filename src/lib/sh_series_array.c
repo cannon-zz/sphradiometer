@@ -112,14 +112,17 @@ void sh_series_array_free(struct sh_series_array *array)
 
 
 /*
- * Resize an sh_series_array object.  (only the number of series in the
- * array can be adjusted, not the number of coefficients in each series).
- * If the resize fails, NULL is returned and the original array is left
- * unmodified.
+ * Change the length of (i.e., number of sh_series objects in) an
+ * sh_series_array object.  To change the size of the sh_series objects
+ * themselves, see sh_series_array_set_polar() and
+ * sh_series_array_resize().  If the change of length fails, NULL is
+ * returned and the original array is left unmodified.  On success, if the
+ * length was increased the original objects appear at the start of the
+ * array and the additional objects are zeroed.
  */
 
 
-struct sh_series_array *sh_series_array_resize(struct sh_series_array *array, int n)
+struct sh_series_array *sh_series_array_set_len(struct sh_series_array *array, int n)
 {
 	struct sh_series *series;
 	complex double *coeff;
@@ -159,23 +162,10 @@ struct sh_series_array *sh_series_array_resize(struct sh_series_array *array, in
 			.coeff = coeff + i * array->stride,
 		};
 
+	if(n > array->n)
+		memset(array->coeff + array->n * array->stride, 0, (n - array->n) * array->stride * sizeof(*array->coeff));
+
 	array->n = n;
-
-	return array;
-}
-
-
-struct sh_series_array *sh_series_array_resize_zero(struct sh_series_array *array, int n)
-{
-	const int orig_size = array->n * array->stride;
-	const int extra_size = (n - array->n) * array->stride;
-
-	array = sh_series_array_resize(array, n);
-	if(!array)
-		return NULL;
-
-	if(extra_size > 0)
-		memset(array->coeff + orig_size, 0, extra_size * sizeof(*array->coeff));
 
 	return array;
 }
