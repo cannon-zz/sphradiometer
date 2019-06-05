@@ -220,25 +220,21 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
 {
 	complex double vals[series->l_max + 1];
 	complex double *coeff = series->coeff;
+	int m_max = series->polar ? 0 : series->l_max;
 	int l, m;
 	complex double val = 0.0;
 
-	sh_series_Y_array(vals, series->l_max, 0, theta, phi);
-	for(l = 0; l <= (int) series->l_max; l++)
-		val += *(coeff++) * vals[l];
-	if(!series->polar) {
-		for(m = 1; m <= (int) series->l_max; m++) {
-			complex double *v = vals;
-			sh_series_Y_array(v, series->l_max, m, theta, phi);
-			for(l = m; l <= (int) series->l_max; l++)
-				val += *(coeff++) * *(v++);
-		}
-		for(m = -(int) series->l_max; m < 0; m++) {
-			complex double *v = vals;
-			sh_series_Y_array(v, series->l_max, m, theta, phi);
-			for(l = -m; l <= (int) series->l_max; l++)
-				val += *(coeff++) * *(v++);
-		}
+	for(m = 0; m <= m_max; m++) {
+		complex double *v = vals;
+		sh_series_Y_array(v, series->l_max, m, theta, phi);
+		for(l = abs(m); l <= (int) series->l_max; l++)
+			val += *(coeff++) * *(v++);
+	}
+	for(m = -m_max; m < 0; m++) {
+		complex double *v = vals;
+		sh_series_Y_array(v, series->l_max, m, theta, phi);
+		for(l = abs(m); l <= (int) series->l_max; l++)
+			val += *(coeff++) * *(v++);
 	}
 
 	return val;
