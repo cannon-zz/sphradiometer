@@ -583,18 +583,18 @@ int main(int argc, char *argv[])
 
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		correlator_ctseries_to_fseries(fftplans[k]);
-		/*
+#if 0
 		unsigned i; for(i = 0; i < series[k]->data->length; i++) fprintf(stderr, "%g+I*%g\n", creal(fseries[k][i]), cimag(fseries[k][i])); fprintf(stderr, "\n");
-		int j = 0;	//
-		double temp = cabs(fseries[k][0]);	//
-		for(i = 1; i < series[k]->data->length; i++) {	//
+		int j = 0;
+		double temp = cabs(fseries[k][0]);
+		for(i = 1; i < series[k]->data->length; i++) {
 			if(temp < cabs(fseries[k][i])){
 				j = i;
 				temp = cabs(fseries[k][i]);
 			}
 		}
 		fprintf(stderr, "%d %g\n\n", j, temp);
-		*/
+#endif
 	}
 
 
