@@ -335,10 +335,10 @@ struct sh_series *sh_series_array_dot(struct sh_series *result, const struct sh_
 	sh_series_zero(result);
 	while(vector < last) {
 		const double v = *vector++;
-		int i;
-		for(i = 0; i < n; i++)
-			/*result->coeff[i] = cma(*c++, v, result->coeff[i]);*/
-			result->coeff[i] += *c++ * v;
+		complex double *r = result->coeff;
+		complex double *r_last = r + n;
+		while(r < r_last)
+			*r++ += *c++ * v;
 	}
 
 	return result;
@@ -365,10 +365,10 @@ struct sh_series *sh_series_array_dotc(struct sh_series *result, const struct sh
 	sh_series_zero(result);
 	while(vector < last) {
 		const complex double v = *vector++;
-		int i;
-		for(i = 0; i < n; i++)
-			/*result->coeff[i] = ccma(*c++, v, result->coeff[i]);*/
-			result->coeff[i] += *c++ * v;
+		complex double *r = result->coeff;
+		complex double *r_last = r + n;
+		while(r < r_last)
+			*r++ += *c++ * v;
 	}
 
 	return result;

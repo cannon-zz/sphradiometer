@@ -356,13 +356,13 @@ int sh_series_is_inf(const struct sh_series *series)
 struct sh_series *sh_series_add(struct sh_series *a, const complex double z, const struct sh_series *b)
 {
 	const int m_max = b->polar ? 0 : b->l_max;
-	int l, m;
+	int m;
 
 	if((a->l_max == b->l_max) && (a->polar == b->polar)) {
 		complex double *dst = a->coeff;
 		complex double *src = b->coeff;
-		unsigned int n = sh_series_length(b->l_max, b->polar);
-		while(n--)
+		complex double *last = src + sh_series_length(b->l_max, b->polar);
+		while(src < last)
 			*dst++ += z * *src++;
 		return a;
 	}
@@ -373,7 +373,8 @@ struct sh_series *sh_series_add(struct sh_series *a, const complex double z, con
 	for(m = -m_max; m <= m_max; m++) {
 		complex double *dst = a->coeff + sh_series_moffset(a->l_max, m);
 		complex double *src = b->coeff + sh_series_moffset(b->l_max, m);
-		for(l = abs(m); l <= (int) b->l_max; l++)
+		complex double *last = src + b->l_max + 1 - abs(m);
+		while(src < last)
 			*dst++ += z * *src++;
 	}
 
