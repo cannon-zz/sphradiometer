@@ -119,27 +119,36 @@ static int op_cmp(const void *arg1, const void *arg2)
 
 
 /*
- * Construct a product evaluation plan for non-azimuthally symmetric
- * multiplicands.  For internal use only.
+ * Construct a product evaluation plan.  For internal use only.
  */
 
 
-static int _product_plan(struct _sh_series_product_plan_op *microcode, int D_l_max, int A_l_max, int B_l_max)
+static int _product_plan(struct _sh_series_product_plan_op *microcode, int D_l_max, int D_polar, int A_l_max, int A_polar, int B_l_max, int B_polar)
 {
 	struct _sh_series_product_plan_op *op = microcode;
 	int d_l, d_m, a_l, a_m, b_l;
 
-	for(d_l = 0; d_l <= D_l_max; d_l++)
-		for(d_m = -d_l; d_m <= d_l; d_m++) {
-			const int a_l_max = A_l_max < d_l + B_l_max ? A_l_max : d_l + B_l_max;
-			for(a_l = d_l > B_l_max ? d_l - B_l_max : 0; a_l <= a_l_max; a_l++) {
-				const int b_l_max = B_l_max < d_l + a_l ? B_l_max : d_l + a_l;
+	for(d_l = 0; d_l <= D_l_max; d_l++) {
+		int d_m_max = D_polar || (A_polar && B_polar) ? 0 : d_l;
+		for(d_m = -d_m_max; d_m <= d_m_max; d_m++) {
+			int a_l_min = d_l > B_l_max ? d_l - B_l_max : 0;
+			int a_l_max = A_l_max < d_l + B_l_max ? A_l_max : d_l + B_l_max;
+			for(a_l = a_l_min; a_l <= a_l_max; a_l++) {
+				int b_l_max = B_l_max < d_l + a_l ? B_l_max : d_l + a_l;
 				int b_l_min = abs(d_l - a_l);
 				b_l_min += (a_l + b_l_min + d_l) & 1;
 				for(b_l = b_l_min; b_l <= b_l_max; b_l += 2) {
-					const int a_m_max = a_l < b_l + d_m ? a_l : b_l + d_m;
-					for(a_m = -(a_l < b_l - d_m ? a_l : b_l - d_m); a_m <= a_m_max; a_m++) {
-						const int b_m = d_m - a_m;
+					int a_m_min = -(a_l < b_l - d_m ? a_l : b_l - d_m);
+					int a_m_max = a_m_max = a_l < b_l + d_m ? a_l : b_l + d_m;
+					if(A_polar) {
+						if(a_m_min > 0 || a_m_max < 0)
+							continue;
+						a_m_min = a_m_max = 0;
+					}
+					for(a_m = a_m_min; a_m <= a_m_max; a_m++) {
+						int b_m = d_m - a_m;
+						if(B_polar && b_m != 0)
+							continue;
 						*op++ = (struct _sh_series_product_plan_op) {
 							.dest_offset = sh_series_params_lmoffset(D_l_max, d_l, d_m),
 							.a_offset = sh_series_params_lmoffset(A_l_max, a_l, a_m),
@@ -149,36 +158,6 @@ static int _product_plan(struct _sh_series_product_plan_op *microcode, int D_l_m
 					}
 				}
 			}
-		}
-
-	return op - microcode;
-}
-
-
-/*
- * Construct a product evaluation plan for azimuthally symmetric
- * multiplicands.  For internal use only.
- */
-
-
-static int _product_plan_polar(struct _sh_series_product_plan_op *microcode, int dest_l_max, int a_l_max, int b_l_max)
-{
-	struct _sh_series_product_plan_op *op = microcode;
-	int p, k, m;
-
-	for(p = 0; p <= dest_l_max; p++) {
-		const int kmax = a_l_max < p + b_l_max ? a_l_max : p + b_l_max;
-		for(k = p > b_l_max ? p - b_l_max : 0; k <= kmax; k++) {
-			const int mmax = b_l_max < p + k ? b_l_max : p + k;
-			int mmin = abs(p - k);
-			mmin += (k + mmin + p) & 1;
-			for(m = mmin; m <= mmax; m += 2)
-				*op++ = (struct _sh_series_product_plan_op) {
-					.dest_offset = sh_series_params_lmoffset(dest_l_max, p, 0),
-					.a_offset = sh_series_params_lmoffset(a_l_max, k, 0),
-					.b_offset = sh_series_params_lmoffset(b_l_max, m, 0),
-					.factor = sqrt((2 * p + 1) * (2 * k + 1) * (2 * m + 1) / (4 * M_PI)) * wigner_3j(k, m, p, 0, 0, 0) * wigner_3j(k, m, p, 0, 0, 0)
-				};
 		}
 	}
 
@@ -199,13 +178,20 @@ struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series
 {
 	struct sh_series_product_plan *new = malloc(sizeof(*new));
 	const int dest_l_max = dest->l_max <= a->l_max + b->l_max ? dest->l_max : a->l_max + b->l_max;
-	const int polar = a->polar && b->polar;
-	struct _sh_series_product_plan_op *microcode;
 
-	if(!new || (a->polar != b->polar) || (dest->polar && !polar)) {
+	if(!new) {
 		free(new);
 		return NULL;
 	}
+
+	new->a_l_max = a->l_max;
+	new->a_polar = a->polar;
+	new->b_l_max = b->l_max;
+	new->b_polar = b->polar;
+	new->dest_l_max = dest_l_max;
+	new->dest_polar = dest->polar;
+	new->plan_length = 0;
+	new->microcode = NULL;
 
 	/* for small series, use frequency-domain algorithm, for large
 	 * series use pixel-domain algorithm.  unfortunately "small" and
@@ -214,27 +200,16 @@ struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series
 	 * need to switch to the pixel domain implementation at smaller l's
 	 * than those for which it is actually faster to do so */
 	if(dest_l_max < 60) {
+		struct _sh_series_product_plan_op *microcode;
+
 		/* allocate worst-case size for microcode */
-		microcode =  malloc(sh_series_length(dest_l_max, polar) * sh_series_length(a->l_max, polar) * sh_series_length(b->l_max, polar) * sizeof(*microcode));
-		if(!microcode) {
+		new->microcode = malloc(sh_series_length(dest_l_max, dest->polar) * sh_series_length(a->l_max, a->polar) * sh_series_length(b->l_max, b->polar) * sizeof(*new->microcode));
+		if(!new->microcode) {
 			free(new);
 			return NULL;
 		}
-	} else
-		microcode = NULL;
 
-	new->a_l_max = a->l_max;
-	new->b_l_max = b->l_max;
-	new->dest_l_max = dest_l_max;
-	new->polar = polar;
-	new->plan_length = 0;
-	new->microcode = microcode;
-
-	if(microcode) {
-		if(new->polar)
-			new->plan_length = _product_plan_polar(microcode, dest_l_max, a->l_max, b->l_max);
-		else
-			new->plan_length = _product_plan(microcode, dest_l_max, a->l_max, b->l_max);
+		new->plan_length = _product_plan(new->microcode, dest_l_max, dest->polar, a->l_max, a->polar, b->l_max, b->polar);
 
 		/* shrink microcode to actual size */
 		microcode = realloc(new->microcode, new->plan_length * sizeof(*new->microcode));
@@ -355,11 +330,10 @@ struct sh_series *sh_series_product(struct sh_series *dest, const struct sh_seri
 	/* check that the plan is appropriate */
 	/* FIXME:  this isn't really needed if we're using the pixel-domain
 	 * implementation */
-	if((plan->a_l_max != a->l_max) || (plan->b_l_max != b->l_max) || (plan->dest_l_max > dest->l_max) || (plan->polar != a->polar) || (plan->polar != b->polar) || (!plan->polar && dest->polar))
+	if((plan->a_l_max != a->l_max) || (plan->b_l_max != b->l_max) || (plan->dest_l_max > dest->l_max) || (plan->a_polar != a->polar) || (plan->b_polar != b->polar) || (plan->dest_polar != dest->polar))
 		return NULL;
 
 	if(plan->microcode)
 		return frequency_domain_product(dest, a, b, plan);
 	return pixel_domain_product(dest, a, b);
 }
-

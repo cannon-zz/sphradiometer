@@ -99,7 +99,7 @@ struct sh_series {
 
 struct sh_series_product_plan {
 	unsigned int a_l_max, b_l_max, dest_l_max;
-	int polar;
+	int a_polar, b_polar, dest_polar;
 	int plan_length;
 	struct _sh_series_product_plan_op {
 		double factor;

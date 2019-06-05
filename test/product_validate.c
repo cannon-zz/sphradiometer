@@ -54,11 +54,12 @@ static double randrange(double lo, double hi)
 static struct sh_series *random_sh_series(int l_max, int polar)
 {
 	struct sh_series *series = sh_series_new(l_max, polar);
+	double scale = 1. / (l_max + 1);
 	int l, m;
 
 	for(l = 0; l <= l_max; l++)
 		for(m = (polar ? 0 : -l); m <= (polar ? 0 : +l); m++)
-			sh_series_set(series, l, m, randrange(0., 1.) + I * randrange(0., 1.));
+			sh_series_set(series, l, m, randrange(-scale, scale) + I * randrange(-scale, scale));
 
 	return series;
 }
@@ -99,7 +100,7 @@ static int test1(unsigned int lmax1, int polar1, unsigned int lmax2, int polar2)
 
 	/* pick a few places on the sphere and confirm that the product
 	 * equals the product of the two functions */
-	for(i = 0; i < 100; i++) {
+	for(i = 0; i < 1000; i++) {
 		double theta = randrange(0., M_PI);
 		double phi = randrange(0., 2. * M_PI);
 		complex double val1 = sh_series_eval(series1, theta, phi);
@@ -107,11 +108,11 @@ static int test1(unsigned int lmax1, int polar1, unsigned int lmax2, int polar2)
 		complex double valprod = sh_series_eval(prod, theta, phi);
 		double err = cabs(val1 * val2 - valprod) / (lmax1 * lmax1 + lmax2 * lmax2);
 		if(err > max_err) {
-			fprintf(stderr, "%g+i*%g * %g+i*%g = %g+i*%g, abs(error) = %g\n", creal(val1), cimag(val1), creal(val2), cimag(val2), creal(valprod), cimag(valprod), err);
+			fprintf(stderr, "(%g, %g): %g+i*%g * %g+i*%g = %g+i*%g, |error| = %g\n", theta, phi, creal(val1), cimag(val1), creal(val2), cimag(val2), creal(valprod), cimag(valprod), err);
 			max_err = err;
 		}
 	}
-	if(max_err > 1e-12)
+	if(max_err > 1e-13)
 		goto error;
 
 	sh_series_free(series1);
@@ -145,9 +146,14 @@ int main(int argc, char *argv[])
 	 * test of library
 	 */
 
-	assert(test1(5, 1, 10, 1) == 0);
 	assert(test1(5, 0, 10, 0) == 0);
-	assert(test1(70, 1, 70, 1) == 0);
+	assert(test1(5, 0, 10, 1) == 0);
+	assert(test1(5, 1, 10, 0) == 0);
+	assert(test1(5, 1, 10, 1) == 0);
+	assert(test1(40, 0, 70, 0) == 0);
+	assert(test1(40, 0, 70, 1) == 0);
+	assert(test1(40, 1, 70, 0) == 0);
+	assert(test1(40, 1, 70, 1) == 0);
 
 	exit(0);
 }
