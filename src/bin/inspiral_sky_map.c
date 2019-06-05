@@ -603,8 +603,10 @@ int main(int argc, char *argv[])
 	 */
 
 
-	correlator_network_integrate_power_fd(sky, fseries, fdplans);
-
+	if(!correlator_network_integrate_power_fd(sky, fseries, fdplans)) {
+		fprintf(stderr, "correlator failed\n");
+		exit(1);
+	}
 
 	/*
 	 * Rotate sky.
