@@ -172,9 +172,9 @@ struct sh_series_array *sh_series_array_set_len(struct sh_series_array *array, i
 
 
 /*
- * Set the polar flag of an sh_series_array.  Any new coefficients are
- * zeroed.  Returns array on success, NULL on failure.  On failure, the
- * contents of the sh_series_array object are undefined.
+ * Set the polar flag of the sh_series objects in an sh_series_array.  Any
+ * new coefficients are zeroed.  Returns array on success, NULL on failure.
+ * On failure, the contents of the sh_series_array object are undefined.
  */
 
 
