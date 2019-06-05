@@ -632,6 +632,7 @@ int main(int argc, char *argv[])
 	 */
 
 
+	fprintf(stderr, "gmst = %.16g rad\n", gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
 	sh_series_rotate_z(sky, sky, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
 
 	gettimeofday(&t_end, NULL);
