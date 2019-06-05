@@ -626,7 +626,10 @@ int main(int argc, char *argv[])
 
 
 	fprintf(stderr, "generate fits file\n");
-	sh_series_write_healpix_map(sky, "map.fits");
+	if(sh_series_write_healpix_alm(sky, "map.fits")) {
+		fprintf(stderr, "write \"map.fits\" failed\n");
+		exit(1);
+	}
 
 
 	fprintf(stderr, "analyzed %g s of data in %g s\n", series[0]->data->length * series[0]->deltaT, (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
