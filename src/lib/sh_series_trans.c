@@ -319,13 +319,13 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 
 	/* initialize the real part interpolator */
 	{
-	complex double x;
-	x = sh_series_eval(series, 0., 0.);
+	double x;
+	x = creal(sh_series_eval(series, 0., 0.));
 	for(i = 0; i < interp->nphi + 4; i++)
-		interp_mesh[(0) * (interp->nphi + 4) + i] = creal(x);
-	x = sh_series_eval(series, M_PI, 0.);
+		interp_mesh[(0) * (interp->nphi + 4) + i] = x;
+	x = creal(sh_series_eval(series, M_PI, 0.));
 	for(i = 0; i < interp->nphi + 4; i++)
-		interp_mesh[(interp->ntheta + 1) * (interp->nphi + 4) + i] = creal(x);
+		interp_mesh[(interp->ntheta + 1) * (interp->nphi + 4) + i] = x;
 	}
 	for(j = 0; j < interp->ntheta; j++) {
 		interp_mesh[(j + 1) * (interp->nphi + 4) + 0] = creal(mesh[j * interp->nphi + interp->nphi - 2]);
