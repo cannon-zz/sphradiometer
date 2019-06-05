@@ -419,37 +419,33 @@ static double ProjectionMatrixWrapper(double theta, double phi, void *_data)
 
 static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct correlator_plan_fd *plan, const struct sh_series *projection)
 {
-	struct sh_series *result;
+	struct sh_series_array *result;
 	struct sh_series_product_plan *product_plan;
 	int i;
 
-	result = sh_series_new(plan->delay_product->l_max, 0);
+	result = sh_series_array_new(plan->delay_product->n, plan->delay_product->l_max + projection->l_max, plan->delay_product->series[0].polar && projection->polar);
 	if(!result)
 		return NULL;
-	sh_series_array_set_polar(plan->delay_product, 0);
-	product_plan = sh_series_product_plan_new(result, &plan->delay_product->series[0], projection);
+	product_plan = sh_series_product_plan_new(&result->series[0], &plan->delay_product->series[0], projection);
 	if(!product_plan) {
 		XLALPrintError("sh_series_product_plan_new() failed\n");
-		sh_series_free(result);
+		sh_series_array_free(result);
 		return NULL;
 	}
 
 	for(i = 0; i < plan->delay_product->n; i++) {
-		if(!sh_series_product(result, &plan->delay_product->series[i], projection, product_plan)) {
+		fprintf(stderr, "%.3g%%   \r", 100. * (i + 1.) / plan->delay_product->n);
+		if(!sh_series_product(&result->series[i], &plan->delay_product->series[i], projection, product_plan)) {
 			XLALPrintError("sh_series_product() failed\n");
-			plan = NULL;
-			goto done;
-		}
-		if(!sh_series_assign(&plan->delay_product->series[i], result)) {
-			XLALPrintError("sh_series_assign() failed\n");
-			plan = NULL;
-			goto done;
+			sh_series_array_free(result);
+			return NULL;
 		}
 	}
+	fprintf(stderr, "\n");
 
-done:
 	sh_series_product_plan_free(product_plan);
-	sh_series_free(result);
+	sh_series_array_free(plan->delay_product);
+	plan->delay_product = result;
 
 	return plan;
 }
@@ -564,8 +560,10 @@ int main(int argc, char *argv[])
 		free(save);
 	}
 
+	fprintf(stderr, "constructing base correlator\n");
 	baselines = correlator_network_baselines_new(options->instruments);
 	fdplans = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
+	fprintf(stderr, "applying projection operator\n");
 	correlator_network_plan_mult_by_projection(fdplans);
 	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT), 0);
 
