@@ -251,6 +251,87 @@ struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *array,
 
 
 /*
+ * Change the maximum harmonic order of the sh_series objects in an
+ * sh_series_array.  Any new coefficients are zeroed.  Returns array on
+ * success, NULL on failure.  On failure, the contents of the
+ * sh_series_array object are undefined.
+ */
+
+
+struct sh_series_array *sh_series_array_resize(struct sh_series_array *array, unsigned int l_max)
+{
+	complex double *coeff;
+	int new_stride = sh_series_length(l_max, array->polar);
+	int i;
+
+	/* no-op? */
+	if(array->l_max == l_max)
+		return array;
+
+	if(l_max < array->l_max) {
+		/* the array of coefficients is getting smaller, so move
+		 * the coefficients first then resize the memory. */
+
+		/* go forwards, moving the coefficients at the start
+		 * downwards to not overwrite anything as we go. */
+		for(i = 0; i < array->n; i++) {
+			/* create an sh_series object pointing to the old
+			 * location of the coefficients */
+			struct sh_series series = array->series[i];
+			/* point the real series object to the new location */
+			array->series[i].l_max = l_max;
+			array->series[i].coeff = array->coeff + i * new_stride;
+			/* move the coefficients */
+			if(!sh_series_assign(&array->series[i], &series))
+				return NULL;
+		}
+
+		/* now resize memory and reset series coeff pointers */
+		coeff = realloc(array->coeff, array->n * new_stride * sizeof(*coeff));
+		if(!coeff) {
+			/* resize failed:  ignore.  leaves more memory
+			 * allocated than we need.  oh well */
+		} else
+			array->coeff = coeff;
+		for(i = 0; i < array->n; i++)
+			array->series[i].coeff = array->coeff + i * new_stride;
+	} else {
+		/* the array of coefficients is getting bigger, so resize
+		 * memory first then move the coefficients */
+		coeff = realloc(array->coeff, array->n * new_stride * sizeof(*coeff));
+		if(!coeff)
+			return NULL;
+		array->coeff = coeff;
+		for(i = 0; i < array->n; i++)
+			array->series[i].coeff = array->coeff + i * array->stride;
+
+		/* go backwards, moving the coefficients at the end upwards
+		 * to not overwrite anything as we go.  use
+		 * sh_series_assign() to do the work of moving the
+		 * coefficients */
+		for(i = array->n - 1; i >= 0; i--) {
+			/* create an sh_series object pointing to the old
+			 * location of the coefficients */
+			struct sh_series series = array->series[i];
+			/* point the real series object to the new location */
+			array->series[i].l_max = l_max;
+			array->series[i].coeff = array->coeff + i * new_stride;
+			/* move the coefficients */
+			if(!sh_series_assign(&array->series[i], &series))
+				return NULL;
+		}
+	}
+
+	/* update metadata */
+	array->l_max = l_max;
+	array->stride = new_stride;
+
+	/* done */
+	return array;
+}
+
+
+/*
  * Make a copy of an sh_series_array object.
  */
 
