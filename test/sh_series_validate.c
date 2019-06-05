@@ -448,53 +448,56 @@ int main(int argc, char *argv[])
 	 * confirm that sh_series_assign() preserves the value
 	 */
 
-	/* source and destination both not azimuthally symmetric */
+	/* non overlapping memory */
 	{
-	struct sh_series *a = random_sh_series(57, 0);
-	struct sh_series *b = sh_series_new(57, 0);
-	sh_series_assign(b, a);
-	assert(sh_series_cmp(a, b) == 0);
-	sh_series_free(a);
-	sh_series_free(b);
+	int i;
+	for(i = 0; i < 100000; i++) {
+		struct sh_series *dst = random_sh_series(random() & 0x7f, random() & 0x1);
+		struct sh_series *src = sh_series_copy(dst);
+		sh_series_resize(src, random() & 0x7f);
+		if(random() & 0x1)
+			sh_series_set_polar(src, !src->polar);
+		/* src and dst now have random, possibly different, sizes,
+		 * but dst is guaranteed to be able to accept all of the
+		 * non-zero coefficients from src, so they should be
+		 * functionally identical after an assign operation */
+		assert(sh_series_assign(dst, src) != NULL);
+		assert(sh_series_cmp(dst, src) == 0);
+		sh_series_free(dst);
+		sh_series_free(src);
+	}
 	}
 
-	/* source azimuthally symmetric, destination not */
+	/* overlapping memory */
 	{
-	struct sh_series *a = random_sh_series(57, 1);
-	struct sh_series *b = sh_series_new(57, 0);
-	sh_series_assign(b, a);
-	assert(sh_series_cmp(a, b) == 0);
-	sh_series_free(a);
-	sh_series_free(b);
+	int i;
+	for(i = 0; i < 100000; i++) {
+		struct sh_series *dst = random_sh_series(random() & 0x7f, random() & 0x1);
+		struct sh_series *src = sh_series_copy(dst);
+		struct sh_series wrapper;
+		sh_series_resize(src, random() & 0x7f);
+		if(random() & 0x1)
+			sh_series_set_polar(src, !src->polar);
+		/* src and dst now have random, possibly different, sizes,
+		 * but dst is guaranteed to be able to accept all of the
+		 * non-zero coefficients from src, so they should be
+		 * functionally identical after an assign operation */
+		/* we're now going to copy src's contents into the memory
+		 * used to hold dst's coefficients, then assign from the
+		 * former to the latter */
+		if(sh_series_length(src->l_max, src->polar) > sh_series_length(dst->l_max, dst->polar)) {
+			/* make room in dst */
+			dst->coeff = realloc(dst->coeff, sh_series_length(src->l_max, src->polar) * sizeof(*dst->coeff));
+			assert(dst->coeff != NULL);
+		}
+		memcpy(dst->coeff, src->coeff, sh_series_length(src->l_max, src->polar) * sizeof(*dst->coeff));
+		wrapper = *src;
+		wrapper.coeff = dst->coeff;
+		assert(sh_series_assign(dst, &wrapper) != NULL);
+		assert(sh_series_cmp(dst, src) == 0);
+		sh_series_free(dst);
+		sh_series_free(src);
 	}
-
-	/* test with overlapping memory, both azimuthally symmetric */
-	{
-	struct sh_series *a = random_sh_series(7, 1);
-	struct sh_series *b = sh_series_copy(a);
-	struct sh_series c = *a;
-	c.coeff = a->coeff = realloc(a->coeff, 2 * sh_series_length(c.l_max, c.polar) * sizeof(*c.coeff));
-	assert(c.coeff != NULL);
-	c.coeff += 4;
-	sh_series_assign(&c, a);
-	assert(sh_series_cmp(b, &c) == 0);
-	sh_series_free(a);
-	sh_series_free(b);
-	}
-
-	/* test with overlapping memory, src azimuthal, dst not */
-	{
-	struct sh_series *a = random_sh_series(15, 1);
-	struct sh_series *b = sh_series_copy(a);
-	struct sh_series c = *a;
-	c.polar = 0;
-	c.coeff = a->coeff = realloc(a->coeff, 2 * sh_series_length(c.l_max, c.polar) * sizeof(*c.coeff));
-	assert(c.coeff != NULL);
-	c.coeff += 6;
-	sh_series_assign(&c, a);
-	assert(sh_series_cmp(b, &c) == 0);
-	sh_series_free(a);
-	sh_series_free(b);
 	}
 
 	/*

@@ -113,27 +113,71 @@ struct sh_series *sh_series_copy(const struct sh_series *series)
 
 /*
  * Assign the coefficients from one sh_series object to another.  Returns
- * dst on success, NULL on failure.
+ * dst on success, NULL on failure.  This operation is permitted to be
+ * lossy:  the destination is allowed to possess a proper subset of the
+ * source's coefficients.  If calling code requires error checking for
+ * this, it must provide it itself.
  */
 
 
 struct sh_series *sh_series_assign(struct sh_series *dst, const struct sh_series *src)
 {
-	if(dst->l_max != src->l_max)
-		return NULL;
+	/* max m that needs to be set in the target */
+	int dst_m_max = dst->polar ? 0 : dst->l_max;
+	/* max m to copy from src, the rest are set to 0 */
+	int m_max = (src->polar || dst->polar) ? 0 : (src->l_max < dst->l_max) ? src->l_max : dst->l_max;
+	int m;
 
-	if(dst->polar || !src->polar) {
-		/* either src or dst have identical parameters, or dst has
-		 * azimuthal symmetry and src doesn't, either way dst's
-		 * coefficients are a subset of src's so we can simply copy
-		 * them verbatim */
-		memmove(dst->coeff, src->coeff, sh_series_length(dst->l_max, dst->polar) * sizeof(*dst->coeff));
-	} else {
-		/* src has azimuthal symmetry but dst doesn't, so copy the
-		 * coefficients that are available in src, then zero the
-		 * rest of dst's coefficients. */
-		memmove(dst->coeff, src->coeff, sh_series_length(src->l_max, src->polar) * sizeof(*dst->coeff));
-		memset(dst->coeff + sh_series_length(src->l_max, src->polar), 0, (sh_series_length(dst->l_max, dst->polar) - sh_series_length(src->l_max, src->polar)) * sizeof(*dst->coeff));
+	/* NOTE:  this algorithm is a little more complicated than it needs
+	 * to be because it works even in some situations in which the
+	 * coefficient arrays of dst and src overlap.  this is done to
+	 * allow this function to be used internally to help implement some
+	 * of the other operations of the library, but it does not work in
+	 * all such situations and is not documented behaviour and must not
+	 * be relied on by external code */
+
+	if(dst->l_max < src->l_max) {
+		/* move through the coefficient array in the forward
+		 * direction, copying one set of m=constant coefficients at
+		 * a time.  zero any extra coefficients */
+		for(m = 0; m <= m_max; m++)
+			memmove(dst->coeff + sh_series_moffset(dst->l_max, m), src->coeff + sh_series_moffset(src->l_max, m), (dst->l_max + 1 - m) * sizeof(*dst->coeff));
+		for(; m <= dst_m_max; m++)
+			memset(dst->coeff + sh_series_moffset(dst->l_max, m), 0, (dst->l_max + 1 - m) * sizeof(*dst->coeff));
+		for(m = -dst_m_max; m < -m_max; m++)
+			memset(dst->coeff + sh_series_moffset(dst->l_max, m), 0, (dst->l_max + 1 + m) * sizeof(*dst->coeff));
+		for(m = -m_max; m < 0; m++)
+			memmove(dst->coeff + sh_series_moffset(dst->l_max, m), src->coeff + sh_series_moffset(src->l_max, m), (dst->l_max + 1 + m) * sizeof(*dst->coeff));
+	} else if(dst->l_max == src->l_max) {
+		if(dst->polar || !src->polar) {
+			/* either src or dst have identical parameters, or
+			 * dst has azimuthal symmetry and src doesn't,
+			 * either way dst's coefficients are a subset of
+			 * src's so we can simply copy them verbatim */
+			memmove(dst->coeff, src->coeff, sh_series_length(dst->l_max, dst->polar) * sizeof(*dst->coeff));
+		} else {
+			/* src has azimuthal symmetry but dst doesn't, so
+			 * copy the coefficients that are available in src,
+			 * then zero the rest of dst's coefficients. */
+			memmove(dst->coeff, src->coeff, sh_series_length(src->l_max, src->polar) * sizeof(*dst->coeff));
+			memset(dst->coeff + sh_series_length(src->l_max, src->polar), 0, (sh_series_length(dst->l_max, dst->polar) - sh_series_length(src->l_max, src->polar)) * sizeof(*dst->coeff));
+		}
+	} else /* (dst->l_max > src->l_max) */ {
+		/* move through the coefficient array in the reverse
+		 * direction, copying one set of m=constant coefficients at
+		 * a time */
+		for(m = -1; m >= -m_max; m--) {
+			memmove(dst->coeff + sh_series_moffset(dst->l_max, m), src->coeff + sh_series_moffset(src->l_max, m), (src->l_max + 1 + m) * sizeof(*dst->coeff));
+			memset(dst->coeff + sh_series_moffset(dst->l_max, m) + (src->l_max + 1 + m), 0, (dst->l_max - src->l_max) * sizeof(*dst->coeff));
+		}
+		for(; m >= -dst_m_max; m--)
+			memset(dst->coeff + sh_series_moffset(dst->l_max, m), 0, (dst->l_max + 1 + m) * sizeof(*dst->coeff));
+		for(m = dst_m_max; m > m_max; m--)
+			memset(dst->coeff + sh_series_moffset(dst->l_max, m), 0, (dst->l_max + 1 - m) * sizeof(*dst->coeff));
+		for(m = m_max; m >= 0; m--) {
+			memmove(dst->coeff + sh_series_moffset(dst->l_max, m), src->coeff + sh_series_moffset(src->l_max, m), (src->l_max + 1 - m) * sizeof(*dst->coeff));
+			memset(dst->coeff + sh_series_moffset(dst->l_max, m) + (src->l_max + 1 - m), 0, (dst->l_max - src->l_max) * sizeof(*dst->coeff));
+		}
 	}
 
 	return dst;
@@ -149,77 +193,39 @@ struct sh_series *sh_series_assign(struct sh_series *dst, const struct sh_series
  */
 
 
-static struct sh_series *_sh_series_resize(struct sh_series *series, unsigned int l_max)
+struct sh_series *sh_series_resize(struct sh_series *series, unsigned int l_max)
 {
-	complex double *newcoeff;
-	int m;
-	/* max m to index to preserve, the rest are set to 0 */
-	int m_max = series->polar ? 0 : series->l_max < l_max ? series->l_max : l_max;
+	/* clone series to use as a source, adjust the harmonic order of
+	 * series to use as a target, then use sh_series_assign() from the
+	 * source to the target to shuffle and initialize coefficients as
+	 * needed. */
 
-	if(l_max < series->l_max) {
-		/* shrinking:  move coefficients before resize */
-
-		/* copy the coefficients, moving foward through the array
-		 * */
-		for(m = 0; m <= m_max; m++)
-			memmove(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (l_max - abs(m) + 1) * sizeof(*series->coeff));
-		for(m = -m_max; m < 0; m++)
-			memmove(series->coeff + sh_series_moffset(l_max, m), series->coeff + sh_series_moffset(series->l_max, m), (l_max - abs(m) + 1) * sizeof(*series->coeff));
-
-		/* reallocate coefficient array */
-		newcoeff = realloc(series->coeff, sh_series_length(l_max, series->polar) * sizeof(*series->coeff));
-		if(!newcoeff)
-			return NULL;
-		series->coeff = newcoeff;
-	} else {
-		/* not shrinking:  move coefficients after resize */
-
-		/* reallocate coefficient array */
-		newcoeff = realloc(series->coeff, sh_series_length(l_max, series->polar) * sizeof(*series->coeff));
-		if(!newcoeff)
-			return NULL;
-		series->coeff = newcoeff;
-
-		/* copy the coefficients, moving backward through the
-		 * array, and zeroing new coefficients */
-		for(m = -1; m >= -m_max; m--) {
-			complex double *src = series->coeff + sh_series_moffset(series->l_max, m);
-			complex double *dst = series->coeff + sh_series_moffset(l_max, m);
-			/* # of coefficients to save */
-			int n = series->l_max + 1 - abs(m);
-			memset(dst + n, 0, (l_max - series->l_max) * sizeof(*dst));
-			memmove(dst, src, n * sizeof(*dst));
-		}
-		if(!series->polar) {
-			for(; m >= -(int) l_max; m--)
-				memset(series->coeff + sh_series_moffset(l_max, m), 0, (l_max + 1 - abs(m)) * sizeof(*series->coeff));
-			for(m = l_max; m > m_max; m--)
-				memset(series->coeff + sh_series_moffset(l_max, m), 0, (l_max + 1 - m) * sizeof(*series->coeff));
-		}
-		for(m = m_max; m >= 0; m--) {
-			complex double *src = series->coeff + sh_series_moffset(series->l_max, m);
-			complex double *dst = series->coeff + sh_series_moffset(l_max, m);
-			/* # of coefficients to save */
-			int n = series->l_max + 1 - m;
-			memset(dst + n, 0, (l_max - series->l_max) * sizeof(*dst));
-			memmove(dst, src, n * sizeof(*dst));
-		}
-	}
+	struct sh_series wrapper = *series;
+	complex double *coeff;
 
 	series->l_max = l_max;
 
-	return series;
-}
-
-
-struct sh_series *sh_series_resize(struct sh_series *series, unsigned int l_max)
-{
-	/* no-op? */
-	if(series->l_max == l_max)
+	if(wrapper.l_max > l_max) {
+		/* array is getting smaller:  realloc after move */
+		if(!sh_series_assign(series, &wrapper))
+			return NULL;
+		coeff = realloc(series->coeff, sh_series_length(series->l_max, series->polar) * sizeof(*coeff));
+		if(!coeff) {
+			/* ignore failure */
+		} else
+			series->coeff = coeff;
 		return series;
-
-	/* do the resize */
-	return _sh_series_resize(series, l_max);
+	} else if(wrapper.l_max == l_max) {
+		/* no-op? */
+		return series;
+	} else {	/* wrapper.l_max < l_max */
+		/* array is getting bigger:  realloc before move */
+		coeff = realloc(series->coeff, sh_series_length(series->l_max, series->polar) * sizeof(*coeff));
+		if(!coeff)
+			return NULL;
+		wrapper.coeff = series->coeff = coeff;
+		return sh_series_assign(series, &wrapper);
+	}
 }
 
 
