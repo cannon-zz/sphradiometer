@@ -285,38 +285,39 @@ static int time_series_pad(COMPLEX16TimeSeries **series, int n_series)
 	int i;
 	LIGOTimeGPS start;
 	LIGOTimeGPS end;
-	double deltaT;
-	int length;
 
 	start = end = series[0]->epoch;
-	deltaT = series[0]->deltaT;
 	XLALGPSAdd(&end, series[0]->deltaT * series[0]->data->length);
-
 	for(i = 1; i < n_series; i++) {
 		LIGOTimeGPS this_end = series[i]->epoch;
 		XLALGPSAdd(&this_end, series[i]->deltaT * series[i]->data->length);
-		if(series[i]->deltaT != deltaT) {
-			fprintf(stderr, "sample rate mismatch\n");
-			exit(1);
-		}
 		if(XLALGPSCmp(&start, &series[i]->epoch) > 0)
 			start = series[i]->epoch;
 		if(XLALGPSCmp(&end, &this_end) < 0)
 			end = this_end;
 	}
 
-	length = round(XLALGPSDiff(&end, &start) / deltaT);
+	for(i = 0; i < n_series; i++)
+		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / series[i]->deltaT), round(XLALGPSDiff(&end, &start) / series[i]->deltaT));
 
-	for(i = 0; i < n_series; i++) {
-		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / deltaT), length);
-		/*unsigned j; for(j = 0; j < series[i]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[i]->data->data[j]), cimag(series[i]->data->data[j])); fprintf(stderr, "\n");*/
-	}
-
+#if 0
 	for(i = 0; i < n_series; i++) {
 		char *s = XLALGPSToStr(NULL, &series[i]->epoch);
 		fprintf(stderr, "zero-padded interval for \"%s\": %s s, duration=%g s (%d samples)\n", series[i]->name, s, series[i]->data->length * series[i]->deltaT, series[i]->data->length);
 		LALFree(s);
+		{
+		unsigned j;
+		for(j = 0; j < series[i]->data->length; j++) {
+			LIGOTimeGPS t = series[i]->epoch;
+			XLALGPSAdd(&t, j * series[i]->deltaT);
+			s = XLALGPSToStr(NULL, &t);
+			fprintf(stderr, "%s: %g+I*%g\n", s, creal(series[i]->data->data[j]), cimag(series[i]->data->data[j]));
+			LALFree(s);
+		}
+		fprintf(stderr, "\n");
+		}
 	}
+#endif
 
 	return 0;
 }
