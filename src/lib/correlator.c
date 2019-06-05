@@ -577,8 +577,10 @@ struct sh_series *correlator_baseline_integrate_power_td(const double *time_seri
 	sh_series_zero(plan->power_1d);
 
 	while(n--) {
-		sh_series_array_dot(plan->sample_a, plan->proj_a, time_series_a++);
-		sh_series_array_dot(plan->sample_b, plan->proj_b, time_series_b++);
+		if(!sh_series_array_dot(plan->sample_a, plan->proj_a, time_series_a++))
+			return NULL;
+		if(!sh_series_array_dot(plan->sample_b, plan->proj_b, time_series_b++))
+			return NULL;
 		if(!sh_series_product(plan->product, plan->sample_a, plan->sample_b, plan->product_plan))
 			return NULL;
 		if(!sh_series_add(plan->power_1d, *window++, plan->product))
@@ -607,7 +609,8 @@ struct sh_series *correlator_baseline_integrate_power_fd(const complex double *f
 
 	/* compute the inner product of the frequency series and the DFT'ed
 	 * delay matrix */
-	sh_series_array_dotc(plan->power_1d, plan->delay_product, plan->fseries_product);
+	if(!sh_series_array_dotc(plan->power_1d, plan->delay_product, plan->fseries_product))
+		return NULL;
 
 	/* FIXME:  to remove the correlator transient as in the time-domain
 	 * case, or just generally apply a window, rather than computing
