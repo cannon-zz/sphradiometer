@@ -124,27 +124,29 @@ static int op_cmp(const void *arg1, const void *arg2)
  */
 
 
-static int _product_plan(struct _sh_series_product_plan_op *microcode, int dest_l_max, int a_l_max, int b_l_max)
+static int _product_plan(struct _sh_series_product_plan_op *microcode, int D_l_max, int A_l_max, int B_l_max)
 {
 	struct _sh_series_product_plan_op *op = microcode;
-	int p, q, k, m, l;
+	int d_l, d_m, a_l, a_m, b_l;
 
-	for(p = 0; p <= dest_l_max; p++)
-		for(q = -p; q <= p; q++) {
-			const int kmax = a_l_max < p + b_l_max ? a_l_max : p + b_l_max;
-			for(k = p > b_l_max ? p - b_l_max : 0; k <= kmax; k++) {
-				const int mmax = b_l_max < p + k ? b_l_max : p + k;
-				int mmin = abs(p - k);
-				mmin += (k + mmin + p) & 1;
-				for(m = mmin; m <= mmax; m += 2) {
-					const int lmax = k < q + m ? k : q + m;
-					for(l = -k > q - m ? -k : q - m; l <= lmax; l++)
+	for(d_l = 0; d_l <= D_l_max; d_l++)
+		for(d_m = -d_l; d_m <= d_l; d_m++) {
+			const int a_l_max = A_l_max < d_l + B_l_max ? A_l_max : d_l + B_l_max;
+			for(a_l = d_l > B_l_max ? d_l - B_l_max : 0; a_l <= a_l_max; a_l++) {
+				const int b_l_max = B_l_max < d_l + a_l ? B_l_max : d_l + a_l;
+				int b_l_min = abs(d_l - a_l);
+				b_l_min += (a_l + b_l_min + d_l) & 1;
+				for(b_l = b_l_min; b_l <= b_l_max; b_l += 2) {
+					const int a_m_max = a_l < b_l + d_m ? a_l : b_l + d_m;
+					for(a_m = -(a_l < b_l - d_m ? a_l : b_l - d_m); a_m <= a_m_max; a_m++) {
+						const int b_m = d_m - a_m;
 						*op++ = (struct _sh_series_product_plan_op) {
-							.dest_offset = sh_series_params_lmoffset(dest_l_max, p, q),
-							.a_offset = sh_series_params_lmoffset(a_l_max, k, l),
-							.b_offset = sh_series_params_lmoffset(b_l_max, m, q - l),
-							.factor = (q & 1 ? -1.0 : +1.0) * sqrt((2 * p + 1) * (2 * k + 1) * (2 * m + 1) / (4 * M_PI)) * wigner_3j(k, m, p, 0, 0, 0) * wigner_3j(k, m, p, l, q - l, -q)
+							.dest_offset = sh_series_params_lmoffset(D_l_max, d_l, d_m),
+							.a_offset = sh_series_params_lmoffset(A_l_max, a_l, a_m),
+							.b_offset = sh_series_params_lmoffset(B_l_max, b_l, b_m),
+							.factor = (d_m & 1 ? -1.0 : +1.0) * sqrt((2 * d_l + 1) * (2 * a_l + 1) * (2 * b_l + 1) / (4 * M_PI)) * wigner_3j(a_l, b_l, d_l, 0, 0, 0) * wigner_3j(a_l, b_l, d_l, a_m, b_m, -d_m)
 						};
+					}
 				}
 			}
 		}
