@@ -490,7 +490,6 @@ static void correlator_network_plan_mult_by_projection(struct correlator_network
  */
 
 
-#include <assert.h>
 int main(int argc, char *argv[])
 {
 	struct options *options;
@@ -531,9 +530,6 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 	}
-	/* Down sampling */
-	//for(k = 0; k < instrument_array_len(options->instruments); k++)
-	//	series[k]->deltaT *= 1;
 
 
 	/*
@@ -617,7 +613,6 @@ int main(int argc, char *argv[])
 
 	gettimeofday(&t_end, NULL);
 	fprintf(stderr, "finished integration\n");
-	/*sh_series_print(stderr, sky);*/
 
 
 	/*
