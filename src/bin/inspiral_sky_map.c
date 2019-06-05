@@ -451,30 +451,51 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 }
 
 
-static void correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
+static int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
 {
 	int i;
+	struct sh_series *projection = sh_series_new(8, 0);
 	const struct instrument_array *instruments = plan->baselines->baselines[0]->instruments;
 	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
-	for(i = 0; i < instrument_array_len(instruments); i++)
+	if(!projection || !instruments || !det) {
+		sh_series_free(projection);
+		free(det);
+		return -1;
+	}
+
+	for(i = 0; i < instrument_array_len(instruments); i++) {
 		det[i] = instrument_array_get(instruments, i)->data;
+		if(!det[i]) {
+			sh_series_free(projection);
+			free(det);
+			return -1;
+		}
+	}
 
 	for(i = 0; i < plan->baselines->n_baselines; i++) {
-		struct sh_series *projection = sh_series_new(8, 0);
 		struct ProjectionMatrixWrapperData data = {
 			.i = plan->baselines->baselines[i]->index_a,
 			.j = plan->baselines->baselines[i]->index_b,
 			.det = det,
 			.n = instrument_array_len(instruments)
 		};
-		sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data);
-		if(!correlator_plan_mult_by_projection(plan->plans[i], projection))
-			exit(1);
-		sh_series_free(projection);
+		if(!sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data)) {
+			sh_series_free(projection);
+			free(det);
+			return -1;
+		}
+		if(!correlator_plan_mult_by_projection(plan->plans[i], projection)) {
+			sh_series_free(projection);
+			free(det);
+			return -1;
+		}
 	}
 
+	sh_series_free(projection);
 	free(det);
+
+	return 0;
 }
 
 
@@ -564,7 +585,10 @@ int main(int argc, char *argv[])
 	baselines = correlator_network_baselines_new(options->instruments);
 	fdplans = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
 	fprintf(stderr, "applying projection operator\n");
-	correlator_network_plan_mult_by_projection(fdplans);
+	if(correlator_network_plan_mult_by_projection(fdplans)) {
+		fprintf(stderr, "failed\n");
+		exit(1);
+	}
 	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT), 0);
 
 
