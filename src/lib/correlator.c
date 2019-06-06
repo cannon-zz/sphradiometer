@@ -315,13 +315,12 @@ struct correlator_plan_td *correlator_plan_td_new(const struct correlator_baseli
 		power_l_max = a_l_max + b_l_max;
 	struct sh_series *product = sh_series_new(power_l_max, 1);
 	struct sh_series *power_1d = sh_series_new(power_l_max, 1);
-	struct sh_series *power_2d = sh_series_new(power_l_max, 0);
 	double d_length = vector_magnitude(baseline->d);
 	double *R = sh_series_rot_matrix(baseline->theta, baseline->phi);
 	struct sh_series_product_plan *product_plan = NULL;
 	struct sh_series_rotation_plan *rotation_plan = NULL;
 
-	if(!new || !d_prime || !sample_a || !sample_b || !product || !power_1d || !power_2d || !R || delta_t <= 0.)
+	if(!new || !d_prime || !sample_a || !sample_b || !product || !power_1d || !R || delta_t <= 0.)
 		goto error;
 
 	/* set d_prime to +d_length/2 * \hat{z}, and compute projection
@@ -354,7 +353,6 @@ struct correlator_plan_td *correlator_plan_td_new(const struct correlator_baseli
 	new->sample_b = sample_b;
 	new->product = product;
 	new->power_1d = power_1d;
-	new->power_2d = power_2d;
 	new->product_plan = product_plan;
 	new->rotation_plan = rotation_plan;
 
@@ -366,7 +364,6 @@ error:
 	sh_series_rotation_plan_free(rotation_plan);
 	sh_series_product_plan_free(product_plan);
 	free(R);
-	sh_series_free(power_2d);
 	sh_series_free(power_1d);
 	sh_series_free(product);
 	sh_series_free(sample_b);
@@ -384,7 +381,6 @@ void correlator_plan_td_free(struct correlator_plan_td *plan)
 	if(plan) {
 		sh_series_rotation_plan_free(plan->rotation_plan);
 		sh_series_product_plan_free(plan->product_plan);
-		sh_series_free(plan->power_2d);
 		sh_series_free(plan->power_1d);
 		sh_series_free(plan->product);
 		sh_series_free(plan->sample_b);
@@ -478,7 +474,6 @@ struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseli
 	new->delay_product = delay_product;
 	new->fseries_product = fseries_product;
 	new->power_1d = tdplan->power_1d;
-	new->power_2d = tdplan->power_2d;
 	new->rotation_plan = tdplan->rotation_plan;
 
 	/* Clean up */
@@ -506,7 +501,6 @@ void correlator_plan_fd_free(struct correlator_plan_fd *plan)
 		free(plan->fseries_product);
 		sh_series_array_free(plan->delay_product);
 		sh_series_free(plan->power_1d);
-		sh_series_free(plan->power_2d);
 		sh_series_rotation_plan_free(plan->rotation_plan);
 	}
 	free(plan);
@@ -526,10 +520,9 @@ void correlator_plan_fd_free(struct correlator_plan_fd *plan)
  * Compute the angular distribution of coherent power for a baseline.
  * Following the successful completion of this function, the power_1d
  * element of the baseline object contains the azimuthally-symmetric power
- * distribution (distribution aligned with baseline's axis), and the
- * power_2d element contains the power distribution on the Earth-fixed sky.
- * A pointer to the power_2d sh_series object is returned on success, and
- * NULL on failure.
+ * distribution (distribution aligned with baseline's axis).  On success a
+ * newly allocated sh_series object containing the power distribution on
+ * the Earth-fixed sky is returned.  NULL is returned on failure.
  *
  * During integration, the cross power time series will be windowed
  * according to the window function.  The window function must have 2 *
@@ -570,6 +563,7 @@ void correlator_plan_fd_free(struct correlator_plan_fd *plan)
 
 struct sh_series *correlator_baseline_integrate_power_td(const double *time_series_a, const double *time_series_b, const double *window, int n, struct correlator_plan_td *plan)
 {
+	struct sh_series *power_2d;
 	n -= 2 * plan->transient;
 	if(n < 0)
 		return NULL;
@@ -587,10 +581,11 @@ struct sh_series *correlator_baseline_integrate_power_td(const double *time_seri
 			return NULL;
 	}
 
-	if(!sh_series_rotate(plan->power_2d, plan->power_1d, plan->rotation_plan))
+	power_2d = sh_series_new(plan->power_1d->l_max, 0);
+	if(!power_2d || !sh_series_rotate(power_2d, plan->power_1d, plan->rotation_plan))
 		return NULL;
 
-	return plan->power_2d;
+	return power_2d;
 }
 
 
@@ -601,6 +596,7 @@ struct sh_series *correlator_baseline_integrate_power_td(const double *time_seri
 
 struct sh_series *correlator_baseline_integrate_power_fd(const complex double *freq_series_a, const complex double *freq_series_b, struct correlator_plan_fd *plan)
 {
+	struct sh_series *power_2d;
 	int i;
 
 	/* multiply the two frequency series */
@@ -623,10 +619,11 @@ struct sh_series *correlator_baseline_integrate_power_fd(const complex double *f
 	sh_series_scale(plan->power_1d, 1.0 / plan->delay_product->n);
 
 	/* rotate to Earth-fixed equatorial co-ordinates */
-	if(!sh_series_rotate(plan->power_2d, plan->power_1d, plan->rotation_plan))
+	power_2d = sh_series_new(plan->power_1d->l_max, 0);
+	if(!power_2d || !sh_series_rotate(power_2d, plan->power_1d, plan->rotation_plan))
 		return NULL;
 
-	return plan->power_2d;
+	return power_2d;
 }
 
 
@@ -809,10 +806,12 @@ struct sh_series *correlator_network_integrate_power_td(struct sh_series *sky, d
 	k = 0;
 	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
-			if(!correlator_baseline_integrate_power_td(tseries[i], tseries[j], windows[k], tseries_length, plan->plans[k]))
+			struct sh_series *power_2d = correlator_baseline_integrate_power_td(tseries[i], tseries[j], windows[k], tseries_length, plan->plans[k]);
+			if(!power_2d)
 				return NULL;
-			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d))
+			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, power_2d))
 				return NULL;
+			sh_series_free(power_2d);
 		}
 
 	return sky;
@@ -833,10 +832,12 @@ struct sh_series *correlator_network_integrate_power_fd(struct sh_series *sky, c
 	k = 0;
 	for(i = 1; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++)
 		for(j = 0; j < i; j++, k++) {
-			if(!correlator_baseline_integrate_power_fd(fseries[i], fseries[j], plan->plans[k]))
+			struct sh_series *power_2d = correlator_baseline_integrate_power_fd(fseries[i], fseries[j], plan->plans[k]);
+			if(!power_2d)
 				return NULL;
-			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, plan->plans[k]->power_2d))
+			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, power_2d))
 				return NULL;
+			sh_series_free(power_2d);
 		}
 
 	return sky;

@@ -166,7 +166,7 @@ void diagnostics_dump_correlator_plan_td_stats(FILE *f, const struct correlator_
 	fprintf(f, "instrument B: n = %d\n", plan->proj_b->n);
 	fprintf(f, "instrument B: l max = %d\n", plan->proj_b->l_max);
 	fprintf(f, "correlator: transient = %d samples\n", plan->transient);
-	fprintf(f, "correlator: l max = %d\n", plan->power_2d->l_max);
+	fprintf(f, "correlator: l max = %d\n", plan->power_1d->l_max);
 	fprintf(f, "correlator: azimuthal symmetry = %s\n", plan->power_1d->polar ? "enabled" : "disabled");
 }
 
@@ -183,7 +183,7 @@ void diagnostics_dump_correlator_plan_fd_stats(FILE *f, const struct correlator_
 	}
 	fprintf(f, "correlator: N = %d samples\n", plan->delay_product->n);
 	fprintf(f, "correlator: transient = %d samples\n", plan->transient);
-	fprintf(f, "correlator: l max = %d\n", plan->power_2d->l_max);
+	fprintf(f, "correlator: l max = %d\n", plan->power_1d->l_max);
 	fprintf(f, "correlator: azimuthal symmetry = %s\n", plan->power_1d->polar ? "enabled" : "disabled");
 }
 
@@ -196,8 +196,8 @@ void diagnostics_dump_network_plan_td_stats(FILE *f, const struct correlator_net
 	for(i = 0; i < plan->baselines->n_baselines; i++) {
 		fprintf(f, "=== Baseline %d ===\n", i);
 		diagnostics_dump_correlator_plan_td_stats(f, plan->plans[i]);
-		if(plan->plans[i]->power_2d->l_max > l_max)
-			l_max = plan->plans[i]->power_2d->l_max;
+		if(plan->plans[i]->power_1d->l_max > l_max)
+			l_max = plan->plans[i]->power_1d->l_max;
 	}
 	fprintf(f, "=== End Baselines ===\n");
 	fprintf(f, "sky: l max = %d\n", l_max);
@@ -212,8 +212,8 @@ void diagnostics_dump_network_plan_fd_stats(FILE *f, const struct correlator_net
 	for(i = 0; i < plan->baselines->n_baselines; i++) {
 		fprintf(f, "=== Baseline %d ===\n", i);
 		diagnostics_dump_correlator_plan_fd_stats(f, plan->plans[i]);
-		if(plan->plans[i]->power_2d->l_max > l_max)
-			l_max = plan->plans[i]->power_2d->l_max;
+		if(plan->plans[i]->power_1d->l_max > l_max)
+			l_max = plan->plans[i]->power_1d->l_max;
 	}
 	fprintf(f, "=== End Baselines ===\n");
 	fprintf(f, "sky: l max = %d\n", l_max);

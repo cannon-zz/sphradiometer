@@ -86,7 +86,6 @@ struct correlator_plan_td {
 	struct sh_series *sample_b;
 	struct sh_series *product;
 	struct sh_series *power_1d;
-	struct sh_series *power_2d;
 	struct sh_series_product_plan *product_plan;
 	struct sh_series_rotation_plan *rotation_plan;
 };
@@ -116,7 +115,6 @@ struct correlator_plan_fd {
 	struct sh_series_array *delay_product;
 	double complex *fseries_product;
 	struct sh_series *power_1d;
-	struct sh_series *power_2d;
 	struct sh_series_rotation_plan *rotation_plan;
 };
 
