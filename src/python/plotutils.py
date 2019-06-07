@@ -34,8 +34,6 @@ matplotlib.rcParams.update({
 })
 from matplotlib import cm
 from matplotlib import colors
-from matplotlib import figure
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from mpl_toolkits.basemap import Basemap
 import numpy
 
