@@ -485,6 +485,22 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
 			free(det);
 			return -1;
 		}
+		/* the delay operator is computed with the baseline rotated
+		 * to lie along the z axis to take advantage of the
+		 * aziumthal symmetry of that operator, so we need to
+		 * rotate the projection function we've just computed the
+		 * same way */
+		{
+		struct sh_series *cpy = sh_series_copy(projection);
+		double *R = sh_series_invrot_matrix(plan->baselines->baselines[i]->theta, plan->baselines->baselines[i]->phi);
+		struct sh_series_rotation_plan *rot = sh_series_rotation_plan_new(projection, R);
+		free(R);
+		sh_series_rotate(projection, cpy, rot);
+		sh_series_rotation_plan_free(rot);
+		sh_series_free(cpy);
+		}
+		/* multiply each frequency bin of the delay operator by the
+		 * projection operator */
 		if(!correlator_plan_mult_by_projection(plan->plans[i], projection)) {
 			sh_series_free(projection);
 			free(det);
