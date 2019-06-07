@@ -491,14 +491,16 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
 			return -1;
 		}
 		/* replace the correlator's intermediate "1D" storage with
-		 * one that does not have azimuthal symmetry, increae it to
-		 * the correct harmonic order, and compute a new rotation
-		 * plan for it.  NOTE:  the two-stage design that takes
-		 * advantage of rotational symmetry about the baseline axis
-		 * cannot be used here because we don't have that
-		 * rotational symmetry;  really we should compute the delay
-		 * matrix with the correct orientation with respect to the
-		 * sky, and not pay the price of the rotation */
+		 * one that does not have azimuthal symmetry, increase it
+		 * to the correct harmonic order, and compute a new
+		 * rotation plan for it.  NOTE:  the two-stage design that
+		 * takes advantage of rotational symmetry about the
+		 * baseline axis cannot be used here because after
+		 * multiplying by the projection operator above we no
+		 * longer have that rotational symmetry;  really we should
+		 * compute the delay matrix with the correct orientation
+		 * with respect to the sky, and not pay the price of the
+		 * rotation */
 		if(!sh_series_set_polar(plan->plans[i]->power_1d, 0) || !sh_series_resize(plan->plans[i]->power_1d, plan->plans[i]->delay_product->series[0].l_max)) {
 			sh_series_free(projection);
 			free(det);
