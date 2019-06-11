@@ -81,7 +81,7 @@ double vector_r_dot_s(const gsl_vector *v, double theta, double phi)
 
 /*
  * Compute the spherical polar co-ordinates, theta and phi, describing the
- * direction in which a 3-vector points.  theta is in [0, pi) and phi will
+ * direction in which a 3-vector points.  theta is in [0, pi] and phi will
  * be in [0, 2 pi)
  */
 
@@ -95,7 +95,7 @@ void vector_direction(const gsl_vector *v, double *theta, double *phi)
 	*theta = atan2(sqrt(x * x + y * y), z);
 	*phi = atan2(y, x);
 	if(*phi < 0)
-		*phi += 2 * M_PI;
+		*phi += 2. * M_PI;
 }
 
 
