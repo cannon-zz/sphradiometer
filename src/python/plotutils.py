@@ -124,19 +124,31 @@ class SkyPlot(object):
 		self.ra = numpy.linspace(-math.pi, math.pi, 2 * pixels_per_pi + 1)
 		self.dec = numpy.linspace(-math.pi / 2., math.pi / 2., pixels_per_pi + 1)
 
-	def sh_series_contourf(self, series):
+	def sh_series_contourf(self, series, cmap = cm.gray_r, **kwargs):
 		samples = numpy.zeros((len(self.ra), len(self.dec)), dtype = "double")
+		# use -ra for the azimuthal co-ordinate when evaluating the
+		# function, and +ra for the values passed to meshgrid() so
+		# that the sky is flipped around the right way.  flipping
+		# the sky by, instead, passing -ra to meshgrid() produces a
+		# matplotlib warning about a non-monotonically increasing x
+		# co-ordinate
 		for i, ra in enumerate(self.ra):
 			for j, dec in enumerate(self.dec):
-				samples[i, j] = sphradiometer.sh_series_eval(series, math.pi / 2. - dec, ra).real
-		x, y = self.map(*numpy.meshgrid(-self.ra * 180. / math.pi, self.dec * 180. / math.pi))
-		self.map.contourf(x, y, numpy.transpose(samples), cmap = cm.gray_r, scaling = colors.Normalize(-1.0, +1.0))
+				samples[i, j] = sphradiometer.sh_series_eval(series, math.pi / 2. - dec, -ra).real
+		x, y = self.map(*numpy.meshgrid(self.ra * 180. / math.pi, self.dec * 180. / math.pi))
+		self.map.contourf(x, y, numpy.transpose(samples), cmap = cmap, **kwargs)
 
-	def healpix_map_contourf(self, m):
+	def healpix_map_contourf(self, m, cmap = cm.gray_r, **kwargs):
 		samples = numpy.zeros((len(self.ra), len(self.dec)), dtype = "double")
+		# use -ra for the azimuthal co-ordinate when evaluating the
+		# function, and +ra for the values passed to meshgrid() so
+		# that the sky is flipped around the right way.  flipping
+		# the sky by, instead, passing -ra to meshgrid() produces a
+		# matplotlib warning about a non-monotonically increasing x
+		# co-ordinate
 		for i, ra in enumerate(self.ra):
 			for j, dec in enumerate(self.dec):
-				samples[i, j] = healpy.pixelfunc.get_interp_val(m,  math.pi / 2. - dec, ra)
-		x, y = self.map(*numpy.meshgrid(-self.ra * 180. / math.pi, self.dec * 180. / math.pi))
-		self.map.contourf(x, y, numpy.transpose(samples), cmap = cm.gray_r, scaling = colors.Normalize(-1.0, +1.0))
+				samples[i, j] = healpy.pixelfunc.get_interp_val(m,  math.pi / 2. - dec, -ra)
+		x, y = self.map(*numpy.meshgrid(self.ra * 180. / math.pi, self.dec * 180. / math.pi))
+		self.map.contourf(x, y, numpy.transpose(samples), **kwargs)
 
