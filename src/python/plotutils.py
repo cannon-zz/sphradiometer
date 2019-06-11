@@ -89,13 +89,12 @@ def rad_to_dms_str(a):
 
 
 class XYSlicePlot(object):
-	def __init__(self, axes, plot_delta = math.pi / 4096):
+	def __init__(self, axes, pixels_per_pi = 4096):
 		self.axes = axes
-		self.plot_delta = plot_delta
 
 		# sample co-ordinates uniformly distributed around equator
-		self.phi = numpy.arange(0, 2 * math.pi + self.plot_delta, self.plot_delta)
-		self.theta = numpy.zeros((len(self.phi),), dtype = "double") + math.pi / 2
+		self.phi = numpy.linspace(0., 2. * math.pi, 2 * pixels_per_pi + 1)
+		self.theta = numpy.zeros((len(self.phi),), dtype = "double") + math.pi / 2.
 
 		# put a dummy point on the axes to force a scale
 		self.axes.plot((0,), (2.2,))
@@ -117,14 +116,13 @@ class XYSlicePlot(object):
 
 
 class SkyPlot(object):
-	def __init__(self, axes, plot_delta = math.pi / 256):
+	def __init__(self, axes, pixels_per_pi = 256):
 		self.map = Basemap(projection="moll", rsphere = 1, lon_0 = 0, ax = axes)
-		self.map.drawparallels(numpy.arange(-90, 91, 15), linewidth = 0.3)
-		self.map.drawmeridians(numpy.arange(-180, 181, 15), linewidth = 0.3)
+		self.map.drawparallels(numpy.linspace(-90., +90, 13), linewidth = 0.3)
+		self.map.drawmeridians(numpy.linspace(-180., +180., 25), linewidth = 0.3)
 
-		self.plot_delta = plot_delta
-		self.ra = numpy.arange(-math.pi, math.pi + plot_delta, plot_delta)
-		self.dec = numpy.arange(-math.pi / 2., math.pi / 2. + plot_delta, plot_delta)
+		self.ra = numpy.linspace(-math.pi, math.pi, 2 * pixels_per_pi + 1)
+		self.dec = numpy.linspace(-math.pi / 2., math.pi / 2., pixels_per_pi + 1)
 
 	def sh_series_contourf(self, series):
 		samples = numpy.zeros((len(self.ra), len(self.dec)), dtype = "double")
