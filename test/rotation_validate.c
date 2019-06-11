@@ -222,15 +222,9 @@ static double *vector_from_radec(double ra, double dec)
 
 static void radec_from_vector(double *ra, double *dec, double *v)
 {
-	double norm = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-
-	if(fabs(v[2]) / norm < 0.7071067811865475)
-		/* closer to equator than pole */
-		*dec = asin(v[2] / norm);
-	else
-		/* closer to pole than equator */
-		*dec = copysign(acos(sqrt(v[0]*v[0] + v[1]*v[1]) / norm), v[2]);
-	*ra = atan2(v[1], v[0]);
+	gsl_vector_view view = gsl_vector_view_array(v, 3);
+	vector_direction(&view.vector, dec, ra);
+	*dec = M_PI_2 - *dec;
 }
 
 

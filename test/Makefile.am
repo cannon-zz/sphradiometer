@@ -26,8 +26,8 @@ product_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 product_validate_LDADD = ../src/lib/libsphradiometer.la
 
 rotation_validate_SOURCES = rotation_validate.c
-rotation_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
-#rotation_validate_LDFLAGS = $(AM_LDFLAGS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
+rotation_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(GSL_CFLAGS) $(LALSIMULATION_CFLAGS)
+rotation_validate_LDFLAGS = $(AM_LDFLAGS) $(GSL_LIBS)
 rotation_validate_LDADD = ../src/lib/libsphradiometer.la
 
 s2kit_validate_SOURCES = s2kit_validate.c
