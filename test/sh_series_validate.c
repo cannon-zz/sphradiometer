@@ -257,6 +257,27 @@ static int test_evaluation2(void)
 }
 
 
+static int test_realimag(void)
+{
+	int i;
+
+	for(i = 0; i < 100; i++) {
+		struct sh_series *orig = random_sh_series(floor(randrange(0, 21)), random() & 1);
+		struct sh_series *real = sh_series_real(sh_series_copy(orig));
+		struct sh_series *imag = sh_series_imag(sh_series_copy(orig));
+		assert(real != NULL);
+		assert(imag != NULL);
+		sh_series_add(real, I*1., imag);
+		sh_series_free(imag);
+		assert(sh_series_cmp(orig, real) == 0);
+		sh_series_free(real);
+		sh_series_free(orig);
+	}
+
+	return 0;
+}
+
+
 static int test_projection1(void)
 {
 	struct sh_series *test = sh_series_new(10, 0);
@@ -550,6 +571,7 @@ int main(int argc, char *argv[])
 
 	assert(test_evaluation1() == 0);
 	assert(test_evaluation2() == 0);
+	assert(test_realimag() == 0);
 	assert(test_projection1() == 0);
 	assert(test_projection2() == 0);
 	assert(test_interpolation() == 0);

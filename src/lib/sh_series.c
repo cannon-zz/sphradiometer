@@ -424,6 +424,48 @@ struct sh_series *sh_series_conj(struct sh_series *a)
 
 
 /*
+ * Replace an sh_series object with the real part of the function it
+ * describes.  See also sh_series_imag().  The original function is
+ * obtained with the equivalent of
+ *
+ *	series = sh_series_real(series) + I * sh_series_imag(series)
+ */
+
+
+struct sh_series *sh_series_real(struct sh_series *a)
+{
+	complex double *c = a->coeff;
+	const complex double *c_last = c + sh_series_length(a->l_max, a->polar);
+
+	for(; c < c_last; c++)
+		*c = creal(*c);
+
+	return a;
+}
+
+
+/*
+ * Replace an sh_series object with the imaginary part of the function it
+ * describes.  See also sh_series_real().  The original function is
+ * obtained with the equivalent of
+ *
+ *	series = sh_series_real(series) + I * sh_series_imag(series)
+ */
+
+
+struct sh_series *sh_series_imag(struct sh_series *a)
+{
+	complex double *c = a->coeff;
+	const complex double *c_last = c + sh_series_length(a->l_max, a->polar);
+
+	for(; c < c_last; c++)
+		*c = cimag(*c);
+
+	return a;
+}
+
+
+/*
  * Set to zero any coefficients whose magnitude as a fraction of the
  * largest magnitude coefficient is less than epsilon.
  */
