@@ -262,6 +262,7 @@ static int test_projection1(void)
 	struct sh_series *test = sh_series_new(10, 0);
 	struct sh_series *realtest = sh_series_new(10, 0);
 	struct sh_series *exact = sh_series_new(10, 0);
+	struct sh_series *realexact = sh_series_new(10, 0);
 	struct {
 		int l;
 		int m;
@@ -285,12 +286,26 @@ static int test_projection1(void)
 		sh_series_from_func(test, tests[i].func, NULL);
 		sh_series_from_realfunc(realtest, reY_wrapper, tests[i].func);
 		sh_series_zero(exact);
+		sh_series_zero(realexact);
 		sh_series_set(exact, tests[i].l, tests[i].m, 1);
+		if(tests[i].l) {
+			sh_series_set(realexact, tests[i].l, tests[i].m, 0.5);
+			sh_series_set(realexact, tests[i].l, -tests[i].m, (tests[i].m & 1) ? -0.5 : 0.5);
+		} else {
+			sh_series_set(realexact, tests[i].l, tests[i].m, 1);
+		}
 		err = diagnostics_rms_error(test, exact);
 		if(err > 1e-14) {
 			fprintf(stderr, "Projection of Y_{%d,%d} rms error = %g\n", tests[i].l, tests[i].m, err);
 			sh_series_clip(test, 1e-12);
 			sh_series_print(stderr, test);
+			return -1;
+		}
+		err = diagnostics_rms_error(realtest, realexact);
+		if(err > 1e-14) {
+			fprintf(stderr, "Projection of Re Y_{%d,%d} rms error = %g\n", tests[i].l, tests[i].m, err);
+			sh_series_clip(realtest, 1e-12);
+			sh_series_print(stderr, realtest);
 			return -1;
 		}
 		for(j = 0; j < 100; j++) {
@@ -301,7 +316,7 @@ static int test_projection1(void)
 				fprintf(stderr, "sh_series_eval(..., %g, %g) failed for (l,m)=(%d,%d), |err|=%g\n", theta, phi, tests[i].l, tests[i].m, err);
 				return -1;
 			}
-			err = cabs(creal(sh_series_eval(exact, theta, phi)) - sh_series_eval(realtest, theta, phi));
+			err = cabs(sh_series_eval(realexact, theta, phi) - sh_series_eval(realtest, theta, phi));
 			if(err > 1e-13) {
 				fprintf(stderr, "sh_series_from_realfunc() failed for (l,m)=(%d,%d), |err|=%g\n", tests[i].l, tests[i].m, err);
 				return -1;
