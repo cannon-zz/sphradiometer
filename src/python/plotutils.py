@@ -150,5 +150,5 @@ class SkyPlot(object):
 			for j, dec in enumerate(self.dec):
 				samples[i, j] = healpy.pixelfunc.get_interp_val(m,  math.pi / 2. - dec, -ra)
 		x, y = self.map(*numpy.meshgrid(self.ra * 180. / math.pi, self.dec * 180. / math.pi))
-		self.map.contourf(x, y, numpy.transpose(samples), **kwargs)
+		self.map.contourf(x, y, numpy.transpose(samples), cmap = cmap, **kwargs)
 
