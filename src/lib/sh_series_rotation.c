@@ -113,7 +113,7 @@ double *sh_series_invrot_matrix(double theta, double phi)
 
 /*
  * The code in this section implements the algorithm of Choi, Ivanic,
- * Gorden, and Ruedenberg (Journal of Chemical Physics, 111 (19), Nov.
+ * Gordon, and Ruedenberg (Journal of Chemical Physics, 111 (19), Nov.
  * 1999, pg. 8825) for determining the rotation matrices for spherical
  * harmonics.  This is a recursive algorithm.  The matrix for l = 1 is
  * hard-coded, and the matrix for l > 1 is determined from the matrices for
