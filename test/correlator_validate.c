@@ -95,7 +95,7 @@ static struct sh_series *gaussian_noise_solution(struct correlator_baseline *bas
 {
 	struct sh_series *series = sh_series_new(l, 0);
 	double injection_theta = M_PI_2 - dec;
-	double injection_phi = -ra;
+	double injection_phi = ra;
 	struct __gaussian_noise_solution_data data = {
 		/* variance */
 		.variance = variance,
