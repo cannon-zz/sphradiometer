@@ -47,6 +47,7 @@
 #include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimulation.h>
+#include <lal/Sequence.h>
 #include <lal/TimeSeries.h>
 #include <lal/XLALError.h>
 #include <lal/Units.h>
@@ -65,6 +66,7 @@
 struct options {
 	struct instrument_array *instruments;
 	char *snr_cache;
+	char *noise_cache;
 	char **channels;
 	char *output_name;
 };
@@ -84,6 +86,7 @@ static struct options *command_line_options_new(void)
 		.instruments = instrument_array_new(0),
 		.snr_cache = NULL,
 		.channels = NULL,
+		.noise_cache = NULL,
 		.output_name = NULL,
 	};
 
@@ -152,6 +155,8 @@ struct options *command_line_parse(int argc, char *argv[])
 	struct option long_options[] = {
 		{"snr-cache",	required_argument,	NULL,	'A'},
 		{"snr-channel",	required_argument,	NULL,	'B'},
+		{"noise-cache",	required_argument,	NULL,	'C'},
+		{"noise-channel",	required_argument,	NULL,	'D'},
 		{"output",		required_argument,	NULL,	'H'},
 		{"help",		no_argument,		NULL,	'h'},
 		{NULL,	0,	NULL,	0}
@@ -169,6 +174,16 @@ struct options *command_line_parse(int argc, char *argv[])
 
 	/* snr-channel */
 	case 'B':
+		command_line_set_instrument(options, optarg);
+		break;
+
+	/* noise-cache */
+	case 'C':
+		options->noise_cache = optarg;
+		break;
+
+	/* noise-channel */
+	case 'D':
 		command_line_set_instrument(options, optarg);
 		break;
 
@@ -274,13 +289,66 @@ static COMPLEX16TimeSeries *get_complex16series_from_cache(
 }
 
 
+static COMPLEX16Sequence *get_complex16sequence_from_cache(
+	const char *cache_name,
+	const char *channel_name
+)
+{
+	char instrument[] = {channel_name[0], channel_name[1], '\0'};
+	LALCache *cache;
+	LALFrStream *stream;
+	COMPLEX16TimeSeries *data;
+	COMPLEX16Sequence *result;
+
+	/* construct stream */
+	cache = XLALCacheImport(cache_name);
+	if(!cache)
+		XLAL_ERROR_NULL(XLAL_EFUNC);
+	XLALCacheSieve(cache, 0, 0, instrument, NULL, NULL);
+	if(cache->length != 1) {
+		XLALPrintError("error: cache must contain exactly 1 file for instrument %s", instrument);
+		XLALDestroyCache(cache);
+		XLAL_ERROR_NULL(XLAL_EDATA);
+	}
+	stream = XLALFrStreamCacheOpen(cache);
+	XLALDestroyCache(cache);
+	if(!stream)
+		XLAL_ERROR_NULL(XLAL_EFUNC);
+
+	/* turn on checking for missing data */
+	stream->mode = LAL_FR_STREAM_VERBOSE_MODE;
+
+	/* get data */
+	data = XLALFrFileReadCOMPLEX16TimeSeries(stream->file, channel_name, 0);
+
+	/* check for gaps and close */
+	XLALFrStreamClose(stream);
+
+	/* error checking */
+	if(!data)
+		XLAL_ERROR_NULL(XLAL_EFUNC);
+
+	{
+	char *s = XLALGPSToStr(NULL, &data->epoch);
+	fprintf(stderr, "%s: loaded \"%s\" at %s s, duration=%g s (%d samples)\n", instrument, data->name, s, data->data->length * data->deltaT, data->data->length);
+	LALFree(s);
+	}
+	result = data->data;
+	data->data = NULL;
+	XLALDestroyCOMPLEX16TimeSeries(data);
+
+	/* done */
+	return result;
+}
+
+
 /*
  * make the time series span the same intervals
  * FIXME:  this leaves the final GPS times slightly different.  why?
  */
 
 
-static int time_series_pad(COMPLEX16TimeSeries **series, int n_series)
+static int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, int n_series)
 {
 	int i;
 	LIGOTimeGPS start;
@@ -297,8 +365,10 @@ static int time_series_pad(COMPLEX16TimeSeries **series, int n_series)
 			end = this_end;
 	}
 
-	for(i = 0; i < n_series; i++)
+	for(i = 0; i < n_series; i++) {
 		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / series[i]->deltaT), round(XLALGPSDiff(&end, &start) / series[i]->deltaT));
+		XLALResizeCOMPLEX16Sequence(nseries[i], -((int) series[i]->data->length - (int) nseries[i]->length) / 2, series[i]->data->length);
+	}
 
 #if 0
 	for(i = 0; i < n_series; i++) {
@@ -357,13 +427,13 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 	double product;
 	int i;
 
-	// store fp, fc
+	/* store fp, fc */
 	for(i = 0; i < n; i++)
 		/* gmst is rotated at the end of this code.
 		 * So we can set zero. */
 		XLALComputeDetAMResponse(&fplus[i], &fcross[i], det[i]->response, phi, M_PI_2 - theta, 0.0, 0.0);
 
-	// dominant polarization angle
+	/* dominant polarization angle */
 	normplus2 = normcross2 = product = 0.0;
 	for(i = 0; i < n; i++){
 		normplus2 += fplus[i] * fplus[i];
@@ -372,14 +442,14 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 	}
 	twopsi = atan2(2.0 * product, normplus2 - normcross2) / 2.;
 
-	// set fp, fc
+	/* set fp, fc */
 	for(i = 0; i < n; i++){
 		double temp = cos(twopsi) * fplus[i] + sin(twopsi) * fcross[i];
 		fcross[i] = -sin(twopsi) * fplus[i] + cos(twopsi) * fcross[i];
 		fplus[i] = temp;
 	}
 
-	// normalization if necessary
+	/* normalization if necessary */
 	if(normalization){
 		normplus2 = normcross2 = 0.0;
 		for(i = 0; i < n; i++){
@@ -485,6 +555,21 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
 			free(det);
 			return -1;
 		}
+
+		/* plot projection */
+		char filename[32] ={"\0"};
+		char istr[12];
+		snprintf(istr, sizeof(istr), "%d", i);
+		strcat(filename, "projection");
+		strcat(filename, istr);
+		strcat(filename, ".fits");
+		fprintf(stderr, "generate Projection distribution from %d and %d\n", data.i, data.j);
+		if(sh_series_write_healpix_alm(projection, filename)) {
+			fprintf(stderr, "write \"%s\" failed\n", filename);
+			free(det);
+			exit(1);
+		}
+
 		/* the delay operator is computed with the baseline rotated
 		 * to lie along the z axis to take advantage of the
 		 * aziumthal symmetry of that operator, so we need to
@@ -550,6 +635,26 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
 /*
  * ============================================================================
  *
+ *                                Whitening
+ *
+ * ============================================================================
+ */
+
+
+static int whiten(complex double *series, complex double *noise, int length)
+{
+	int i;
+
+	for(i = 0; i < length; i++)
+		series[i] /= sqrt(cabs(noise[i]));
+
+	return 0;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Entry Point
  *
  * ============================================================================
@@ -560,9 +665,12 @@ int main(int argc, char *argv[])
 {
 	struct options *options;
 	COMPLEX16TimeSeries **series;
+	COMPLEX16Sequence **nseries;
 	struct correlator_network_baselines *baselines;
 	complex double **fseries;
+	complex double **fnseries;
 	fftw_plan *fftplans;
+	fftw_plan *nfftplans;
 	struct correlator_network_plan_fd *fdplans;
 	struct sh_series *sky;
 	int k;
@@ -575,6 +683,8 @@ int main(int argc, char *argv[])
 
 
 	options = command_line_parse(argc, argv);
+	options->instruments->n /= 2;
+	/* NOTE: have to free options->channels[k > 2]. it's done at the end. */
 
 
 	/*
@@ -583,16 +693,26 @@ int main(int argc, char *argv[])
 
 
 	series = malloc(instrument_array_len(options->instruments) * sizeof(*series));
+	nseries = malloc(instrument_array_len(options->instruments) * sizeof(*nseries));
 	fseries = malloc(instrument_array_len(options->instruments) * sizeof(*fseries));
+	fnseries = malloc(instrument_array_len(options->instruments) * sizeof(*fnseries));
 	fftplans = malloc(instrument_array_len(options->instruments) * sizeof(*fftplans));
-	if(!series || !fseries || !fftplans) {
+	nfftplans = malloc(instrument_array_len(options->instruments) * sizeof(*nfftplans));
+	if(!series || !fseries || !fftplans || !nseries|| !fnseries || !nfftplans) {
 		XLALPrintError("out of memory\n");
 		exit(1);
 	}
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		series[k] = get_complex16series_from_cache(options->snr_cache, options->channels[k]);
 		if(!series[k]) {
-			XLALPrintError("failure loading data\n");
+			XLALPrintError("failure loading snr data\n");
+			exit(1);
+		}
+	}
+	for(k = 0; k < instrument_array_len(options->instruments); k++) {
+		nseries[k] = get_complex16sequence_from_cache(options->noise_cache, options->channels[k + instrument_array_len(options->instruments)]);	// FIXME: depend a input order from command line, now
+		if(!nseries[k]) {
+			XLALPrintError("failure loading auto-correlation data\n");
 			exit(1);
 		}
 	}
@@ -603,7 +723,7 @@ int main(int argc, char *argv[])
 	 */
 
 
-	time_series_pad(series, instrument_array_len(options->instruments));
+	time_series_pad(series, nseries, instrument_array_len(options->instruments));
 
 #if 0
 	// replace with white noise
@@ -611,8 +731,8 @@ int main(int argc, char *argv[])
 		series[0]->data->data[k] = (double) random() / RAND_MAX + I*(double) random() / RAND_MAX - (0.5 + I*0.5);
 	for(k = 1; k < instrument_array_len(options->instruments); k++)
 		memcpy(series[k]->data->data, series[0]->data->data, series[0]->data->length * sizeof(*series[0]->data->data));
-	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < series[k]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[k]->data->data[j]), cimag(series[k]->data->data[j])); fprintf(stderr, "\n"); }*/
 #endif
+	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < series[k]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[k]->data->data[j]), cimag(series[k]->data->data[j])); fprintf(stderr, "\n"); }*/
 
 
 	/*
@@ -622,21 +742,29 @@ int main(int argc, char *argv[])
 
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		complex double *save = malloc(series[k]->data->length * sizeof(*save));
+		complex double *nsave = malloc(nseries[k]->length * sizeof(*nsave));
 		memcpy(save, series[k]->data->data, series[k]->data->length * sizeof(*save));
+		memcpy(nsave, nseries[k]->data, nseries[k]->length * sizeof(*nsave));
 		fseries[k] = malloc(series[k]->data->length * sizeof(**fseries));
+		fnseries[k] = malloc(nseries[k]->length * sizeof(**fnseries));
 		fftplans[k] = correlator_ctseries_to_fseries_plan(series[k]->data->data, fseries[k], series[k]->data->length);
+		nfftplans[k] = correlator_ctseries_to_fseries_plan(nseries[k]->data, fnseries[k], nseries[k]->length);
 		memcpy(series[k]->data->data, save, series[k]->data->length * sizeof(*save));
+		memcpy(nseries[k]->data, nsave, nseries[k]->length * sizeof(*nsave));
 		free(save);
+		free(nsave);
 	}
 
 	fprintf(stderr, "constructing base correlator\n");
 	baselines = correlator_network_baselines_new(options->instruments);
 	fdplans = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
+#if 1
 	fprintf(stderr, "applying projection operator\n");
 	if(correlator_network_plan_mult_by_projection(fdplans)) {
 		fprintf(stderr, "failed\n");
 		exit(1);
 	}
+#endif
 	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT) + 8, 0);
 
 
@@ -650,6 +778,7 @@ int main(int argc, char *argv[])
 
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		correlator_ctseries_to_fseries(fftplans[k]);
+		correlator_ctseries_to_fseries(nfftplans[k]);
 #if 0
 		unsigned i; for(i = 0; i < series[k]->data->length; i++) fprintf(stderr, "%g+I*%g\n", creal(fseries[k][i]), cimag(fseries[k][i])); fprintf(stderr, "\n");
 		int j = 0;
@@ -662,7 +791,30 @@ int main(int argc, char *argv[])
 		}
 		fprintf(stderr, "%d %g\n\n", j, temp);
 #endif
+#if 0
+		unsigned i; for(i = 0; i < nseries[k]->length; i++) fprintf(stderr, "%g+I*%g\n", creal(fnseries[k][i]), cimag(fnseries[k][i])); fprintf(stderr, "\n");
+		int j = 0;
+		double temp = cabs(fnseries[k][0]);
+		for(i = 1; i < nseries[k]->length; i++) {
+			if(temp < cabs(fnseries[k][i])){
+				j = i;
+				temp = cabs(fnseries[k][i]);
+			}
+		}
+		fprintf(stderr, "%d %g\n\n", j, temp);
+#endif
 	}
+
+
+	/*
+	 * Whitening
+	 */
+	
+
+#if 1
+	for(k = 0; k < instrument_array_len(options->instruments); k++)
+		whiten(fseries[k], fnseries[k], series[k]->data->length);
+#endif
 
 
 	/*
@@ -711,13 +863,19 @@ int main(int argc, char *argv[])
 
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		XLALDestroyCOMPLEX16TimeSeries(series[k]);
+		XLALDestroyCOMPLEX16Sequence(nseries[k]);
 		free(fseries[k]);
+		free(fnseries[k]);
 		fftw_destroy_plan(fftplans[k]);
+		fftw_destroy_plan(nfftplans[k]);
 	}
 	free(series);
+	free(nseries);
 	correlator_network_plan_fd_free(fdplans);
 	correlator_network_baselines_free(baselines);
 	sh_series_free(sky);
+	/* below's order must be fixed */
+	options->instruments->n *= 2;
 	command_line_options_free(options);
 
 	return 0;
