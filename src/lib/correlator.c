@@ -465,7 +465,7 @@ struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseli
 	}
 
 	/* Apply one factor of 1/N to the delay product */
-	sh_series_array_scale(delay_product, 1.0 / delay_product->n);
+	sh_series_array_scale(delay_product, 1.0 / delay_product->n);	// TODO: we dont need this, maybe. check.
 
 	/* Done */
 	new->baseline = baseline;
@@ -616,7 +616,7 @@ struct sh_series *correlator_baseline_integrate_power_fd(const complex double *f
 	 * is very costly. */
 
 	/* normalize */
-	sh_series_scale(plan->power_1d, 1.0 / plan->delay_product->n);
+	sh_series_scale(plan->power_1d, 1.0 / plan->delay_product->n);	// TODO: normalize is enough in either correlator_network_baseline_integrate_power_fd() or this.
 
 	/* rotate to Earth-fixed equatorial co-ordinates */
 	power_2d = sh_series_new(plan->power_1d->l_max, 0);
@@ -809,7 +809,7 @@ struct sh_series *correlator_network_integrate_power_td(struct sh_series *sky, d
 			struct sh_series *power_2d = correlator_baseline_integrate_power_td(tseries[i], tseries[j], windows[k], tseries_length, plan->plans[k]);
 			if(!power_2d)
 				return NULL;
-			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, power_2d))
+			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, power_2d))	// TODO: should be if(!sh_series_add(sky, 1.0, power_2d))
 				return NULL;
 			sh_series_free(power_2d);
 		}
@@ -835,7 +835,7 @@ struct sh_series *correlator_network_integrate_power_fd(struct sh_series *sky, c
 			struct sh_series *power_2d = correlator_baseline_integrate_power_fd(fseries[i], fseries[j], plan->plans[k]);
 			if(!power_2d)
 				return NULL;
-			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, power_2d))
+			if(!sh_series_add(sky, 1.0 / plan->baselines->n_baselines, power_2d))	// TODO: should be if(!sh_series_add(sky, 1.0, power_2d))
 				return NULL;
 			sh_series_free(power_2d);
 		}
