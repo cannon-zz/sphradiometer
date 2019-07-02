@@ -683,6 +683,10 @@ int main(int argc, char *argv[])
 
 
 	options = command_line_parse(argc, argv);
+	if(!options->noise_cache){
+		XLALPrintError("need auto-correlation series of consistent template as noise\n");
+		exit(1);
+	}
 	options->instruments->n /= 2;
 	/* NOTE: have to free options->channels[k > 2]. it's done at the end. */
 
