@@ -688,7 +688,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	options->instruments->n /= 2;
-	/* NOTE: have to free options->channels[k > 2]. it's done at the end. */
+	/* NOTE: have to free options->channels[k > options->instrument->n].
+	 * it's done at the end. */
 
 
 	/*
@@ -830,6 +831,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "correlator failed\n");
 		exit(1);
 	}
+	/* multiply \Delta f */
+	sh_series_scale(sky, 1 / (series[0]->data->length * series[0]->deltaT));
 
 	/*
 	 * Rotate sky.
