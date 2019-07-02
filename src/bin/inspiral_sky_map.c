@@ -941,10 +941,10 @@ int main(int argc, char *argv[])
 	/* We calculated contrubutions from lower triangular part of Projection
 	 * matrix, cross-correlation. However upper one still remain.
 	 * Fortunately this calculations are easy because Projection and Time
-	 * shit operator is symmetry w.r.t. baseline index. Therefore it's OK
-	 * to twice simply. NOTE: We have to pick up only real part because
-	 * correlator is Hermite. However this manipulation is already done in
-	 * correlator_integrate_power_fd(). */
+	 * shift operator is symmetry w.r.t. baseline index, e.g. H1 <--> L1.
+	 * Therefore it's OK to twice simply. NOTE: We have to pick up only
+	 * real part because correlator is Hermite. However this manipulation
+	 * is already done in correlator_integrate_power_fd(). */
 	sh_series_scale(sky, 2.0);
 #if 0
 	/* add contributions from diagonal part, auto-correlation */
@@ -953,8 +953,17 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
-	/* multiply \Delta f */
-	sh_series_scale(sky, 1 / (series[0]->data->length * series[0]->deltaT));
+	/* multiply baseline numbers. Correlator is normalized by it (See
+	 * correlator_network_integrate_power_fd()). However our calculation
+	 * doesn't need it. */
+	/* multiply data length. Correlator is normalized by it (See
+	 * correlator_plan_fd_new() or
+	 * correlator_baseline_integrate_power_fd(). Honestly we have either
+	 * one enough because Kipp's paper has incorrect calculation. However
+	 * codes pass all consistency checks. Threfore our codes doesn't have
+	 * error but mistakes. We can neglect the mistakes because our result
+	 * is correct). However our Likelihood does't need it. */
+	sh_series_scale(sky, fdplans->baselines->n_baselines * series[0]->data->length);
 
 	/*
 	 * Rotate sky.
