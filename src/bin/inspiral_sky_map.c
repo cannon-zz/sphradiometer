@@ -724,6 +724,20 @@ int main(int argc, char *argv[])
 
 
 	/*
+	 * Tukey Widow
+	 */
+
+
+	int j;
+	for(k = 0; k < instrument_array_len(options->instruments); k++){
+		REAL8Window *window = XLALCreateTukeyREAL8Window(series[k]->data->length, 0.1);
+		REAL4 WinNorm = sqrt(window->sumofsquares/window->data->length);
+		for(j = 0; j < (int) window->data->length; j++)
+			series[k]->data->data[j] *= window->data->data[j] / WinNorm;
+	}
+
+
+	/*
 	 * bring to a common interval with zero-padding
 	 */
 
