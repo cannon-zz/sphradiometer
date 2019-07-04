@@ -638,6 +638,96 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
 /*
  * ============================================================================
  *
+ *                                Diagonal part
+ *
+ * ============================================================================
+ */
+
+
+static double unit_func(double theta, double phi, void *data)
+{
+	return 1.;
+}
+
+
+/* flag = 0 for Likelihood ratio.
+ * flag = 1 for posterior, */
+static int autocorrelator_network_from_projection(struct sh_series *sky, complex double **fseries, struct options *options, unsigned int length, int flag)
+{
+	int i, j;
+	struct sh_series *projection = sh_series_new(Projection_lmax, 0);
+	const LALDetector **det = malloc(instrument_array_len(options->instruments) * sizeof(*det));
+
+	if(!projection || !det) {
+		sh_series_free(projection);
+		free(det);
+		return -1;
+	}
+
+	/* set instruments information */
+	struct instrument_array *instruments = instrument_array_new(0);
+	for(i = 0; i < instrument_array_len(options->instruments); i++){
+		char instrument_name[3] = {options->channels[i][0], options->channels[i][1], '\0'};
+		instrument_array_append(instruments, instrument_new_from_name(instrument_name));
+	}
+	for(i = 0; i < instrument_array_len(instruments); i++) {
+		det[i] = instrument_array_get(instruments, i)->data;
+		if(!det[i]) {
+			sh_series_free(projection);
+			free(det);
+			return -1;
+		}
+	}
+
+	for(i = 0; i < instrument_array_len(instruments); i++) {
+		/* calc. projection operator */
+		struct ProjectionMatrixWrapperData data = {
+			.i = i,
+			.j = i,
+			.det = det,
+			.n = instrument_array_len(instruments)
+		};
+		if(!sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data)) {
+			sh_series_free(projection);
+			free(det);
+			return -1;
+		}
+
+		/* Likelihood ratio -> posterior if you hope */
+		if(flag){
+			struct sh_series *unit_matrix = sh_series_new(Projection_lmax, 0);
+			if(!unit_matrix){
+				sh_series_free(unit_matrix);
+				sh_series_free(projection);
+				return -1;
+			}
+
+			if(!sh_series_from_realfunc(unit_matrix, unit_func, NULL)) {
+				sh_series_free(unit_matrix);
+				sh_series_free(projection);
+				return -1;
+			}
+			projection->coeff[0] -= unit_matrix->coeff[0];
+			sh_series_free(unit_matrix);
+		}
+
+		/* execute calc. */
+		double temp = 0;
+		for(j = 0; j < (int) length; j++)
+			temp += fseries[i][j] * conj(fseries[i][j]);
+		temp /= length * length * instrument_array_len(instruments);	// TODO: after considering all TODO, you can decide wheter this line is alive or not.
+		fprintf(stderr, "diagonal weight %s: %g\n", options->channels[i], temp);
+		sh_series_add(sky, temp, projection);
+	}
+
+	sh_series_free(projection);
+	return 0;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Whitening
  *
  * ============================================================================
@@ -845,9 +935,24 @@ int main(int argc, char *argv[])
 
 
 	if(!correlator_network_integrate_power_fd(sky, fseries, fdplans)) {
-		fprintf(stderr, "correlator failed\n");
+		fprintf(stderr, "cross-correlator failed\n");
 		exit(1);
 	}
+	/* We calculated contrubutions from lower triangular part of Projection
+	 * matrix, cross-correlation. However upper one still remain.
+	 * Fortunately this calculations are easy because Projection and Time
+	 * shit operator is symmetry w.r.t. baseline index. Therefore it's OK
+	 * to twice simply. NOTE: We have to pick up only real part because
+	 * correlator is Hermite. However this manipulation is already done in
+	 * correlator_integrate_power_fd(). */
+	sh_series_scale(sky, 2.0);
+#if 0
+	/* add contributions from diagonal part, auto-correlation */
+	if(autocorrelator_network_from_projection(sky, fseries, options, series[0]->data->length, 0)){
+		fprintf(stderr, "auto-correlator failed\n");
+		exit(1);
+	}
+#endif
 	/* multiply \Delta f */
 	sh_series_scale(sky, 1 / (series[0]->data->length * series[0]->deltaT));
 
