@@ -965,6 +965,7 @@ int main(int argc, char *argv[])
 	 * is correct). However our Likelihood does't need it. */
 	sh_series_scale(sky, fdplans->baselines->n_baselines * series[0]->data->length);
 
+
 	/*
 	 * Rotate sky.
 	 */
