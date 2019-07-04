@@ -54,6 +54,9 @@
 #include <lal/Window.h>
 
 
+#define Projection_lmax 8
+
+
 /*
  * ============================================================================
  *
@@ -524,7 +527,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 static int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
 {
 	int i;
-	struct sh_series *projection = sh_series_new(8, 0);
+	struct sh_series *projection = sh_series_new(Projection_lmax, 0);
 	const struct instrument_array *instruments = plan->baselines->baselines[0]->instruments;
 	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
@@ -784,7 +787,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
-	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT) + 8, 0);
+	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax, 0);
 
 
 	/*
