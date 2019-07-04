@@ -54,7 +54,7 @@
 #include <lal/Window.h>
 
 
-#define Projection_lmax 8
+#define Projection_lmax 40
 
 
 /*
