@@ -220,6 +220,10 @@ static double dB(double x)
 
 static int test1(gsl_rng *rng, struct instrument_array *instruments, double delta_t, double *gmst, int n_gmst)
 {
+	/* injection angle from */
+	double ra  = M_PI/3.0;
+	double dec = M_PI/3.0;
+
 	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments);
 
 	const int sky_l_max = correlator_network_l_max(baselines, delta_t);
@@ -296,7 +300,7 @@ static int test1(gsl_rng *rng, struct instrument_array *instruments, double delt
 		/* inject point source at vernal equinox */
 		gaussian_white_noise(injection, time_series_length, variance, rng);
 		for(j = 0; j < instrument_array_len(instruments); j++)
-			inject_into(instrument_array_get(instruments, j), tseries[j], injection, time_series_length, delta_t, 0.0, 0.0, gmst[i]);
+			inject_into(instrument_array_get(instruments, j), tseries[j], injection, time_series_length, delta_t, ra, dec, gmst[i]);
 
 		/* compute integrated cross power */
 
@@ -327,9 +331,9 @@ static int test1(gsl_rng *rng, struct instrument_array *instruments, double delt
 		 * much higher than what the correlator will compute, so
 		 * the residual errors in this solution should not
 		 * contribute significantly to the overall error budget */
-		solution = gaussian_noise_solution(baselines->baselines[0], 2 * sky_l_max, variance, delta_t, 0.0, 0.0, gmst[i]);
+		solution = gaussian_noise_solution(baselines->baselines[0], 2 * sky_l_max, variance, delta_t, ra, dec, gmst[i]);
 		for(j = 1; j < baselines->n_baselines; j++) {
-			struct sh_series *tmp = gaussian_noise_solution(baselines->baselines[j], 2 * sky_l_max, variance, delta_t, 0.0, 0.0, gmst[i]);
+			struct sh_series *tmp = gaussian_noise_solution(baselines->baselines[j], 2 * sky_l_max, variance, delta_t, ra, dec, gmst[i]);
 			sh_series_add(solution, 1.0, tmp);
 			sh_series_free(tmp);
 		}
