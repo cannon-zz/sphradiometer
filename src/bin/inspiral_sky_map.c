@@ -712,12 +712,31 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
 		}
 
 		/* execute calc. */
-		double temp = 0;
+		double correlator = 0;
 		for(j = 0; j < (int) length; j++)
-			temp += fseries[i][j] * conj(fseries[i][j]);
-		temp /= length * length * instrument_array_len(instruments);	// TODO: after considering all TODO, you can decide wheter this line is alive or not.
-		fprintf(stderr, "diagonal weight %s: %g\n", options->channels[i], temp);
-		sh_series_add(sky, temp, projection);
+			correlator += fseries[i][j] * conj(fseries[i][j]);
+		correlator /= length * length;	// TODO: after considering all TODO, you can decide wheter this line is alive or not.
+		for(j = 2; j <= instrument_array_len(instruments); j++)	// TODO: after considering all TODO, you can decide wheter this line is alive or not.
+			correlator /= j;
+		fprintf(stderr, "diagonal weight %s: %g\n", options->channels[i], correlator);
+		sh_series_add(sky, correlator, projection);
+
+#if 1
+		/* plot projection */
+		char filename[32] ={"\0"};
+		char istr[12];
+		snprintf(istr, sizeof(istr), "%d", i + instrument_array_len(instruments));
+		strcat(filename, "projection");
+		strcat(filename, istr);
+		strcat(filename, ".fits");
+		fprintf(stderr, "generate Projection distribution from %d and %d\n", data.i, data.j);
+		sh_series_scale(projection, correlator);
+		if(sh_series_write_healpix_alm(projection, filename)) {
+			fprintf(stderr, "write \"%s\" failed\n", filename);
+			free(det);
+			exit(1);
+		}
+#endif
 	}
 
 	sh_series_free(projection);
