@@ -407,17 +407,43 @@ struct sh_series *sh_series_scale(struct sh_series *a, complex double z)
 
 
 /*
- * Replace an sh_series object with its complex conjugate.
+ * Replace an sh_series object with the coefficients of the complex
+ * conjugate of the function it describes.
  */
 
 
 struct sh_series *sh_series_conj(struct sh_series *a)
 {
-	complex double *c = a->coeff;
-	const complex double *c_last = c + sh_series_length(a->l_max, a->polar);
+	int m;
+	int m_max = a->polar ? 0 : a->l_max;
+	unsigned l;
 
-	for(; c < c_last; c++)
-		*c = conj(*c);
+	/*
+	 * if f = sum a_lm Y_lm, then
+	 *
+	 * f^* = sum a^*_lm Y^*_lm
+	 *     = sum a^*_lm (-1^m) Y_l(-m)
+	 *     = sum a^*_l(-m) (-1^m) Y_lm
+	 *
+	 * for m = 0, a'_lm = a^*_lm, for the rest
+	 *
+	 *	a'_lm = (-1^m) a^*_l(-m)
+	 */
+
+	for(l = 0; l <= a->l_max; l++)
+		sh_series_set(a, l, 0, conj(sh_series_get(a, l, 0)));
+	for(m = 1; m <= m_max; m++)
+		for(l = m; l <= a->l_max; l++) {
+			complex double ap = sh_series_get(a, l, m);
+			complex double an = sh_series_get(a, l, -m);
+			if(m & 1) {
+				sh_series_set(a, l, m, -conj(an));
+				sh_series_set(a, l, -m, -conj(ap));
+			} else {
+				sh_series_set(a, l, m, conj(an));
+				sh_series_set(a, l, -m, conj(ap));
+			}
+		}
 
 	return a;
 }
