@@ -257,6 +257,33 @@ static int test_evaluation2(void)
 }
 
 
+static int test_conj(void)
+{
+	int i;
+	for(i = 0; i < 100; i++) {
+		struct sh_series *a = random_sh_series(floor(randrange(0, 21)), random() & 1);
+		struct sh_series *b = sh_series_conj(sh_series_copy(a));
+		int j;
+		assert(b != NULL);
+		for(j = 0; j < 100; j++) {
+			double theta = randrange(0., M_PI);
+			double phi = randrange(0., 2. * M_PI);
+			complex double a_val_conj = conj(sh_series_eval(a, theta, phi));
+			complex double b_val = sh_series_eval(b, theta, phi);
+			double err = cabs(b_val - a_val_conj);
+			if(err > 1e-13) {
+				fprintf(stderr, "%.17g+I%.17g != %.17g+I%.17g (cabs(error) = %g)\n", creal(b_val), cimag(b_val), creal(a_val_conj), cimag(a_val_conj), err);
+				return 1;
+			}
+		}
+		sh_series_free(a);
+		sh_series_free(b);
+	}
+
+	return 0;
+}
+
+
 static int test_realimag(void)
 {
 	int i;
@@ -611,6 +638,7 @@ int main(int argc, char *argv[])
 
 	assert(test_evaluation1() == 0);
 	assert(test_evaluation2() == 0);
+	assert(test_conj() == 0);
 	assert(test_realimag() == 0);
 	assert(test_projection1() == 0);
 	assert(test_projection2() == 0);
