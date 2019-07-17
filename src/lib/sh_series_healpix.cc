@@ -55,20 +55,23 @@
  * related errors.  it would be good to add some error checking to confirm
  * that the sh_series objects being written to disk obey the symmetries
  * required by real-valued functions on the sphere, but it's tricky:  what
- * tolerance do you demand?  for now, it's left as an exercise for the user
- * to remember this limitation of healpix. */
+ * tolerance do you demand?  for now, we use sh_series_real() to obtain the
+ * coefficients of the real-valued part of the function, and it's left as
+ * an exercise for the user to remember this limitation of healpix.  */
 
 
 static Alm<xcomplex<double>> *sh_series_to_healpix_Alm(const struct sh_series *series)
 {
+	sh_series *real = sh_series_real(sh_series_copy(series));
 	int m_max = series->polar ? 0 : series->l_max;
 	Alm<xcomplex<double>> *alm = new Alm<xcomplex<double>>(series->l_max, m_max);
 	int l, m;
 
-	/* FIXME:  m < 0 is messed up */
 	for(m = 0; m <= +m_max; m++)
 		for(l = abs(m); l <= (int) series->l_max; l++)
-			(*alm)(l, m) = sh_series_get(series, l, m);
+			(*alm)(l, m) = sh_series_get(real, l, m);
+
+	sh_series_free(real);
 
 	return alm;
 }
