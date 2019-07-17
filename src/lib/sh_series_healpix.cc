@@ -93,7 +93,7 @@ static struct sh_series *sh_series_from_healpix_Alm(Alm<xcomplex<double>> &alm)
 	if(!series)
 		return NULL;
 
-	/* FIXME:  m < 0 is messed up */
+	/* m < 0 is not available in Alm objects */
 	for(m = 0; m <= +m_max; m++)
 		for(l = abs(m); l <= (int) series->l_max; l++) {
 			std::complex<double> x = alm(l, m);
