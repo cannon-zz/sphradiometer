@@ -221,8 +221,8 @@ static double dB(double x)
 static int test1(gsl_rng *rng, struct instrument_array *instruments, double delta_t, double *gmst, int n_gmst)
 {
 	/* injection angle from */
-	double ra  = M_PI/3.0;
-	double dec = M_PI/3.0;
+	double ra  = 0.;
+	double dec = 0.;
 
 	struct correlator_network_baselines *baselines = correlator_network_baselines_new(instruments);
 
