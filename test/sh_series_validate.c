@@ -266,7 +266,7 @@ static int test_realimag(void)
 		struct sh_series *real = sh_series_real(sh_series_copy(orig));
 		struct sh_series *imag = sh_series_imag(sh_series_copy(orig));
 		struct sh_series *sum;
-		int i;
+		int j;
 		double err;
 		assert(real != NULL);
 		assert(imag != NULL);
@@ -281,11 +281,11 @@ static int test_realimag(void)
 			sh_series_print(stderr, real);fprintf(stderr, "\nimag:");
 			sh_series_print(stderr, imag);fprintf(stderr, "\nsum:");
 			sh_series_print(stderr, sum);fprintf(stderr, "\n");
-			exit(1);
+			return 1;
 		}
 		/* are real(s) and imag(s) correct?  check some random
 		 * co-ordinates */
-		for(i = 0; i < 100; i++) {
+		for(j = 0; j < 100; j++) {
 			double theta = randrange(0., M_PI);
 			double phi = randrange(0., 2. * M_PI);
 			complex double y = sh_series_eval(orig, theta, phi);
@@ -296,7 +296,7 @@ static int test_realimag(void)
 				sh_series_print(stderr, real);fprintf(stderr, "\nimag:");
 				sh_series_print(stderr, imag);fprintf(stderr, "\nsum:");
 				sh_series_print(stderr, sum);fprintf(stderr, "\n");
-				exit(1);
+				return 1;
 			}
 			x = sh_series_eval(imag, theta, phi);
 			if(cabs(x - cimag(y)) > 1e-13) {
@@ -305,7 +305,7 @@ static int test_realimag(void)
 				sh_series_print(stderr, real);fprintf(stderr, "\nimag:");
 				sh_series_print(stderr, imag);fprintf(stderr, "\nsum:");
 				sh_series_print(stderr, sum);fprintf(stderr, "\n");
-				exit(1);
+				return 1;
 			}
 		}
 		sh_series_free(orig);
