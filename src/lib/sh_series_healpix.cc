@@ -99,7 +99,7 @@ static struct sh_series *sh_series_from_healpix_Alm(Alm<xcomplex<double>> &alm)
 			std::complex<double> x = alm(l, m);
 			sh_series_set(series, l, m, *(double _Complex *) &x);
 			if(m) {
-				x = conj(x) * ((m & 1) ? -1. : +1.);
+				x = (m & 1) ? -conj(x) : conj(x);
 				sh_series_set(series, l, -m, *(double _Complex *) &x);
 			}
 		}
