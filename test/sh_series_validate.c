@@ -265,13 +265,53 @@ static int test_realimag(void)
 		struct sh_series *orig = random_sh_series(floor(randrange(0, 21)), random() & 1);
 		struct sh_series *real = sh_series_real(sh_series_copy(orig));
 		struct sh_series *imag = sh_series_imag(sh_series_copy(orig));
+		struct sh_series *sum;
+		int i;
+		double err;
 		assert(real != NULL);
 		assert(imag != NULL);
-		sh_series_add(real, I*1., imag);
-		sh_series_free(imag);
-		assert(sh_series_cmp(orig, real) == 0);
-		sh_series_free(real);
+		sum = sh_series_copy(real);
+		assert(sum != NULL);
+		/* does s = real(s) + I * imag(s) ? */
+		sh_series_add(sum, I*1., imag);
+		err = diagnostics_rms_error(orig, sum);
+		if(err > 1e-15) {
+			fprintf(stderr, "for (l,polar) = (%u,%d), testing s=real(s)+I*imag(s) rms error = %g\norig:", orig->l_max, orig->polar, err);
+			sh_series_print(stderr, orig);fprintf(stderr, "\nreal:");
+			sh_series_print(stderr, real);fprintf(stderr, "\nimag:");
+			sh_series_print(stderr, imag);fprintf(stderr, "\nsum:");
+			sh_series_print(stderr, sum);fprintf(stderr, "\n");
+			exit(1);
+		}
+		/* are real(s) and imag(s) correct?  check some random
+		 * co-ordinates */
+		for(i = 0; i < 100; i++) {
+			double theta = randrange(0., M_PI);
+			double phi = randrange(0., 2. * M_PI);
+			complex double y = sh_series_eval(orig, theta, phi);
+			complex double x = sh_series_eval(real, theta, phi);
+			if(cabs(x - creal(y)) > 1e-13) {
+				fprintf(stderr, "(l,polar)=(%u,%d) @ (theta,phi)=(%g,%g) expected %.17g+I%.17g got %.17g+I*%.17g\nseries was:", orig->l_max, orig->polar, theta, phi, creal(y), 0., creal(x), cimag(x));
+				sh_series_print(stderr, orig);fprintf(stderr, "\nreal:");
+				sh_series_print(stderr, real);fprintf(stderr, "\nimag:");
+				sh_series_print(stderr, imag);fprintf(stderr, "\nsum:");
+				sh_series_print(stderr, sum);fprintf(stderr, "\n");
+				exit(1);
+			}
+			x = sh_series_eval(imag, theta, phi);
+			if(cabs(x - cimag(y)) > 1e-13) {
+				fprintf(stderr, "(l,polar)=(%u,%d) @ (theta,phi)=(%g,%g) expected %.17g+I%.17g got %.17g+I*%.17g\nseries was:", orig->l_max, orig->polar, theta, phi, cimag(y), 0., creal(x), cimag(x));
+				sh_series_print(stderr, orig);fprintf(stderr, "\nreal:");
+				sh_series_print(stderr, real);fprintf(stderr, "\nimag:");
+				sh_series_print(stderr, imag);fprintf(stderr, "\nsum:");
+				sh_series_print(stderr, sum);fprintf(stderr, "\n");
+				exit(1);
+			}
+		}
 		sh_series_free(orig);
+		sh_series_free(real);
+		sh_series_free(imag);
+		sh_series_free(sum);
 	}
 
 	return 0;

@@ -434,11 +434,36 @@ struct sh_series *sh_series_conj(struct sh_series *a)
 
 struct sh_series *sh_series_real(struct sh_series *a)
 {
-	complex double *c = a->coeff;
-	const complex double *c_last = c + sh_series_length(a->l_max, a->polar);
+	int m;
+	int m_max = a->polar ? 0 : a->l_max;
+	unsigned l;
 
-	for(; c < c_last; c++)
-		*c = creal(*c);
+	/*
+	 * if f = sum a_lm Y_lm, then
+	 *
+	 * Re f = 1/2 (f + f^*)
+	 *      = 1/2 sum a_lm Y_lm + 1/2 sum a^*_lm Y^*_lm
+	 *      = 1/2 sum a_lm Y_lm + 1/2 sum a^*_lm (-1^m) Y_l(-m)
+	 *      = 1/2 sum a_lm Y_lm + 1/2 sum a^*_l(-m) (-1^m) Y_lm
+	 *      = sum 1/2(a_lm + a^*_l(-m) (-1^m)) Y_lm
+	 *
+	 * therefore, for l, m, m >= 0,
+	 *
+	 *	a'_lm = (a_lm + a^*_l(-m) (-1^m)) / 2
+	 *
+	 * for m = 0, a'_lm = Re a_lm, and for m < 0
+	 *
+	 *	a'_l(-m) = (-1^m) a'^*_lm
+	 */
+
+	for(l = 0; l <= a->l_max; l++)
+		sh_series_set(a, l, 0, creal(sh_series_get(a, l, 0)));
+	for(m = 1; m <= m_max; m++)
+		for(l = m; l <= a->l_max; l++) {
+			complex double c = (sh_series_get(a, l, m) + conj(sh_series_get(a, l, -m)) * ((m & 1) ? -1. : +1.)) * 0.5;
+			sh_series_set(a, l, m, c);
+			sh_series_set(a, l, -m, (m & 1) ? -conj(c) : conj(c));
+		}
 
 	return a;
 }
@@ -455,11 +480,36 @@ struct sh_series *sh_series_real(struct sh_series *a)
 
 struct sh_series *sh_series_imag(struct sh_series *a)
 {
-	complex double *c = a->coeff;
-	const complex double *c_last = c + sh_series_length(a->l_max, a->polar);
+	int m;
+	int m_max = a->polar ? 0 : a->l_max;
+	unsigned l;
 
-	for(; c < c_last; c++)
-		*c = cimag(*c);
+	/*
+	 * if f = sum a_lm Y_lm, then
+	 *
+	 * Im f = -I/2 (f - f^*)
+	 *      = -I/2 sum a_lm Y_lm + I/2 sum a^*_lm Y^*_lm
+	 *      = -I/2 sum a_lm Y_lm + I/2 sum a^*_lm (-1^m) Y_l(-m)
+	 *      = -I/2 sum a_lm Y_lm + I/2 sum a^*_l(-m) (-1^m) Y_lm
+	 *      = sum -I/2(a_lm - a^*_l(-m) (-1^m)) Y_lm
+	 *
+	 * therefore, for l, m, m >= 0
+	 *
+	 *	a'_lm = -I (a_lm - a^*_l(-m) (-1^m)) / 2
+	 *
+	 * for m = 0, a'_lm = Im a_lm, and for m < 0
+	 *
+	 *	a'_l(-m) = (-1^m) a'^*_lm
+	 */
+
+	for(l = 0; l <= a->l_max; l++)
+		sh_series_set(a, l, 0, cimag(sh_series_get(a, l, 0)));
+	for(m = 1; m <= m_max; m++)
+		for(l = m; l <= a->l_max; l++) {
+			complex double c = -I * (sh_series_get(a, l, m) - conj(sh_series_get(a, l, -m)) * ((m & 1) ? -1. : +1.)) * 0.5;
+			sh_series_set(a, l, m, c);
+			sh_series_set(a, l, -m, (m & 1) ? -conj(c) : conj(c));
+		}
 
 	return a;
 }
