@@ -734,6 +734,20 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
  */
 
 
+static int threshold(complex double *series, complex double *noise, int length)
+{
+	int i;
+
+	/* 0.560964 = 10^3 * "numerical error" */
+	for(i = 0; i < length; i++)
+		if(cabs(*noise++) < 0.560964)
+			series[i] = 0;
+	/*FIXME: numerical error would depend on emvironment and data length */
+
+	return 0;
+}
+
+
 static int whiten(complex double *series, complex double *noise, int length)
 {
 	int i;
@@ -924,8 +938,10 @@ int main(int argc, char *argv[])
 	
 
 #if 1
-	for(k = 0; k < instrument_array_len(options->instruments); k++)
+	for(k = 0; k < instrument_array_len(options->instruments); k++){
+		threshold(fseries[k], fnseries[k], series[k]->data->length);
 		whiten(fseries[k], fnseries[k], series[k]->data->length);
+	}
 #endif
 
 
