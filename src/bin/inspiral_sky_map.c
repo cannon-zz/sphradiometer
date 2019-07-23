@@ -960,7 +960,7 @@ int main(int argc, char *argv[])
 	 * shift operator is symmetry w.r.t. baseline index, e.g. H1 <--> L1.
 	 * Therefore it's OK to twice simply. NOTE: We have to pick up only
 	 * real part because correlator is Hermite. However this manipulation
-	 * is already done in correlator_integrate_power_fd(). */
+	 * is already done in sh_series_write_healpix_alm(). */
 	sh_series_scale(sky, 2.0);
 #if 0
 	/* add contributions from diagonal part, auto-correlation */
