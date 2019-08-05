@@ -420,9 +420,7 @@ static double gmst_from_epoch_and_offset(LIGOTimeGPS epoch, double offset)
  */
 
 
-/* if normalization is needed, set normalization = 1.
- * if it is NOT needed, set normalization = 0. */
-static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, double theta, double phi, int normalization)
+static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, double theta, double phi)
 {
 	double twopsi;
 	double normplus2;
@@ -452,17 +450,14 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 		fplus[i] = temp;
 	}
 
-	/* normalization if necessary */
-	if(normalization){
-		normplus2 = normcross2 = 0.0;
-		for(i = 0; i < n; i++){
-			normplus2 += fplus[i] * fplus[i];
-			normcross2 += fcross[i] * fcross[i];
-		}
-		for(i = 0; i < n; i++){
-			fplus[i] /= sqrt(normplus2);
-			fcross[i] /= sqrt(normcross2);
-		}
+	normplus2 = normcross2 = 0.0;
+	for(i = 0; i < n; i++){
+		normplus2 += fplus[i] * fplus[i];
+		normcross2 += fcross[i] * fcross[i];
+	}
+	for(i = 0; i < n; i++){
+		fplus[i] /= sqrt(normplus2);
+		fcross[i] /= sqrt(normcross2);
 	}
 }
 
@@ -471,7 +466,7 @@ static double ProjectionMatrix(double theta, double phi, int i, int j, const LAL
 {
 	double fplus[n], fcross[n];
 
-	FDP(fplus, fcross, det, n, theta, phi, 1);
+	FDP(fplus, fcross, det, n, theta, phi);
 	return fplus[i] * fplus[j] + fcross[i] * fcross[j];
 }
 
@@ -984,7 +979,7 @@ int main(int argc, char *argv[])
 	sh_series_scale(sky, 2.0);
 #if 0
 	/* add contributions from diagonal part, auto-correlation */
-	if(autocorrelator_network_from_projection(sky, fseries, options, series[0]->data->length, 0)){
+	if(autocorrelator_network_from_projection(sky, fseries, options, series[0]->data->length)){
 		fprintf(stderr, "auto-correlator failed\n");
 		exit(1);
 	}
