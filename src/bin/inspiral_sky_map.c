@@ -54,7 +54,7 @@
 #include <lal/Window.h>
 
 
-#define Projection_lmax 40
+#define Projection_lmax 8
 
 
 /*
@@ -462,13 +462,37 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 }
 
 
-static double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
+#if 0
+static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
 {
 	double fplus[n], fcross[n];
 
 	FDP(fplus, fcross, det, n, theta, phi);
 	return fplus[i] * fplus[j] + fcross[i] * fcross[j];
 }
+#else
+static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
+{
+	int k;
+	double fplus[n], fcross[n];
+	double normplus2;
+	double normcross2;
+	normplus2 = normcross2 = 0.0;
+
+	for(k = 0; k < n; k++){
+		/* store fp, fc */
+		/* gmst is rotated at the end of this code.
+		 * So we can set zero. */
+		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, 0.0, 0.0);
+		/* calculate norms of vector fp & fc */
+		normplus2 += fplus[k] * fplus[k];
+		normcross2 += fcross[k] * fcross[k];
+	}
+
+	/* order between i & j is important. Be consistent with Time delay. */
+	return (fplus[i] + I * fcross[i]) * (fplus[j] - I * fcross[j]) / (normplus2 + normcross2);
+}
+#endif
 
 
 struct ProjectionMatrixWrapperData {
@@ -477,7 +501,8 @@ struct ProjectionMatrixWrapperData {
 	int n;
 };
 
-static double ProjectionMatrixWrapper(double theta, double phi, void *_data)
+
+static complex double ProjectionMatrixWrapper(double theta, double phi, void *_data)
 {
 	struct ProjectionMatrixWrapperData *data = _data;
 
@@ -548,7 +573,7 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
 			.det = det,
 			.n = instrument_array_len(instruments)
 		};
-		if(!sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data)) {
+		if(!sh_series_from_func(projection, ProjectionMatrixWrapper, &data)) {
 			sh_series_free(projection);
 			free(det);
 			return -1;
@@ -682,7 +707,7 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
 			.det = det,
 			.n = instrument_array_len(instruments)
 		};
-		if(!sh_series_from_realfunc(projection, ProjectionMatrixWrapper, &data)) {
+		if(!sh_series_from_func(projection, ProjectionMatrixWrapper, &data)) {
 			sh_series_free(projection);
 			free(det);
 			return -1;
