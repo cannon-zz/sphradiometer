@@ -772,6 +772,35 @@ static int whiten(complex double *series, complex double *noise, int length)
 	return 0;
 }
 
+/*
+ * ============================================================================
+ *
+ *                                   prior
+ *
+ * ============================================================================
+ */
+
+
+static double logprior(double theta, double phi, void *data)
+{
+	return log(0.25 * sin(theta) / M_PI);
+}
+
+
+static int sh_series_add_logprior(struct sh_series *sky, int lmax)
+{
+	struct sh_series *sh_series_logprior;
+	sh_series_logprior = sh_series_new(lmax, 0);
+
+	if(!sh_series_from_realfunc(sh_series_logprior, logprior, NULL)) {
+		sh_series_free(sh_series_logprior);
+		return -1;
+	}
+
+	sh_series_add(sky, 1.0, sh_series_logprior);
+	return 0;
+}
+
 
 /*
  * ============================================================================
@@ -995,6 +1024,19 @@ int main(int argc, char *argv[])
 	 * error but mistakes. We can neglect the mistakes because our result
 	 * is correct). However our Likelihood does't need it. */
 	sh_series_scale(sky, fdplans->baselines->n_baselines * series[0]->data->length);
+
+	/*
+	 * prior
+	 */
+
+
+#if 1
+	fprintf(stderr, "start multiply prior\n");
+	if(sh_series_add_logprior(sky, correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax)){
+		fprintf(stderr, "failur adding prior\n");
+		exit(1);
+	}
+#endif
 
 
 	/*
