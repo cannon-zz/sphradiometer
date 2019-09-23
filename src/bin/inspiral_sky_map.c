@@ -664,15 +664,7 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
  */
 
 
-static double unit_func(double theta, double phi, void *data)
-{
-	return 1.;
-}
-
-
-/* flag = 0 for Likelihood ratio.
- * flag = 1 for posterior, */
-static int autocorrelator_network_from_projection(struct sh_series *sky, complex double **fseries, struct options *options, unsigned int length, int flag)
+static int autocorrelator_network_from_projection(struct sh_series *sky, complex double **fseries, struct options *options, unsigned int length)
 {
 	int i, j;
 	struct sh_series *projection = sh_series_new(Projection_lmax, 0);
@@ -711,24 +703,6 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
 			sh_series_free(projection);
 			free(det);
 			return -1;
-		}
-
-		/* Likelihood ratio -> posterior if you hope */
-		if(flag){
-			struct sh_series *unit_matrix = sh_series_new(Projection_lmax, 0);
-			if(!unit_matrix){
-				sh_series_free(unit_matrix);
-				sh_series_free(projection);
-				return -1;
-			}
-
-			if(!sh_series_from_realfunc(unit_matrix, unit_func, NULL)) {
-				sh_series_free(unit_matrix);
-				sh_series_free(projection);
-				return -1;
-			}
-			projection->coeff[0] -= unit_matrix->coeff[0];
-			sh_series_free(unit_matrix);
 		}
 
 		/* execute calc. */
