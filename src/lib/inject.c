@@ -94,7 +94,7 @@ static double *_inject_transform_point_source(const struct instrument *instrumen
 	gsl_interp *interp = gsl_interp_alloc(gsl_interp_cspline, n);
 	gsl_interp_accel *accel = gsl_interp_accel_alloc();
 	const double r_dot_s = vector_r_dot_s(instrument->phase_centre, theta, phi);
-	const int transient = abs(r_dot_s / delta_t) + 1;
+	const int transient = ceil(fabs(r_dot_s / delta_t)) + 1;
 	int i;
 
 	/* generate values for the time co-ordinate */
