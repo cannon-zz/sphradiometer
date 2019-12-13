@@ -1051,7 +1051,8 @@ int main(int argc, char *argv[])
 	 * codes pass all consistency checks. Threfore our codes doesn't have
 	 * error but mistakes. We can neglect the mistakes because our result
 	 * is correct). However our Likelihood does't need it. */
-	sh_series_scale(sky, fdplans->baselines->n_baselines * series[0]->data->length);
+	sh_series_scale(sky, fdplans->baselines->n_baselines *4 /** series[0]->data->length*/);
+
 
 	/*
 	 * prior
