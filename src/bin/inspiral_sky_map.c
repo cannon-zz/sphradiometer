@@ -1009,7 +1009,7 @@ int main(int argc, char *argv[])
 	 */
 	
 
-#if 1
+#if 0
 	for(k = 0; k < instrument_array_len(options->instruments); k++){
 		threshold(fseries[k], fnseries[k], series[k]->data->length);
 		whiten(fseries[k], fnseries[k], series[k]->data->length);
