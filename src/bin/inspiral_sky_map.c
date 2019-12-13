@@ -465,14 +465,17 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 #if 0
 static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
 {
+	/* this is general parameterized one */
 	double fplus[n], fcross[n];
 
 	FDP(fplus, fcross, det, n, theta, phi);
 	return fplus[i] * fplus[j] + fcross[i] * fcross[j];
 }
-#else
+#endif
+#if 0
 static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
 {
+	/* this is CBC parameterized one for \beta=1 */
 	int k;
 	double fplus[n], fcross[n];
 	double normplus2;
