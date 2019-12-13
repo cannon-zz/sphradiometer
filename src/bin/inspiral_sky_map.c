@@ -496,6 +496,32 @@ static complex double ProjectionMatrix(double theta, double phi, int i, int j, c
 	return (fplus[i] + I * fcross[i]) * (fplus[j] - I * fcross[j]) / (normplus2 + normcross2);
 }
 #endif
+#if 1
+static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
+{
+	/* this is CBC parametrized one for any beta & psi */
+	double beta = 1;
+	double psi = 0. * M_PI / 6.;
+
+	double fplus[n], fcross[n];
+	double normplus2;
+	double normcross2;
+
+	int k;
+	normplus2 = normcross2 = 0.0;
+	for(k = 0; k < n; k++){
+		/* store fp, fc */
+		/* gmst is rotated at the end of this code.
+		 * So we can set zero. */
+		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, psi, 0.0);
+		/* calculate norms of vector fp & fc */
+		normplus2 += fplus[k] * fplus[k];
+		normcross2 += fcross[k] * fcross[k];
+	}
+
+	return (fplus[i] + I * beta * fcross[i]) * (fplus[j] - I * beta * fcross[j]) / (normplus2 + beta*beta * normcross2);
+}
+#endif
 
 
 struct ProjectionMatrixWrapperData {
