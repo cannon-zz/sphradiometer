@@ -4,10 +4,11 @@ pkgconfig_DATA = sphradiometer.pc
 
 lib_LTLIBRARIES = libsphradiometer.la
 
+noinst_LTLIBRARIES = libsphradiometerdiag.la
+
 libsphradiometer_la_SOURCES = \
 	correlator.c \
 	deconvolution.c \
-	diagnostics.c \
 	inject.c \
 	instrument.c \
 	projection.c \
@@ -20,6 +21,14 @@ libsphradiometer_la_SOURCES = \
 	sh_series_trans.c \
 	sky.c
 
+libsphradiometerdiag_la_SOURCES = \
+	diagnostics.c
+
 libsphradiometer_la_CFLAGS = $(AM_CFLAGS) $(CHEALPIX_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS)
 libsphradiometer_la_CXXFLAGS = $(AM_CXXFLAGS) $(HEALPIXCXX_CFLAGS)
 libsphradiometer_la_LDFLAGS = $(AM_LDFLAGS) $(CHEALPIX_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS) $(HEALPIXCXX_LIBS)
+
+libsphradiometerdiag_la_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS)
+libsphradiometerdiag_la_CXXFLAGS = $(AM_CXXFLAGS)
+libsphradiometerdiag_la_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS) $(HEALPIXCXX_LIBS)
+libsphradiometerdiag_la_LIBADD = libsphradiometer.la
