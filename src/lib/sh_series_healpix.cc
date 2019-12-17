@@ -167,6 +167,7 @@ struct sh_series *sh_series_read_healpix_alm(const char *filename)
 
 	try {
 		f.open(filename);
+		f.goto_hdu(2);
 		get_almsize(f, l_max, m_max);
 		if(l_max < 0 || (m_max != 0 && m_max != l_max))
 			throw std::runtime_error("unsupported (l_max, m_max)");
