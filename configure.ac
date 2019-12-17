@@ -71,7 +71,7 @@ AC_SUBST([HEALPIXCXX_LIBS])
 
 # Check for LAPACK
 AC_SUBST([MIN_LAPACK_VERSION], [3.0])
-PKG_CHECK_MODULES([LAPACK], [lapacke >= ${MIN_LAPACK_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([LAPACK], [lapack-atlas >= ${MIN_LAPACK_VERSION}], , [echo "Not Found!" ; exit 1])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
 AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
