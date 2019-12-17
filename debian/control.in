@@ -13,7 +13,7 @@ Build-Depends:
  lalframe-dev (>= @MIN_LALFRAME_VERSION@),
  lalsimulation-dev (>= @MIN_LALSIMULATION_VERSION@),
  libchealpix-dev (>= @MIN_CHEALPIX_VERSION@),
- libfftw3-dev (>= 3),
+ libfftw3-dev,
  libhdf5-dev (>= @MIN_HDF5_VERSION@),
  libhealpix-cxx-dev (>= @MIN_HEALPIXCXX_VERSION@),
  libgsl-dev (>= @MIN_GSL_VERSION@),
@@ -54,6 +54,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
  sphradiometer (= ${binary:Version}),
  libc6-dev,
+ libfftw3-dev,
  libgsl-dev (>= @MIN_GSL_VERSION@)
 Description: Files and documentation needed for compiling sphradiometer based software.
  This package contains the files needed to compile sphradiometer based
