@@ -162,8 +162,7 @@ struct sh_series *sh_series_read_healpix_alm(const char *filename)
 	fitshandle f;
 	int l_max;
 	int m_max;
-	Alm<xcomplex<double>> *alms = NULL;
-	struct sh_series *series;
+	Alm<xcomplex<double>> alms;
 
 	try {
 		f.open(filename);
@@ -171,17 +170,11 @@ struct sh_series *sh_series_read_healpix_alm(const char *filename)
 		get_almsize(f, l_max, m_max);
 		if(l_max < 0 || (m_max != 0 && m_max != l_max))
 			throw std::runtime_error("unsupported (l_max, m_max)");
-		alms = new Alm<xcomplex<double>>(l_max, m_max);
-		read_Alm_from_fits(f, *alms, l_max, m_max);
+		read_Alm_from_fits(f, alms, l_max, m_max);
 	} catch (std::exception &e) {
 		perror(e.what());
-		delete alms;
 		return NULL;
 	}
 
-	series = sh_series_from_healpix_Alm(*alms);
-
-	delete alms;
-
-	return series;
+	return sh_series_from_healpix_Alm(alms);
 }
