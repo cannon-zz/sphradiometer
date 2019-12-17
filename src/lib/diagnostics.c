@@ -28,10 +28,40 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <gsl/gsl_math.h>
 #include <sphradiometer/sh_series.h>
 #include <sphradiometer/correlator.h>
 #include <sphradiometer/diagnostics.h>
+
+
+/*
+ * ============================================================================
+ *
+ *                         Random Function on Sphere
+ *
+ * ============================================================================
+ */
+
+
+double randrange(double lo, double hi)
+{
+	return lo + (double) random() * (hi - lo) / RAND_MAX;
+}
+
+
+struct sh_series *random_sh_series(int l_max, int polar)
+{
+	struct sh_series *series = sh_series_new(l_max, polar);
+	double scale = 1. / (l_max + 1);
+	int l, m;
+
+	for(l = 0; l <= l_max; l++)
+		for(m = (polar ? 0 : -l); m <= (polar ? 0 : +l); m++)
+			sh_series_set(series, l, m, randrange(-scale, +scale) + I * randrange(-scale, +scale));
+
+	return series;
+}
 
 
 /*

@@ -50,6 +50,8 @@ extern "C" {
  */
 
 
+double randrange(double, double);
+struct sh_series *random_sh_series(int, int);
 void diagnostics_dump_sh_series(const struct sh_series *, char *);
 int sh_series_cmp(const struct sh_series *, const struct sh_series *);
 double diagnostics_rms_error(const struct sh_series *, const struct sh_series *);

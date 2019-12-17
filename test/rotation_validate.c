@@ -46,12 +46,6 @@
  */
 
 
-static double randrange(double lo, double hi)
-{
-	return lo + (double) random() * (hi - lo) / RAND_MAX;
-}
-
-
 #if 0
 static double abs_fractional_difference(double x, double y)
 {

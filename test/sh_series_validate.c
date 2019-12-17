@@ -46,25 +46,6 @@
  */
 
 
-static double randrange(double lo, double hi)
-{
-	return lo + (double) random() * (hi - lo) / RAND_MAX;
-}
-
-
-static struct sh_series *random_sh_series(int l_max, int polar)
-{
-	struct sh_series *series = sh_series_new(l_max, polar);
-	int l, m;
-
-	for(l = 0; l <= l_max; l++)
-		for(m = (polar ? 0 : -l); m <= (polar ? 0 : +l); m++)
-			sh_series_set(series, l, m, randrange(0., 1.) + I * randrange(0., 1.));
-
-	return series;
-}
-
-
 static struct sh_series_array *random_sh_series_array(int n, int l_max, int polar)
 {
 	struct sh_series_array *array = sh_series_array_new(n, l_max, polar);
