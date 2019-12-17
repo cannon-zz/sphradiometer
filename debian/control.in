@@ -53,7 +53,7 @@ Package: sphradiometer-dev
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
  sphradiometer (= ${binary:Version}),
- libgsl-dev (>= 1.9)
+ libgsl-dev (>= @MIN_GSL_VERSION@)
 Description: Files and documentation needed for compiling sphradiometer based software.
  This package contains the files needed to compile sphradiometer based
  software.
