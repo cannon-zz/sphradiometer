@@ -470,37 +470,10 @@ static complex double ExcessProjectionMatrix(double theta, double phi, int i, in
 	FDP(fplus, fcross, det, n, theta, phi);
 	return fplus[i] * fplus[j] + fcross[i] * fcross[j];
 }
-#if 0
-static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
+
+static complex double CBCProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double beta, double psi)
 {
-	/* this is CBC parameterized one for \beta=1 */
-	int k;
-	double fplus[n], fcross[n];
-	double normplus2;
-	double normcross2;
-	normplus2 = normcross2 = 0.0;
-
-	for(k = 0; k < n; k++){
-		/* store fp, fc */
-		/* gmst is rotated at the end of this code.
-		 * So we can set zero. */
-		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, 0.0, 0.0);
-		/* calculate norms of vector fp & fc */
-		normplus2 += fplus[k] * fplus[k];
-		normcross2 += fcross[k] * fcross[k];
-	}
-
-	/* order between i & j is important. Be consistent with Time delay. */
-	return (fplus[i] + I * fcross[i]) * (fplus[j] - I * fcross[j]) / (normplus2 + normcross2);
-}
-#endif
-#if 1
-static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
-{
-	/* this is CBC parametrized one for any beta & psi */
-	double beta = 1;
-	double psi = 0. * M_PI / 6.;
-
+	/* this is CBC parameterized one for arbitrary beta & psi */
 	double fplus[n], fcross[n];
 	double normplus2;
 	double normcross2;
@@ -519,13 +492,14 @@ static complex double ProjectionMatrix(double theta, double phi, int i, int j, c
 
 	return (fplus[i] + I * beta * fcross[i]) * (fplus[j] - I * beta * fcross[j]) / (normplus2 + beta*beta * normcross2);
 }
-#endif
 
 
 struct ProjectionMatrixWrapperData {
 	int i, j;
 	const LALDetector **det;
 	int n;
+	double beta;
+	double psi;
 };
 
 
@@ -533,7 +507,7 @@ static complex double ProjectionMatrixWrapper(double theta, double phi, void *_d
 {
 	struct ProjectionMatrixWrapperData *data = _data;
 
-	return ProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n);
+	return CBCProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n, data->beta, data->psi);
 }
 
 
@@ -571,7 +545,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 }
 
 
-static int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan)
+static int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan, double beta, double psi)
 {
 	int i;
 	struct sh_series *projection = sh_series_new(Projection_lmax, 0);
@@ -598,7 +572,9 @@ static int correlator_network_plan_mult_by_projection(struct correlator_network_
 			.i = plan->baselines->baselines[i]->index_a,
 			.j = plan->baselines->baselines[i]->index_b,
 			.det = det,
-			.n = instrument_array_len(instruments)
+			.n = instrument_array_len(instruments),
+			.beta = beta,
+			.psi = psi
 		};
 		if(!sh_series_from_func(projection, ProjectionMatrixWrapper, &data)) {
 			sh_series_free(projection);
@@ -847,8 +823,10 @@ int main(int argc, char *argv[])
 	complex double **fnseries;
 	fftw_plan *fftplans;
 	fftw_plan *nfftplans;
-	struct correlator_network_plan_fd *fdplans;
-	struct sh_series *sky;
+	struct correlator_network_plan_fd *fdplansp;
+	struct correlator_network_plan_fd *fdplansn;
+	struct sh_series *skyp;
+	struct sh_series *skyn;
 	int k;
 	struct timeval t_start, t_end;
 
@@ -953,15 +931,21 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "constructing base correlator\n");
 	baselines = correlator_network_baselines_new(options->instruments);
-	fdplans = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
+	fdplansp = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
+	fdplansn = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
 #if 1
 	fprintf(stderr, "applying projection operator\n");
-	if(correlator_network_plan_mult_by_projection(fdplans)) {
+	if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0)) {
+		fprintf(stderr, "failed\n");
+		exit(1);
+	}
+	if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0)) {
 		fprintf(stderr, "failed\n");
 		exit(1);
 	}
 #endif
-	sky = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax, 0);
+	skyp = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax, 0);
+	skyn = sh_series_new_zero(correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax, 0);
 
 
 	/*
@@ -1020,8 +1004,12 @@ int main(int argc, char *argv[])
 	 */
 
 
-	if(!correlator_network_integrate_power_fd(sky, fseries, fdplans)) {
-		fprintf(stderr, "cross-correlator failed\n");
+	if(!correlator_network_integrate_power_fd(skyp, fseries, fdplansp)) {
+		fprintf(stderr, "positive beta cross-correlator failed\n");
+		exit(1);
+	}
+	if(!correlator_network_integrate_power_fd(skyn, fseries, fdplansn)) {
+		fprintf(stderr, "negative beta cross-correlator failed\n");
 		exit(1);
 	}
 	/* We calculated contrubutions from lower triangular part of Projection
@@ -1031,7 +1019,8 @@ int main(int argc, char *argv[])
 	 * Therefore it's OK to twice simply. NOTE: We have to pick up only
 	 * real part because correlator is Hermite. However this manipulation
 	 * is already done in sh_series_write_healpix_alm(). */
-	sh_series_scale(sky, 2.0);
+	sh_series_scale(skyp, 2.0);
+	sh_series_scale(skyn, 2.0);
 #if 0
 	/* add contributions from diagonal part, auto-correlation */
 	if(autocorrelator_network_from_projection(sky, fseries, options, series[0]->data->length)){
@@ -1049,7 +1038,8 @@ int main(int argc, char *argv[])
 	 * codes pass all consistency checks. Threfore our codes doesn't have
 	 * error but mistakes. We can neglect the mistakes because our result
 	 * is correct). However our Likelihood does't need it. */
-	sh_series_scale(sky, fdplans->baselines->n_baselines *4 /** series[0]->data->length*/);
+	sh_series_scale(skyp, fdplansp->baselines->n_baselines *4 /** series[0]->data->length*/);
+	sh_series_scale(skyn, fdplansn->baselines->n_baselines *4 /** series[0]->data->length*/);
 
 
 	/*
@@ -1059,7 +1049,11 @@ int main(int argc, char *argv[])
 
 #if 1
 	fprintf(stderr, "start multiply prior\n");
-	if(sh_series_add_logprior(sky, correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax)){
+	if(sh_series_add_logprior(skyp, correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax)){
+		fprintf(stderr, "failur adding prior\n");
+		exit(1);
+	}
+	if(sh_series_add_logprior(skyn, correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax)){
 		fprintf(stderr, "failur adding prior\n");
 		exit(1);
 	}
@@ -1072,7 +1066,8 @@ int main(int argc, char *argv[])
 
 
 	fprintf(stderr, "gmst = %.16g rad\n", gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
-	sh_series_rotate_z(sky, sky, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
+	sh_series_rotate_z(skyp, skyp, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
+	sh_series_rotate_z(skyn, skyn, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
 
 	gettimeofday(&t_end, NULL);
 	fprintf(stderr, "finished integration\n");
@@ -1084,15 +1079,19 @@ int main(int argc, char *argv[])
 
 
 	fprintf(stderr, "generate fits file\n");
-	if(sh_series_write_healpix_alm(sky, "map.fits")) {
-		fprintf(stderr, "write \"map.fits\" failed\n");
+	if(sh_series_write_healpix_alm(skyp, "coeffp.fits")) {
+		fprintf(stderr, "write \"coeffp.fits\" failed\n");
+		exit(1);
+	}
+	if(sh_series_write_healpix_alm(skyn, "coeffn.fits")) {
+		fprintf(stderr, "write \"coeffn.fits\" failed\n");
 		exit(1);
 	}
 
 
 	fprintf(stderr, "analyzed %g s of data in %g s\n", series[0]->data->length * series[0]->deltaT, (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
 	fprintf(stderr, "data sample rate was %g Hz\n", 1.0 / series[0]->deltaT);
-	fprintf(stderr, "sky was computed to harmonic order l = %d\n", sky->l_max);
+	fprintf(stderr, "sky was computed to harmonic order l = %d\n", skyp->l_max);
 
 
 	/*
@@ -1110,9 +1109,11 @@ int main(int argc, char *argv[])
 	}
 	free(series);
 	free(nseries);
-	correlator_network_plan_fd_free(fdplans);
+	correlator_network_plan_fd_free(fdplansp);
+	correlator_network_plan_fd_free(fdplansn);
 	correlator_network_baselines_free(baselines);
-	sh_series_free(sky);
+	sh_series_free(skyp);
+	sh_series_free(skyn);
 	/* below's order must be fixed */
 	options->instruments->n *= 2;
 	command_line_options_free(options);
