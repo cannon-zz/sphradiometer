@@ -462,8 +462,7 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 }
 
 
-#if 0
-static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
+static complex double ExcessProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
 {
 	/* this is general parameterized one */
 	double fplus[n], fcross[n];
@@ -471,7 +470,6 @@ static complex double ProjectionMatrix(double theta, double phi, int i, int j, c
 	FDP(fplus, fcross, det, n, theta, phi);
 	return fplus[i] * fplus[j] + fcross[i] * fcross[j];
 }
-#endif
 #if 0
 static complex double ProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
 {
