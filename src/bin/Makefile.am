@@ -1,11 +1,13 @@
 AM_CPPFLAGS = -I../include -I.
 
-bin_PROGRAMS = inspiral_sky_map radiometer fastX
+bin_PROGRAMS = inspiral_sky_map fastX
+
+noinst_PROGRAMS = radiometer
 
 radiometer_SOURCES = main.c
 radiometer_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS)
 radiometer_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS)
-radiometer_LDADD = ../lib/libsphradiometer.la
+radiometer_LDADD = ../lib/libsphradiometer.la ../lib/libsphradiometerdiag.la
 
 fastX_SOURCES = fastX.c
 fastX_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALFRAME_CFLAGS) $(LALSIMULATION_CFLAGS)
