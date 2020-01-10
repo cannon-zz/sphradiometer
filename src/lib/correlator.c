@@ -284,6 +284,21 @@ void correlator_baseline_free(struct correlator_baseline *baseline)
 }
 
 
+struct correlator_baseline *correlator_baseline_copy(const struct correlator_baseline *baseline)
+{
+	struct correlator_baseline *new = malloc(sizeof(*new));
+
+	*new = *baseline;
+	new->instruments = malloc(sizeof(*new->instruments));
+	new->d = gsl_vector_alloc(3);
+
+	new->instruments = instrument_array_copy(baseline->instruments);
+	gsl_vector_memcpy(new->d, baseline->d);
+
+	return new;
+}
+
+
 /*
  * ============================================================================
  *
@@ -507,6 +522,27 @@ void correlator_plan_fd_free(struct correlator_plan_fd *plan)
 }
 
 
+struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_fd *plan, int n)
+{
+	struct correlator_plan_fd *new = malloc(sizeof(*new));
+
+	*new = *plan;
+	new->baseline = malloc(sizeof(*new->baseline));
+	new->delay_product = malloc(sizeof(*new->delay_product));
+	new->fseries_product = malloc(n * sizeof(*new->fseries_product));
+	new->power_1d = malloc(sizeof(*new->power_1d));
+	new->rotation_plan = malloc(sizeof(*new->rotation_plan));
+
+	new->baseline = correlator_baseline_copy(plan->baseline);
+	new->delay_product = sh_series_array_copy(plan->delay_product);
+	memcpy(new->fseries_product, plan->fseries_product, n * sizeof(*plan->fseries_product));
+	new->power_1d = sh_series_copy(plan->power_1d);
+	new->rotation_plan = sh_series_rotation_plan_copy(plan->rotation_plan);
+
+	return new;
+}
+
+
 /*
  * ============================================================================
  *
@@ -686,6 +722,21 @@ void correlator_network_baselines_free(struct correlator_network_baselines *netw
 }
 
 
+struct correlator_network_baselines *correlator_network_baselines_copy(const struct correlator_network_baselines *network)
+{
+	int i;
+	struct correlator_network_baselines *new = malloc(sizeof(*new));
+
+	*new = *network;
+	new->baselines = malloc(sizeof(*new->baselines));
+
+	for(i = 0; i < network->n_baselines; i++)
+		new->baselines[i] = correlator_baseline_copy(network->baselines[i]);
+
+	return new;
+}
+
+
 unsigned int correlator_network_l_max(struct correlator_network_baselines *network, double delta_t)
 {
 	unsigned int l_max = 0;
@@ -790,6 +841,20 @@ void correlator_network_plan_fd_free(struct correlator_network_plan_fd *plan)
 			correlator_plan_fd_free(plan->plans[i]);
 	}
 	free(plan);
+}
+
+
+struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct correlator_network_plan_fd *plan, int n)
+{
+	int i;
+	struct correlator_network_plan_fd *new = malloc(sizeof(*new));
+
+	new->baselines = correlator_network_baselines_copy(plan->baselines);
+	new->plans = malloc(plan->baselines->n_baselines * sizeof(*plan->plans));
+	for(i = 0; i < plan->baselines->n_baselines; i++)
+		new->plans[i] = correlator_plan_fd_copy(plan->plans[i], n);
+
+	return new;
 }
 
 

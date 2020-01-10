@@ -208,10 +208,12 @@ void correlator_ctseries_to_fseries(fftw_plan);
 
 struct correlator_baseline *correlator_baseline_new(const struct instrument_array *, int, int);
 void correlator_baseline_free(struct correlator_baseline *);
+struct correlator_baseline *correlator_baseline_copy(const struct correlator_baseline *);
 
 
 struct correlator_network_baselines *correlator_network_baselines_new(const struct instrument_array *);
 void correlator_network_baselines_free(struct correlator_network_baselines *);
+struct correlator_network_baselines *correlator_network_baselines_copy(const struct correlator_network_baselines *);
 unsigned int correlator_network_l_max(struct correlator_network_baselines *, double);
 
 
@@ -226,6 +228,7 @@ void correlator_plan_td_free(struct correlator_plan_td *);
 
 struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseline *, int, double);
 void correlator_plan_fd_free(struct correlator_plan_fd *);
+struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_fd *, int);
 
 
 struct correlator_network_plan_td *correlator_network_plan_td_new(struct correlator_network_baselines *, double);
@@ -234,6 +237,7 @@ void correlator_network_plan_td_free(struct correlator_network_plan_td *);
 
 struct correlator_network_plan_fd *correlator_network_plan_fd_new(struct correlator_network_baselines *, int, double);
 void correlator_network_plan_fd_free(struct correlator_network_plan_fd *);
+struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct correlator_network_plan_fd *, int);
 
 
 /*
