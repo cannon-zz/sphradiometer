@@ -28,6 +28,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_const.h>
 #include <gsl/gsl_math.h>
@@ -146,6 +147,23 @@ void instrument_free(struct instrument *instrument)
 			instrument->freefunc(instrument->data);
 	}
 	free(instrument);
+}
+
+
+/*
+ * duplicate an instrument object.  NOTE:  the data and freefunc in the new
+ * object are reset to NULL.  the calling code is responsible for
+ * duplicating the data and setting the pointer, if needed.
+ */
+
+
+struct instrument *instrument_copy(const struct instrument *instrument)
+{
+	return instrument_new(
+		gsl_vector_get(instrument->phase_centre, 0),
+		gsl_vector_get(instrument->phase_centre, 1),
+		gsl_vector_get(instrument->phase_centre, 2),
+		instrument->data, instrument->freefunc);
 }
 
 
@@ -309,4 +327,24 @@ void instrument_array_free(struct instrument_array *instrument_array)
 		free(instrument_array->instruments);
 	}
 	free(instrument_array);
+}
+
+
+/*
+ * copies instrument_array and all instruments it contains
+ */
+
+
+struct instrument_array *instrument_array_copy(const struct instrument_array *instrument_array)
+{
+	int i;
+	struct instrument_array *new = malloc(sizeof(*new));
+
+	*new = *instrument_array;
+	new->instruments = malloc(instrument_array_len(instrument_array) * sizeof(*new->instruments));
+
+	for(i = 0; i < instrument_array_len(instrument_array); i++)
+		new->instruments[i] = instrument_copy(instrument_array->instruments[i]);
+	
+	return new;
 }
