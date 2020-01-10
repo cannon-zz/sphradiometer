@@ -321,6 +321,7 @@ double *sh_series_rot_matrix(double, double);
 double *sh_series_invrot_matrix(double, double);
 struct sh_series_rotation_plan *sh_series_rotation_plan_new(const struct sh_series *, const double *);
 void sh_series_rotation_plan_free(struct sh_series_rotation_plan *);
+struct sh_series_rotation_plan *sh_series_rotation_plan_copy(const struct sh_series_rotation_plan *);
 double complex sh_series_rotation_plan_wigner_D(const struct sh_series_rotation_plan *, unsigned, int, int);
 struct sh_series *sh_series_rotate(struct sh_series *, const struct sh_series *, const struct sh_series_rotation_plan *);
 struct sh_series *sh_series_rotate_z(struct sh_series *, const struct sh_series *, double);

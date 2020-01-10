@@ -148,7 +148,7 @@ double *sh_series_invrot_matrix(double theta, double phi)
 
 
 /*
- * D matrix create and destroy.  The pointer is shifted so that negative m
+ * D matrix create, destroy and copy.  The pointer is shifted so that negative m
  * indeces can be used.
  */
 
@@ -168,6 +168,19 @@ static void D_matrix_free(complex double *D, unsigned int l)
 {
 	if(D)
 		free(D - (2 * l + 1) * l - l);
+}
+
+
+static complex double *D_matrix_copy(complex double *D, unsigned int l)
+{
+	complex double *new = malloc((2 * l + 1) * (2 * l + 1) * sizeof(*D));
+
+	if(D){
+		memcpy(new, D - (2 * l + 1) * l - l, (2 * l + 1) * (2 * l + 1) * sizeof(*D));
+		new +=  (2 * l + 1) * l + l;
+	}
+
+	return new;
 }
 
 
@@ -339,6 +352,29 @@ void sh_series_rotation_plan_free(struct sh_series_rotation_plan *plan)
 		free(plan->D + 1);
 	}
 	free(plan);
+}
+
+
+/*
+ * Copy a rotation plan.
+ */
+
+
+struct sh_series_rotation_plan *sh_series_rotation_plan_copy(const struct sh_series_rotation_plan *plan)
+{
+	unsigned l;
+	struct sh_series_rotation_plan *new = malloc(sizeof(*new));
+
+	*new = *plan;
+	new->D = malloc(plan->l_max * sizeof(*new->D));
+	/* l starts from 1. fit a start position of D with the index l. */
+	new->D--;
+	for(l = 1; l <= plan->l_max; l++){
+		new->D[l] = malloc((2 * l + 1) * (2 * l + 1) * sizeof(**plan->D));
+		new->D[l] = D_matrix_copy(plan->D[l], l);
+	}
+
+	return new;
 }
 
 
