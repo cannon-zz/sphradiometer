@@ -913,6 +913,14 @@ int main(int argc, char *argv[])
 		memcpy(series[k]->data->data, series[0]->data->data, series[0]->data->length * sizeof(*series[0]->data->data));
 #endif
 	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < series[k]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[k]->data->data[j]), cimag(series[k]->data->data[j])); fprintf(stderr, "\n"); }*/
+#if 0
+	/* replace with exp(2*pi*i*x) for determination of numerical error */
+	for(k = 0; k < n; k++) {
+		unsigned j;
+		for(j = 0; j < series[k]->data->length; j++)
+			series[k]->data->data[j] = cos(2 * M_PI * j / series[k]->data->length) + I * sin(2 * M_PI * j / series[k]->data->length);
+	}
+#endif
 
 
 	/*
