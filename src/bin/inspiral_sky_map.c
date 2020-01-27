@@ -44,6 +44,7 @@
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
 #include <lal/LALCache.h>
+#include <lal/LALConstants.h>
 #include <lal/LALFrameIO.h>
 #include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
@@ -369,8 +370,10 @@ static int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nse
 			end = this_end;
 	}
 
+	long data_length = (long) (round(2 * LAL_REARTH_SI / LAL_C_SI / series[0]->deltaT) + series[0]->data->length);
 	for(i = 0; i < n_series; i++) {
 		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / series[i]->deltaT), round(XLALGPSDiff(&end, &start) / series[i]->deltaT));
+		XLALResizeCOMPLEX16TimeSeries(series[i], round((series[i]->data->length - data_length) / 2.), data_length);
 		XLALResizeCOMPLEX16Sequence(nseries[i], -((int) series[i]->data->length - (int) nseries[i]->length) / 2, series[i]->data->length);
 	}
 
