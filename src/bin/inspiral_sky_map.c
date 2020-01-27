@@ -950,11 +950,11 @@ int main(int argc, char *argv[])
 #if 1
 	fprintf(stderr, "applying projection operator\n");
 	if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0)) {
-		fprintf(stderr, "failed\n");
+		fprintf(stderr, "positive plan is failed\n");
 		exit(1);
 	}
 	if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0)) {
-		fprintf(stderr, "failed\n");
+		fprintf(stderr, "negative plan is failed\n");
 		exit(1);
 	}
 #endif
