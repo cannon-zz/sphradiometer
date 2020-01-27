@@ -1083,7 +1083,6 @@ int main(int argc, char *argv[])
 	sh_series_rotate_z(skyp, skyp, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
 	sh_series_rotate_z(skyn, skyn, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0));
 
-	gettimeofday(&t_end, NULL);
 	fprintf(stderr, "finished integration\n");
 
 
@@ -1103,6 +1102,7 @@ int main(int argc, char *argv[])
 	}
 
 
+	gettimeofday(&t_end, NULL);
 	fprintf(stderr, "analyzed %g s of data in %g s\n", series[0]->data->length * series[0]->deltaT, (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_usec - t_start.tv_usec) * 1e-6);
 	fprintf(stderr, "data sample rate was %g Hz\n", 1.0 / series[0]->deltaT);
 	fprintf(stderr, "sky was computed to harmonic order l = %d\n", skyp->l_max);
