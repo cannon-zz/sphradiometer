@@ -228,7 +228,7 @@ void correlator_plan_td_free(struct correlator_plan_td *);
 
 struct correlator_plan_fd *correlator_plan_fd_new(const struct correlator_baseline *, int, double);
 void correlator_plan_fd_free(struct correlator_plan_fd *);
-struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_fd *, int);
+struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_fd *);
 
 
 struct correlator_network_plan_td *correlator_network_plan_td_new(struct correlator_network_baselines *, double);
@@ -237,7 +237,7 @@ void correlator_network_plan_td_free(struct correlator_network_plan_td *);
 
 struct correlator_network_plan_fd *correlator_network_plan_fd_new(struct correlator_network_baselines *, int, double);
 void correlator_network_plan_fd_free(struct correlator_network_plan_fd *);
-struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct correlator_network_plan_fd *, int);
+struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct correlator_network_plan_fd *);
 
 
 /*

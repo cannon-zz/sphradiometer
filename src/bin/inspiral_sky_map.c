@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
 
 
 	fdplansp = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
-	fdplansn = correlator_network_plan_fd_copy(fdplansp, series[0]->data->length);
+	fdplansn = correlator_network_plan_fd_copy(fdplansp);
 #if 1
 	fprintf(stderr, "applying projection operator\n");
 	if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0)) {

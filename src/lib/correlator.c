@@ -522,20 +522,20 @@ void correlator_plan_fd_free(struct correlator_plan_fd *plan)
 }
 
 
-struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_fd *plan, int n)
+struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_fd *plan)
 {
 	struct correlator_plan_fd *new = malloc(sizeof(*new));
 
 	*new = *plan;
 	new->baseline = malloc(sizeof(*new->baseline));
 	new->delay_product = malloc(sizeof(*new->delay_product));
-	new->fseries_product = malloc(n * sizeof(*new->fseries_product));
+	new->fseries_product = malloc(plan->delay_product->n * sizeof(*new->fseries_product));
 	new->power_1d = malloc(sizeof(*new->power_1d));
 	new->rotation_plan = malloc(sizeof(*new->rotation_plan));
 
 	new->baseline = correlator_baseline_copy(plan->baseline);
 	new->delay_product = sh_series_array_copy(plan->delay_product);
-	memcpy(new->fseries_product, plan->fseries_product, n * sizeof(*plan->fseries_product));
+	memcpy(new->fseries_product, plan->fseries_product, plan->delay_product->n * sizeof(*plan->fseries_product));
 	new->power_1d = sh_series_copy(plan->power_1d);
 	new->rotation_plan = sh_series_rotation_plan_copy(plan->rotation_plan);
 
@@ -844,7 +844,7 @@ void correlator_network_plan_fd_free(struct correlator_network_plan_fd *plan)
 }
 
 
-struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct correlator_network_plan_fd *plan, int n)
+struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct correlator_network_plan_fd *plan)
 {
 	int i;
 	struct correlator_network_plan_fd *new = malloc(sizeof(*new));
@@ -852,7 +852,7 @@ struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct 
 	new->baselines = correlator_network_baselines_copy(plan->baselines);
 	new->plans = malloc(plan->baselines->n_baselines * sizeof(*plan->plans));
 	for(i = 0; i < plan->baselines->n_baselines; i++)
-		new->plans[i] = correlator_plan_fd_copy(plan->plans[i], n);
+		new->plans[i] = correlator_plan_fd_copy(plan->plans[i]);
 
 	return new;
 }
