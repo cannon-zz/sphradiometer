@@ -884,7 +884,7 @@ int main(int argc, char *argv[])
 
 
 	/*
-	 * Tukey Widow
+	 * Tukey Window
 	 */
 
 
