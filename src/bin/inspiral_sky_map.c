@@ -888,8 +888,8 @@ int main(int argc, char *argv[])
 	 */
 
 
-	int j;
 	for(k = 0; k < instrument_array_len(options->instruments); k++){
+		int j;
 		REAL8Window *window = XLALCreateTukeyREAL8Window(series[k]->data->length, 0.1);
 		for(j = 0; j < (int) window->data->length; j++){
 			series[k]->data->data[j] *= window->data->data[j];
