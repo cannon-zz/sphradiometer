@@ -750,15 +750,21 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
  */
 
 
-static int threshold(complex double *series, complex double *noise, int length)
+static int threshold(complex double *series, complex double *noise, int length, double threshold)
 {
 	int i;
 
 	/* 0.560964 = 10^3 * "numerical error" */
+	int k = 0;
 	for(i = 0; i < length; i++)
-		if(cabs(*noise++) < 0.560964)
+		//if(cabs(*noise++) < 0.560964)
+		//if(cabs(*noise++) < 1.28791e-13)
+		if(cabs(*noise++) < threshold){
 			series[i] = 0;
+			k += 1;
+		}
 	/*FIXME: numerical error would depend on emvironment and data length */
+	fprintf(stderr, "\nk = %d\nlength = %d\nratio = %g\n\n", k, length, 100. * k / length);
 
 	return 0;
 }
