@@ -345,6 +345,6 @@ struct instrument_array *instrument_array_copy(const struct instrument_array *in
 
 	for(i = 0; i < instrument_array_len(instrument_array); i++)
 		new->instruments[i] = instrument_copy(instrument_array->instruments[i]);
-	
+
 	return new;
 }
