@@ -175,9 +175,9 @@ static complex double *D_matrix_copy(complex double *D, unsigned int l)
 {
 	complex double *new = malloc((2 * l + 1) * (2 * l + 1) * sizeof(*D));
 
-	if(D){
+	if(new) {
 		memcpy(new, D - (2 * l + 1) * l - l, (2 * l + 1) * (2 * l + 1) * sizeof(*D));
-		new +=  (2 * l + 1) * l + l;
+		new += (2 * l + 1) * l + l;
 	}
 
 	return new;
