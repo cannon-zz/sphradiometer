@@ -719,11 +719,11 @@ void correlator_network_baselines_free(struct correlator_network_baselines *netw
 
 struct correlator_network_baselines *correlator_network_baselines_copy(const struct correlator_network_baselines *network)
 {
-	int i;
 	struct correlator_network_baselines *new = malloc(sizeof(*new));
+	int i;
 
 	*new = *network;
-	new->baselines = malloc(sizeof(*new->baselines));
+	new->baselines = malloc(network->n_baselines * sizeof(*new->baselines));
 	for(i = 0; i < network->n_baselines; i++)
 		new->baselines[i] = correlator_baseline_copy(network->baselines[i]);
 
