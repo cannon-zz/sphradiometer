@@ -329,7 +329,6 @@ struct instrument_array *instrument_array_copy(const struct instrument_array *in
 
 	*new = *instrument_array;
 	new->instruments = malloc(instrument_array_len(instrument_array) * sizeof(*new->instruments));
-
 	for(i = 0; i < instrument_array_len(instrument_array); i++)
 		new->instruments[i] = instrument_copy(instrument_array->instruments[i]);
 
