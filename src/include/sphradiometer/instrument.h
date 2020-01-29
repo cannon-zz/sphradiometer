@@ -59,14 +59,12 @@ extern "C" {
 struct instrument {
 	gsl_vector *phase_centre;
 	/*
-	 * user data.  not used by the sphradiometer library.  if freefunc
-	 * is not NULL it will be called with data as the one argument when
-	 * the instrument object is free()ed, otherwise the memory at the
-	 * location pointed to by data will not be free()ed when the
-	 * instrument object is free()ed.
+	 * user data.  not used by the sphradiometer library.  will not be
+	 * free()ed, calling code is responsible for clean-up.  if a copy
+	 * is made, both will share the same pointer.  if that is a
+	 * problem, calling code must fix.
 	 */
 	void *data;
-	void (*freefunc)(void *);
 };
 
 
@@ -95,10 +93,10 @@ double vector_r_dot_s(const gsl_vector *, double, double);
 void vector_direction(const gsl_vector *, double *, double *);
 
 
-struct instrument *instrument_new(double, double, double, void *, void (*)(void *));
+struct instrument *instrument_new(double, double, double, void *);
 void instrument_free(struct instrument *);
 struct instrument *instrument_copy(const struct instrument *);
-struct instrument *instrument_new_from_r_theta_phi(double, double, double, void *, void (*)(void *));
+struct instrument *instrument_new_from_r_theta_phi(double, double, double, void *);
 #ifndef SWIG
 struct instrument *instrument_new_from_LALDetector(const LALDetector *);
 #endif

@@ -114,7 +114,7 @@ void vector_direction(const gsl_vector *v, double *theta, double *phi)
  */
 
 
-struct instrument *instrument_new(double x, double y, double z, void *data, void (*freefunc)(void *))
+struct instrument *instrument_new(double x, double y, double z, void *data)
 {
 	struct instrument *new = malloc(sizeof(*new));
 	gsl_vector *phase_centre = gsl_vector_alloc(3);
@@ -122,8 +122,6 @@ struct instrument *instrument_new(double x, double y, double z, void *data, void
 	if(!new || !phase_centre) {
 		free(new);
 		gsl_vector_free(phase_centre);
-		if(freefunc)
-			freefunc(data);
 		return NULL;
 	}
 
@@ -133,7 +131,6 @@ struct instrument *instrument_new(double x, double y, double z, void *data, void
 
 	new->phase_centre = phase_centre;
 	new->data = data;
-	new->freefunc = freefunc;
 
 	return new;
 }
@@ -143,17 +140,13 @@ void instrument_free(struct instrument *instrument)
 {
 	if(instrument) {
 		gsl_vector_free(instrument->phase_centre);
-		if(instrument->freefunc)
-			instrument->freefunc(instrument->data);
 	}
 	free(instrument);
 }
 
 
 /*
- * duplicate an instrument object.  NOTE:  the data and freefunc in the new
- * object are reset to NULL.  the calling code is responsible for
- * duplicating the data and setting the pointer, if needed.
+ * duplicate an instrument object.
  */
 
 
@@ -163,35 +156,29 @@ struct instrument *instrument_copy(const struct instrument *instrument)
 		gsl_vector_get(instrument->phase_centre, 0),
 		gsl_vector_get(instrument->phase_centre, 1),
 		gsl_vector_get(instrument->phase_centre, 2),
-		instrument->data, instrument->freefunc);
+		instrument->data
+	);
 }
 
 
-struct instrument *instrument_new_from_r_theta_phi(double r, double theta, double phi, void *data, void (*freefunc)(void *))
+struct instrument *instrument_new_from_r_theta_phi(double r, double theta, double phi, void *data)
 {
 	return instrument_new(
 		r * sin(theta) * cos(phi),
 		r * sin(theta) * sin(phi),
 		r * cos(theta),
-		data,
-		freefunc
+		data
 	);
 }
 
 
 struct instrument *instrument_new_from_LALDetector(const LALDetector *det)
 {
-	/* this copy is only being made to remove the const'edness */
-	LALDetector *copy = malloc(sizeof(*copy));
-	if(!copy)
-		return NULL;
-	*copy = *det;
 	return instrument_new(
 		det->location[0] / GSL_CONST_MKS_SPEED_OF_LIGHT,
 		det->location[1] / GSL_CONST_MKS_SPEED_OF_LIGHT,
 		det->location[2] / GSL_CONST_MKS_SPEED_OF_LIGHT,
-		copy,
-		free
+		det
 	);
 }
 
