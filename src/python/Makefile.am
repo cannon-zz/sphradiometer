@@ -6,7 +6,7 @@ AM_CPPFLAGS = -I../include
 # on e.g. CentOS.
 pkgpythondir = $(pkgpyexecdir)
 
-EXTRA_DIST = sphradiometer.swig
+EXTRA_DIST = sphradiometer.i
 
 BUILT_SOURCES = sphradiometer.py sphradiometer_wrap.c
 
@@ -24,5 +24,5 @@ _sphradiometer_la_CFLAGS = $(AM_CFLAGS) $(PYTHON_CFLAGS) $(AX_SWIG_PYTHON_CFLAGS
 _sphradiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS) $(TCL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 _sphradiometer_la_LIBADD = ../lib/libsphradiometer.la
 
-sphradiometer.py sphradiometer_wrap.c : sphradiometer.swig ../include/sphradiometer/*.h
+sphradiometer.py sphradiometer_wrap.c : sphradiometer.i ../include/sphradiometer/*.h
 	$(SWIG) $(AX_SWIG_PYTHON_OPT) -I$(SWIG_LIB)/python $(AM_CPPFLAGS) $<
