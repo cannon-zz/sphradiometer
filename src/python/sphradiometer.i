@@ -27,6 +27,7 @@
 #include <sphradiometer/correlator.h>
 #include <sphradiometer/sky.h>
 #include <sphradiometer/deconvolution.h>
+#include <sphradiometer/inspiral_sky_map.h>
 %}
 
 %include <sphradiometer/sh_series.h>
@@ -36,3 +37,4 @@
 %include <sphradiometer/correlator.h>
 %include <sphradiometer/sky.h>
 %include <sphradiometer/deconvolution.h>
+%include <sphradiometer/inspiral_sky_map.h>
