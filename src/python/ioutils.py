@@ -40,18 +40,31 @@ from . import sphradiometer
 
 def read_sh_series(f):
 	pattern = re.compile(r"\((?P<l>\S+),(?P<m>\S+)\) = (?P<re>\S+) \+ I (?P<im>\S+)")
-	lmax = 0
-	polar = 1
 	lines = []
-	for line in f:
-		l, m, r, i = re.search(pattern, line).groups()
-		l, m, r, i = int(l), int(m), float(r), float(i)
-		lines.append((l, m, r, i))
-		lmax = max(lmax, l)
-		polar &= m == 0
+	for n, line in enumerate(f, 1):
+		# remove leading and trailing whitespace
+		line = line.strip()
+		# skip comments
+		if line[0] == "#":
+			continue
+		# parse the line
+		match = re.search(pattern, line)
+		if match is None:
+			raise ValueError("line %d: unrecognized format" % n)
+		l, m, r, i = match.groups()
+		try:
+			l = int(l)
+			m = int(m)
+			if l < 0 or abs(m) > l:
+				raise ValueError("invalid l, m: %d, %d" % (l, m))
+			lines.append((l, m, complex(float(r), float(i))))
+		except ValueError as e:
+			raise ValueError("line %d: %s" % (n, str(e)))
 	if not lines:
 		return sphradiometer.sh_series_new_zero(0, 0)
+	lmax = max(line[0] for line in lines)
+	polar = not any(line[1] for line in lines)
 	series = sphradiometer.sh_series_new_zero(lmax, polar)
-	for l, m, r, i in lines:
-		sphradiometer.sh_series_set(series, l, m, complex(r, i))
+	for l, m, a in lines:
+		sphradiometer.sh_series_set(series, l, m, a)
 	return series
