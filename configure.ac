@@ -106,8 +106,15 @@ AC_SUBST([MIN_SCIPY_VERSION], [1.1.0])
 AX_PYTHON_MODULE([healpy])
 AX_PYTHON_MODULE([matplotlib])
 AX_PYTHON_MODULE([mpl_toolkits.basemap])
-AX_PYTHON_MODULE([numpy])
+AX_PYTHON_MODULE([numpy], fatal)
 AX_PYTHON_MODULE([scipy])
+NUMPY_CFLAGS=-I`$PYTHON -c "import numpy;print (numpy.get_include());"`
+old_CFLAGS="$CFLAGS" CFLAGS="$CFLAGS ${PYTHON_CPPFLAGS} ${NUMPY_CFLAGS}"
+AC_CHECK_HEADER([numpy/arrayobject.h],
+	[PYTHON_CPPFLAGS="${PYTHON_CPPFLAGS} ${NUMPY_CFLAGS}"],
+	[AC_MSG_ERROR([Numpy extension header not found])],
+	[#include "Python.h"])
+CFLAGS="$old_CFLAGS"
 
 # CFLAGS, CXXFLAGS
 AX_CFLAGS_WARN_ALL([AM_CFLAGS])
