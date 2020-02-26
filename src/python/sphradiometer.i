@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006  Kipp C. Cannon
+ * Copyright (C) 2020  Takuya Tsutsui
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,12 +17,19 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
 %module sphradiometer
 %include ccomplex.i
+%include typemaps.i
+
+%include <lal/SWIGCommon.i>
+#ifndef SWIGIMPORTED
+%import <lal/swiglal.i>
+#endif
+
 %{
-#include <sphradiometer/sh_series.h>
+#define SWIG_FILE_WITH_INIT
 #include <sphradiometer/instrument.h>
+#include <sphradiometer/sh_series.h>
 #include <sphradiometer/inject.h>
 #include <sphradiometer/projection.h>
 #include <sphradiometer/correlator.h>
@@ -30,8 +38,8 @@
 #include <sphradiometer/inspiral_sky_map.h>
 %}
 
-%include <sphradiometer/sh_series.h>
 %include <sphradiometer/instrument.h>
+%include <sphradiometer/sh_series.h>
 %include <sphradiometer/inject.h>
 %include <sphradiometer/projection.h>
 %include <sphradiometer/correlator.h>

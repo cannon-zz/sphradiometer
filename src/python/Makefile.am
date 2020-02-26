@@ -19,10 +19,10 @@ pkgpython_PYTHON = \
 pkgpyexec_LTLIBRARIES = _sphradiometer.la
 
 _sphradiometer_la_SOURCES = sphradiometer_wrap.c
-_sphradiometer_la_CPPFLAGS = $(AM_CPPFLAGS) $(PYTHON_CPPFLAGS) $(AX_SWIG_PYTHON_CPPFLAGS)
+_sphradiometer_la_CPPFLAGS = $(AM_CPPFLAGS) $(PYTHON_CPPFLAGS) $(AX_SWIG_PYTHON_CPPFLAGS) -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION -DSWIGLAL_HAVE_NPY_ARRAY_WRITEABLE -DSWIGLAL_HAVE_PyArray_SetBaseObject
 _sphradiometer_la_CFLAGS = $(AM_CFLAGS) $(PYTHON_CFLAGS) $(AX_SWIG_PYTHON_CFLAGS) $(TCL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 _sphradiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS) $(TCL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 _sphradiometer_la_LIBADD = ../lib/libsphinspiralskymap.la ../lib/libsphradiometer.la
 
 sphradiometer.py sphradiometer_wrap.c : sphradiometer.i ../include/sphradiometer/*.h
-	$(SWIG) $(AX_SWIG_PYTHON_OPT) -I$(SWIG_LIB)/python $(AM_CPPFLAGS) $<
+	$(SWIG) $(AX_SWIG_PYTHON_OPT) -I$(SWIG_LIB)/python $(AM_CPPFLAGS) $(shell pkg-config --cflags-only-I lal) $<
