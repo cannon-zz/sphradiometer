@@ -522,7 +522,7 @@ static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation
 
 	/* write D */
 	unsigned int l;
-	for(l = 0; l <= plan->l_max; l++) {
+	for(l = 1; l <= plan->l_max; l++) {
 		sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D%d.dat", i, l);
 		fp = fopen(filename, "wb");
 		if(!fp) {
