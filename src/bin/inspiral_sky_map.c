@@ -443,6 +443,212 @@ static int whiten(complex double *series, complex double *noise, int length)
 /*
  * ============================================================================
  *
+ *                                Write precalcs
+ *
+ * ============================================================================
+ */
+
+
+static int write_precalc_correlator_baseline(const struct correlator_baseline *baseline, int i)
+{
+	char filename[128];
+	FILE *fp;
+
+	/* write no pointer objects */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open correlator_baseline.dat\n");
+		return -1;
+	}
+	fwrite(&baseline, sizeof(baseline), 1, fp);
+	fclose(fp);
+
+	/* write d */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open d.dat\n");
+		return -1;
+	}
+	gsl_vector_fwrite(fp, baseline->d);
+	fclose(fp);
+
+	/* instruments which is a member of correlator_baseline are given by
+	 * command line options.  Then, we don't have to store it. */
+
+	return 0;
+}
+
+
+static int write_precalc_correlator_network_baselines(const struct correlator_network_baselines *baselines)
+{
+	/* write n_baselines */
+	FILE *fp = fopen("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open n_baselines.dat\n");
+		return -1;
+	}
+	fwrite(&baselines->n_baselines, sizeof(baselines->n_baselines), 1, fp);
+	fclose(fp);
+
+	/* write baselines */
+	int i;
+	for(i = 0; i < baselines->n_baselines; i++) {
+		if(write_precalc_correlator_baseline(baselines->baselines[i], i)) {
+			fprintf(stderr, "can't save %dth correlator_baseline\n", i);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
+static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation_plan *plan, int i)
+{
+	char filename[128];
+	FILE *fp;
+
+	/* write l_max */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth l_max.dat\n", i);
+		return -1;
+	}
+	fwrite(&plan->l_max, sizeof(plan->l_max), 1, fp);
+	fclose(fp);
+
+	/* write D */
+	unsigned int l;
+	for(l = 0; l <= plan->l_max; l++) {
+		sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D%d.dat", i, l);
+		fp = fopen(filename, "wb");
+		if(!fp) {
+			fprintf(stderr, "can't open %dth D%d.dat\n", i, l);
+			return -1;
+		}
+		plan->D[l] -= (2 * l + 1) * l + l;
+		fwrite(&plan->D[l], sizeof(plan->D[l]), 1, fp);
+		plan->D[l] += (2 * l + 1) * l + l;
+		fclose(fp);
+	}
+
+	return 0;
+}
+
+
+static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *planp, const struct correlator_plan_fd *plann, int i)
+{
+	char filename[128];
+	FILE *fp;
+
+	/* write no pointer objects */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth correlator_plan_fd.dat\n", i);
+		return -1;
+	}
+	fwrite(&planp, sizeof(planp), 1, fp);
+	fwrite(&plann, sizeof(plann), 1, fp);
+	fclose(fp);
+
+	/* write rotation_plan */
+	if(write_precalc_sh_series_rotation_plan(planp->rotation_plan, i)) {
+		fprintf(stderr, "can't open %dth rotation_plan.dat\n", i);
+		return -1;
+	}
+
+	/* write delay_product (sh_series_array) */
+	/* positive case */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth positive sh_series_array.dat\n", i);
+		return -1;
+	}
+	fwrite(&planp->delay_product, sizeof(planp->delay_product), 1, fp);
+	fclose(fp);
+
+	if(sh_series_write_healpix_alm(planp->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_p/series.fits"))
+		fprintf(stderr, "can't save %dth positive delay_product->series\n", i);
+
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/coeff.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth positive delay_product->coeff\n", i);
+		return -1;
+	}
+	fwrite(&planp->delay_product->coeff, sizeof(planp->delay_product), 1, fp);
+	fclose(fp);
+
+	/* negative case */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth negative sh_series_array.dat\n", i);
+		return -1;
+	}
+	fwrite(&plann->delay_product, sizeof(plann->delay_product), 1, fp);
+	fclose(fp);
+
+	if(sh_series_write_healpix_alm(planp->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_n/series.fits"))
+		fprintf(stderr, "can't save %dth negative delay_product->series\n", i);
+
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/coeff.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth negative delay_product->coeff\n", i);
+		return -1;
+	}
+	fwrite(&plann->delay_product->coeff, sizeof(plann->delay_product), 1, fp);
+	fclose(fp);
+
+	/* write baseline */
+	/* same information as correlator_network_baselines.  Then omit */
+
+	/* write fseries_product */
+	/* fseries_product is one of the results.  don't save. */
+
+	/* write power_1d */
+	/* power_1d is one of the results.  don't save. */
+
+	return 0;
+}
+
+
+static int write_precalc_correlator_network_plan_fd(const struct correlator_network_plan_fd *fdplansp, const struct correlator_network_plan_fd *fdplansn)
+{
+	/* write baselines */
+	if(write_precalc_correlator_network_baselines(fdplansp->baselines)) {
+		fprintf(stderr, "can't save correlator_network_baselines\n");
+		return -1;
+	}
+
+	/* write plans */
+	int i;
+	for(i = 0; i < fdplansp->baselines->n_baselines; i++) {
+		if(write_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], i)) {
+			fprintf(stderr, "can't save %dth correlator_plan\n", i);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
+static int write_precalc_logprior(const struct sh_series *series)
+{
+	return sh_series_write_healpix_alm(series, "/home/tsutsui/precalc/sh_series/logprior.fits");
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Entry Point
  *
  * ============================================================================
