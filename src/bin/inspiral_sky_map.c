@@ -443,6 +443,235 @@ static int whiten(complex double *series, complex double *noise, int length)
 /*
  * ============================================================================
  *
+ *                                Read precalcs
+ *
+ * ============================================================================
+ */
+
+
+static struct correlator_baseline *read_precalc_correlator_baseline(const struct instrument_array *instruments, int i)
+{
+	char filename[128];
+	FILE *fp;
+	struct correlator_baseline *new = malloc(sizeof(*new));
+
+	/* read no pointer objects */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", i);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "no correlator_baseline.dat in %d\n", i);
+		return NULL;
+	}
+	/* following order must be consistent with the one in the writer */
+	fread(&new->index_a, sizeof(new->index_a), 1, fp);
+	fread(&new->index_b, sizeof(new->index_b), 1, fp);
+	fread(&new->theta, sizeof(new->theta), 1, fp);
+	fread(&new->phi, sizeof(new->phi), 1, fp);
+	fclose(fp);
+
+	/* read d */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", i);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "no d.dat in %d\n", i);
+		return NULL;
+	}
+	new->d = gsl_vector_alloc(3);
+	gsl_vector_fread(fp, new->d);
+	fclose(fp);
+
+	/* substitute instruments */
+	new->instruments = instrument_array_copy(instruments);
+
+	return new;
+}
+
+
+static struct correlator_network_baselines *read_precalc_correlator_network_baselines(const struct instrument_array *instruments)
+{
+	struct correlator_network_baselines *new = malloc(sizeof(*new));
+	int i;
+
+	/* read n_baselines */
+	FILE *fp = fopen("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", "rb");
+	if(!fp) {
+		fprintf(stderr, "no n_baselines.dat\n");
+		return NULL;
+	}
+	fread(&new->n_baselines, sizeof(new->n_baselines), 1, fp);
+	fclose(fp);
+
+	/* read baselines */
+	new->baselines = malloc(new->n_baselines * sizeof(*new->baselines));
+	for(i = 0; i < new->n_baselines; i++)
+		new->baselines[i] = read_precalc_correlator_baseline(instruments, i);
+
+	return new;
+}
+
+
+static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int i)
+{
+	char filename[128];
+	FILE *fp;
+	struct sh_series_rotation_plan *new = malloc(sizeof(*new));
+
+	/* read l_max */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", i);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "no %dth l_max.dat\n", i);
+		return NULL;
+	}
+	fread(&new->l_max, sizeof(new->l_max), 1, fp);
+	fclose(fp);
+
+	/* read D */
+	new->D = malloc(new->l_max * sizeof(*new->D));
+	unsigned int l;
+	new->D--;
+	for(l = 1; l <= new->l_max; l++) {
+		sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D%d.dat", i, l);
+		fp = fopen(filename, "rb");
+		if(!fp) {
+			fprintf(stderr, "no %dth D%i.dat\n", i, l);
+			return NULL;
+		}
+		complex double *D = malloc((2 * l + 1) * (2 * l + 1) * sizeof(*D));
+		fread(D, sizeof(*D), (2 * l + 1) * (2 * l + 1), fp);
+		fclose(fp);
+		new->D[l] = D + (2 * l + 1) * l + l;
+	}
+
+	return new;
+}
+
+
+static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, struct correlator_plan_fd *fdplann, const struct instrument_array *instruments, int tseries_length, int i)
+{
+	char filename[128];
+	FILE *fp;
+
+	if(!fdplanp || !fdplann) {
+		fprintf(stderr, "memory of correlator_plan_fd must be allocated\n");
+		return -1;
+	}
+
+	/* read no pointer objects */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", i);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "no %dth correlator_plan_fd.dat\n", i);
+		return -1;
+	}
+	/* following order must be consistent with the one in the writer */
+	fread(&fdplanp->delta_t, sizeof(fdplanp->delta_t), 1, fp);
+	fread(&fdplanp->transient, sizeof(fdplanp->transient), 1, fp);
+	fclose(fp);
+	fdplann->delta_t = fdplanp->delta_t;
+	fdplann->transient = fdplanp->transient;
+
+	/* read baseline */
+	fdplanp->baseline = read_precalc_correlator_baseline(instruments, i);
+	fdplann->baseline = correlator_baseline_copy(fdplanp->baseline);
+
+	/* read rotation_plan */
+	fdplanp->rotation_plan = read_precalc_sh_series_rotation_plan(i);
+	fdplann->rotation_plan = sh_series_rotation_plan_copy(fdplanp->rotation_plan);
+
+	/* read delay_product */
+	/* positive case */
+	fdplanp->delay_product = malloc(sizeof(*fdplanp->delay_product));
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", i);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth positive sh_series_array.dat\n", i);
+		return -1;
+	}
+	/* following order must be consistent with the one in the writer */
+	fread(&fdplanp->delay_product->l_max, sizeof(fdplanp->delay_product->l_max), 1, fp);
+	fread(&fdplanp->delay_product->polar, sizeof(fdplanp->delay_product->polar), 1, fp);
+	fread(&fdplanp->delay_product->n, sizeof(fdplanp->delay_product->n), 1, fp);
+	fread(&fdplanp->delay_product->stride, sizeof(fdplanp->delay_product->stride), 1, fp);
+	fdplanp->delay_product->coeff = malloc(fdplanp->delay_product->n * fdplanp->delay_product->stride * sizeof(*fdplanp->delay_product->coeff));
+	fread(fdplanp->delay_product->coeff, sizeof(*fdplanp->delay_product->coeff), fdplanp->delay_product->n * fdplanp->delay_product->stride, fp);
+	fclose(fp);
+
+	fdplanp->delay_product->series = sh_series_read_healpix_alm("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_p/series.fits");
+
+	/* negative case */
+	fdplann->delay_product = malloc(sizeof(*fdplann->delay_product));
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", i);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth negative sh_series_array.dat\n", i);
+		return -1;
+	}
+	/* following order must be consistent with the one in the writer */
+	fread(&fdplann->delay_product->l_max, sizeof(fdplann->delay_product->l_max), 1, fp);
+	fread(&fdplann->delay_product->polar, sizeof(fdplann->delay_product->polar), 1, fp);
+	fread(&fdplann->delay_product->n, sizeof(fdplann->delay_product->n), 1, fp);
+	fread(&fdplann->delay_product->stride, sizeof(fdplann->delay_product->stride), 1, fp);
+	fdplann->delay_product->coeff = malloc(fdplann->delay_product->n * fdplann->delay_product->stride * sizeof(*fdplann->delay_product->coeff));
+	fread(fdplann->delay_product->coeff, sizeof(*fdplann->delay_product->coeff), fdplann->delay_product->n * fdplann->delay_product->stride, fp);
+	fclose(fp);
+
+	fdplann->delay_product->series = sh_series_read_healpix_alm("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_n/series.fits");
+
+
+	/* read fseries_product */
+	/* fseries_product is one of the results.  don't read but initialize. */
+	fdplanp->fseries_product = malloc(tseries_length * sizeof(*fdplanp->fseries_product));
+	fdplann->fseries_product = malloc(tseries_length * sizeof(*fdplann->fseries_product));
+
+	/* read power_1d */
+	/* power_1d is one of the results.  don't read but initialize. */
+	fdplanp->power_1d = sh_series_new(fdplanp->rotation_plan->l_max, fdplanp->delay_product->polar);
+	fdplann->power_1d = sh_series_new(fdplann->rotation_plan->l_max, fdplann->delay_product->polar);
+
+	return 0;
+}
+
+
+static int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *fdplansp, struct correlator_network_plan_fd *fdplansn, const struct instrument_array *instruments, int tseries_length)
+{
+	if(!fdplansp || !fdplansn) {
+		fprintf(stderr, "memory of correlator_network_plan_fd must be allocated\n");
+		return -1;
+	}
+
+	/* read baselines */
+	fdplansp->baselines = malloc(sizeof(*fdplansp->baselines));
+	fdplansn->baselines = malloc(sizeof(*fdplansn->baselines));
+	fdplansp->baselines = read_precalc_correlator_network_baselines(instruments);
+	fdplansn->baselines = correlator_network_baselines_copy(fdplansp->baselines);
+
+	/* read plans */
+	fdplansp->plans = malloc(fdplansp->baselines->n_baselines * sizeof(*fdplansp->plans));
+	fdplansn->plans = malloc(fdplansn->baselines->n_baselines * sizeof(*fdplansn->plans));
+	int i;
+	for(i = 0; i < fdplansp->baselines->n_baselines; i++) {
+		fdplansp->plans[i] = malloc(sizeof(*fdplansp->plans[i]));
+		fdplansn->plans[i] = malloc(sizeof(*fdplansn->plans[i]));
+		if(read_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], instruments, tseries_length, i)) {
+			fprintf(stderr, "can't read %dth correlator_plan_fd\n", i);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
+static struct sh_series *read_precalc_logprior(void)
+{
+	return sh_series_read_healpix_alm("/home/tsutsui/precalc/sh_series/logprior.fits");
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Write precalcs
  *
  * ============================================================================
