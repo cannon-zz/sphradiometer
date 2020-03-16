@@ -985,7 +985,6 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "constructing base correlator\n");
 	baselines = correlator_network_baselines_new(options->instruments);
 
-
 	logprior = sh_series_log_uniformsky_prior(correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax);
 	if(!logprior) {
 		exit(1);
