@@ -461,7 +461,11 @@ static int write_precalc_correlator_baseline(const struct correlator_baseline *b
 		fprintf(stderr, "can't open correlator_baseline.dat\n");
 		return -1;
 	}
-	fwrite(&baseline, sizeof(baseline), 1, fp);
+	/* following order must be consistent with the one in the reader */
+	fwrite(&baseline->index_a, sizeof(baseline->index_a), 1, fp);
+	fwrite(&baseline->index_b, sizeof(baseline->index_b), 1, fp);
+	fwrite(&baseline->theta, sizeof(baseline->theta), 1, fp);
+	fwrite(&baseline->phi, sizeof(baseline->phi), 1, fp);
 	fclose(fp);
 
 	/* write d */
@@ -551,8 +555,9 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 		fprintf(stderr, "can't open %dth correlator_plan_fd.dat\n", i);
 		return -1;
 	}
-	fwrite(&planp, sizeof(planp), 1, fp);
-	fwrite(&plann, sizeof(plann), 1, fp);
+	/* following order must be consistent with the one in the reader */
+	fwrite(&planp->delta_t, sizeof(planp->delta_t), 1, fp);
+	fwrite(&planp->transient, sizeof(planp->transient), 1, fp);
 	fclose(fp);
 
 	/* write rotation_plan */
@@ -569,7 +574,11 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 		fprintf(stderr, "can't open %dth positive sh_series_array.dat\n", i);
 		return -1;
 	}
-	fwrite(&planp->delay_product, sizeof(planp->delay_product), 1, fp);
+	/* following order must be consistent with the one in the reader */
+	fwrite(&planp->delay_product->l_max, sizeof(planp->delay_product->l_max), 1, fp);
+	fwrite(&planp->delay_product->polar, sizeof(planp->delay_product->polar), 1, fp);
+	fwrite(&planp->delay_product->n, sizeof(planp->delay_product->n), 1, fp);
+	fwrite(&planp->delay_product->stride, sizeof(planp->delay_product->stride), 1, fp);
 	fclose(fp);
 
 	if(sh_series_write_healpix_alm(planp->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_p/series.fits"))
@@ -591,7 +600,11 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 		fprintf(stderr, "can't open %dth negative sh_series_array.dat\n", i);
 		return -1;
 	}
-	fwrite(&plann->delay_product, sizeof(plann->delay_product), 1, fp);
+	/* following order must be consistent with the one in the reader */
+	fwrite(&plann->delay_product->l_max, sizeof(plann->delay_product->l_max), 1, fp);
+	fwrite(&plann->delay_product->polar, sizeof(plann->delay_product->polar), 1, fp);
+	fwrite(&plann->delay_product->n, sizeof(plann->delay_product->n), 1, fp);
+	fwrite(&plann->delay_product->stride, sizeof(plann->delay_product->stride), 1, fp);
 	fclose(fp);
 
 	if(sh_series_write_healpix_alm(planp->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_n/series.fits"))
