@@ -600,7 +600,7 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 	fwrite(plann->delay_product->coeff, sizeof(*plann->delay_product->coeff), plann->delay_product->n * plann->delay_product->stride, fp);
 	fclose(fp);
 
-	if(sh_series_write_healpix_alm(planp->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_n/series.fits"))
+	if(sh_series_write_healpix_alm(plann->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_n/series.fits"))
 		fprintf(stderr, "can't save %dth negative delay_product->series\n", i);
 
 	/* write baseline */
