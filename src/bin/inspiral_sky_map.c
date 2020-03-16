@@ -1004,6 +1004,27 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
+#if 1
+	fprintf(stderr, "make precalculated objects\n");
+	if(write_precalc_logprior(logprior))
+		fprintf(stderr, "false write_precalc_logprior()\n");
+	if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn)) {
+		fprintf(stderr, "can't save positive plan\n");
+		exit(1);
+	}
+#endif
+#else
+	fprintf(stderr, "read precalculated objects\n");
+	baselines = read_precalc_correlator_network_baselines(options->instruments);
+	fprintf(stderr, "logprior\n");
+	logprior = read_precalc_logprior();
+	fdplansp = malloc(sizeof(*fdplansp));
+	fdplansn = malloc(sizeof(*fdplansn));
+	fprintf(stderr, "fdplans\n");
+	read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length);
+#endif
+
+
 
 
 	gettimeofday(&t_start, NULL);
