@@ -641,8 +641,6 @@ static int read_precalc_correlator_network_plan_fd(struct correlator_network_pla
 	}
 
 	/* read baselines */
-	fdplansp->baselines = malloc(sizeof(*fdplansp->baselines));
-	fdplansn->baselines = malloc(sizeof(*fdplansn->baselines));
 	fdplansp->baselines = read_precalc_correlator_network_baselines(instruments);
 	fdplansn->baselines = correlator_network_baselines_copy(fdplansp->baselines);
 
