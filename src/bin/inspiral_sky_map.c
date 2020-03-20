@@ -527,21 +527,21 @@ static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int 
 	fclose(fp);
 
 	/* read D */
-	new->D = malloc(new->l_max * sizeof(*new->D));
-	unsigned int l;
-	new->D--;
-	for(l = 1; l <= new->l_max; l++) {
-		sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D%d.dat", i, l);
-		fp = fopen(filename, "rb");
-		if(!fp) {
-			fprintf(stderr, "no %dth D%i.dat\n", i, l);
-			return NULL;
-		}
-		complex double *D = malloc((2 * l + 1) * (2 * l + 1) * sizeof(*D));
-		fread(D, sizeof(*D), (2 * l + 1) * (2 * l + 1), fp);
-		fclose(fp);
-		new->D[l] = D + (2 * l + 1) * l + l;
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", i);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "no %dth D.dat\n", i);
+		return NULL;
 	}
+	new->D = malloc(new->l_max * sizeof(*new->D));
+	new->D--;
+	unsigned int l;
+	for(l = 1; l <= new->l_max; l++) {
+		new->D[l] = malloc((2 * l + 1) * (2 * l + 1) * sizeof(*new->D[l]));
+		fread(new->D[l], sizeof(*new->D[l]), (2 * l + 1) * (2 * l + 1), fp);
+		new->D[l] += (2 * l + 1) * l + l;
+	}
+	fclose(fp);
 
 	return new;
 }
@@ -767,19 +767,19 @@ static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation
 	fclose(fp);
 
 	/* write D */
+	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", i);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open %dth D.dat\n", i);
+		return -1;
+	}
 	unsigned int l;
 	for(l = 1; l <= plan->l_max; l++) {
-		sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D%d.dat", i, l);
-		fp = fopen(filename, "wb");
-		if(!fp) {
-			fprintf(stderr, "can't open %dth D%d.dat\n", i, l);
-			return -1;
-		}
 		plan->D[l] -= (2 * l + 1) * l + l;
 		fwrite(plan->D[l], sizeof(*plan->D[l]), (2 * l + 1) * (2 * l + 1), fp);
 		plan->D[l] += (2 * l + 1) * l + l;
-		fclose(fp);
 	}
+	fclose(fp);
 
 	return 0;
 }
