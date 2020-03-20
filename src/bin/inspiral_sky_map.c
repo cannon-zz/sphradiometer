@@ -1024,12 +1024,9 @@ int main(int argc, char *argv[])
 	/* NOTE: series[0]->data->length in precalculated objects must be
 	 * equivalnt to series[0]->data->length in this code */
 	fprintf(stderr, "read precalculated objects\n");
-	baselines = read_precalc_correlator_network_baselines(options->instruments);
-	fprintf(stderr, "logprior\n");
 	logprior = read_precalc_logprior();
 	fdplansp = malloc(sizeof(*fdplansp));
 	fdplansn = malloc(sizeof(*fdplansn));
-	fprintf(stderr, "fdplans\n");
 	read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length);
 #endif
 
