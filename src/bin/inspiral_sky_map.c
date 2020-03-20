@@ -551,6 +551,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 {
 	char filename[128];
 	FILE *fp;
+	int j;
 
 	if(!fdplanp || !fdplann) {
 		fprintf(stderr, "memory of correlator_plan_fd must be allocated\n");
@@ -597,7 +598,14 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 	fread(fdplanp->delay_product->coeff, sizeof(*fdplanp->delay_product->coeff), fdplanp->delay_product->n * fdplanp->delay_product->stride, fp);
 	fclose(fp);
 
-	fdplanp->delay_product->series = sh_series_read_healpix_alm("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_p/series.fits");
+	fdplanp->delay_product->series = malloc(fdplanp->delay_product->n * sizeof(*fdplanp->delay_product->series));
+	for(j = 0; j < fdplanp->delay_product->n; j++) {
+		fdplanp->delay_product->series[j] = (struct sh_series) {
+			.l_max = fdplanp->delay_product->l_max,
+			.polar = fdplanp->delay_product->polar,
+			.coeff = fdplanp->delay_product->coeff + j * fdplanp->delay_product->stride
+		};
+	}
 
 	/* negative case */
 	fdplann->delay_product = malloc(sizeof(*fdplann->delay_product));
@@ -616,7 +624,14 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 	fread(fdplann->delay_product->coeff, sizeof(*fdplann->delay_product->coeff), fdplann->delay_product->n * fdplann->delay_product->stride, fp);
 	fclose(fp);
 
-	fdplann->delay_product->series = sh_series_read_healpix_alm("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_n/series.fits");
+	fdplann->delay_product->series = malloc(fdplann->delay_product->n * sizeof(*fdplann->delay_product->series));
+	for(j = 0; j < fdplann->delay_product->n; j++) {
+		fdplann->delay_product->series[j] = (struct sh_series) {
+			.l_max = fdplann->delay_product->l_max,
+			.polar = fdplann->delay_product->polar,
+			.coeff = fdplann->delay_product->coeff + j * fdplann->delay_product->stride
+		};
+	}
 
 
 	/* read fseries_product */
@@ -809,9 +824,6 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 	fwrite(planp->delay_product->coeff, sizeof(*planp->delay_product->coeff), planp->delay_product->n * planp->delay_product->stride, fp);
 	fclose(fp);
 
-	if(sh_series_write_healpix_alm(planp->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_p/series.fits"))
-		fprintf(stderr, "can't save %dth positive delay_product->series\n", i);
-
 	/* negative case */
 	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", i);
 	fp = fopen(filename, "wb");
@@ -826,9 +838,6 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 	fwrite(&plann->delay_product->stride, sizeof(plann->delay_product->stride), 1, fp);
 	fwrite(plann->delay_product->coeff, sizeof(*plann->delay_product->coeff), plann->delay_product->n * plann->delay_product->stride, fp);
 	fclose(fp);
-
-	if(sh_series_write_healpix_alm(plann->delay_product->series, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/0/delay_product_n/series.fits"))
-		fprintf(stderr, "can't save %dth negative delay_product->series\n", i);
 
 	/* write baseline */
 	/* same information as correlator_network_baselines.  Then omit */
