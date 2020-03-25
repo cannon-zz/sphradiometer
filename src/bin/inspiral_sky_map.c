@@ -57,6 +57,8 @@
 
 
 #define Projection_lmax 8
+#define DIRECTORY_PATH "/home/tsutsui/Development/sphradiometer"
+#define FILE_LEN strlen(DIRECTORY_PATH) + 110
 
 
 /*
@@ -451,12 +453,12 @@ static int whiten(complex double *series, complex double *noise, int length)
 
 static struct correlator_baseline *read_precalc_correlator_baseline(const struct instrument_array *instruments, int i)
 {
-	char filename[128];
+	char filename[FILE_LEN];
 	FILE *fp;
 	struct correlator_baseline *new = malloc(sizeof(*new));
 
 	/* read no pointer objects */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no correlator_baseline.dat in %d\n", i);
@@ -470,7 +472,7 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 	fclose(fp);
 
 	/* read d */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no d.dat in %d\n", i);
@@ -489,11 +491,13 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 
 static struct correlator_network_baselines *read_precalc_correlator_network_baselines(const struct instrument_array *instruments)
 {
+	char filename[FILE_LEN];
 	struct correlator_network_baselines *new = malloc(sizeof(*new));
 	int i;
 
 	/* read n_baselines */
-	FILE *fp = fopen("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", "rb");
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", DIRECTORY_PATH);
+	FILE *fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no n_baselines.dat\n");
 		return NULL;
@@ -512,12 +516,12 @@ static struct correlator_network_baselines *read_precalc_correlator_network_base
 
 static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int i)
 {
-	char filename[128];
+	char filename[FILE_LEN];
 	FILE *fp;
 	struct sh_series_rotation_plan *new = malloc(sizeof(*new));
 
 	/* read l_max */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no %dth l_max.dat\n", i);
@@ -527,7 +531,7 @@ static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int 
 	fclose(fp);
 
 	/* read D */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no %dth D.dat\n", i);
@@ -549,7 +553,7 @@ static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int 
 
 static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, struct correlator_plan_fd *fdplann, const struct instrument_array *instruments, int tseries_length, int i)
 {
-	char filename[128];
+	char filename[FILE_LEN];
 	FILE *fp;
 	int j;
 
@@ -559,7 +563,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 	}
 
 	/* read no pointer objects */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no %dth correlator_plan_fd.dat\n", i);
@@ -583,7 +587,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 	/* read delay_product */
 	/* positive case */
 	fdplanp->delay_product = malloc(sizeof(*fdplanp->delay_product));
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth positive sh_series_array.dat\n", i);
@@ -609,7 +613,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 
 	/* negative case */
 	fdplann->delay_product = malloc(sizeof(*fdplann->delay_product));
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth negative sh_series_array.dat\n", i);
@@ -678,7 +682,9 @@ static int read_precalc_correlator_network_plan_fd(struct correlator_network_pla
 
 static struct sh_series *read_precalc_logprior(void)
 {
-	return sh_series_read_healpix_alm("/home/tsutsui/precalc/sh_series/logprior.fits");
+	char filename[FILE_LEN];
+	sprintf(filename, "%s/precalc/sh_series/logprior.fits", DIRECTORY_PATH);
+	return sh_series_read_healpix_alm(filename);
 }
 
 
@@ -693,11 +699,11 @@ static struct sh_series *read_precalc_logprior(void)
 
 static int write_precalc_correlator_baseline(const struct correlator_baseline *baseline, int i)
 {
-	char filename[128];
+	char filename[FILE_LEN];
 	FILE *fp;
 
 	/* write no pointer objects */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open correlator_baseline.dat\n");
@@ -711,7 +717,7 @@ static int write_precalc_correlator_baseline(const struct correlator_baseline *b
 	fclose(fp);
 
 	/* write d */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open d.dat\n");
@@ -729,8 +735,11 @@ static int write_precalc_correlator_baseline(const struct correlator_baseline *b
 
 static int write_precalc_correlator_network_baselines(const struct correlator_network_baselines *baselines)
 {
+	char filename[FILE_LEN];
+
 	/* write n_baselines */
-	FILE *fp = fopen("/home/tsutsui/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", "wb");
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", DIRECTORY_PATH);
+	FILE *fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open n_baselines.dat\n");
 		return -1;
@@ -753,11 +762,11 @@ static int write_precalc_correlator_network_baselines(const struct correlator_ne
 
 static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation_plan *plan, int i)
 {
-	char filename[128];
+	char filename[FILE_LEN];
 	FILE *fp;
 
 	/* write l_max */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth l_max.dat\n", i);
@@ -767,7 +776,7 @@ static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation
 	fclose(fp);
 
 	/* write D */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth D.dat\n", i);
@@ -787,11 +796,11 @@ static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation
 
 static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *planp, const struct correlator_plan_fd *plann, int i)
 {
-	char filename[128];
+	char filename[FILE_LEN];
 	FILE *fp;
 
 	/* write no pointer objects */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth correlator_plan_fd.dat\n", i);
@@ -810,7 +819,7 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 
 	/* write delay_product (sh_series_array) */
 	/* positive case */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth positive sh_series_array.dat\n", i);
@@ -825,7 +834,7 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 	fclose(fp);
 
 	/* negative case */
-	sprintf(filename, "/home/tsutsui/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", i);
+	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", DIRECTORY_PATH, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth negative sh_series_array.dat\n", i);
@@ -875,7 +884,9 @@ static int write_precalc_correlator_network_plan_fd(const struct correlator_netw
 
 static int write_precalc_logprior(const struct sh_series *series)
 {
-	return sh_series_write_healpix_alm(series, "/home/tsutsui/precalc/sh_series/logprior.fits");
+	char filename[FILE_LEN];
+	sprintf(filename, "%s/precalc/sh_series/logprior.fits", DIRECTORY_PATH);
+	return sh_series_write_healpix_alm(series, filename);
 }
 
 
