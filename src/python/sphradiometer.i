@@ -21,10 +21,10 @@
 %include ccomplex.i
 %include typemaps.i
 
-%include <lal/SWIGCommon.i>
+/*%include <lal/SWIGCommon.i>
 #ifndef SWIGIMPORTED
 %import <lal/swiglal.i>
-#endif
+#endif*/
 
 %{
 #define SWIG_FILE_WITH_INIT
