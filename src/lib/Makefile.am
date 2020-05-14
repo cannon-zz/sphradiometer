@@ -2,7 +2,7 @@ AM_CPPFLAGS = -I../include
 
 pkgconfig_DATA = sphradiometer.pc
 
-lib_LTLIBRARIES = libsphinspiralskymap.la libsphradiometer.la
+lib_LTLIBRARIES = libsphradiometer.la libsphinspiralskymap.la
 
 noinst_LTLIBRARIES = libsphradiometerdiag.la
 
