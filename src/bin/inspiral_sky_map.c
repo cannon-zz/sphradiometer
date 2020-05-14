@@ -1030,7 +1030,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "can't save positive plan\n");
 		exit(1);
 	}
-#endif
 #else
 	/* NOTE: series[0]->data->length in precalculated objects must be
 	 * equivalnt to series[0]->data->length in this code */
