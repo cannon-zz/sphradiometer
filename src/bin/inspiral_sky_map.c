@@ -1000,6 +1000,7 @@ int main(int argc, char *argv[])
 	 */
 
 
+#if 0
 	fprintf(stderr, "constructing base correlator\n");
 	baselines = correlator_network_baselines_new(options->instruments);
 
@@ -1022,7 +1023,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
-#if 1
+#if 0
 	fprintf(stderr, "make precalculated objects\n");
 	if(write_precalc_logprior(logprior))
 		fprintf(stderr, "false write_precalc_logprior()\n");
