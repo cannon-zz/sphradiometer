@@ -27,6 +27,8 @@
 
 
 #include <complex>
+#include <errno.h>
+#include <stdexcept>
 #include <unistd.h>
 #include <alm.h>
 #include <alm_fitsio.h>
@@ -60,11 +62,11 @@
  * an exercise for the user to remember this limitation of healpix.  */
 
 
-static Alm<xcomplex<double>> *sh_series_to_healpix_Alm(const struct sh_series *series)
+static Alm< xcomplex<double> > *sh_series_to_healpix_Alm(const struct sh_series *series)
 {
 	sh_series *real = sh_series_real(sh_series_copy(series));
 	int m_max = series->polar ? 0 : series->l_max;
-	Alm<xcomplex<double>> *alm = new Alm<xcomplex<double>>(series->l_max, m_max);
+	Alm< xcomplex<double> > *alm = new Alm< xcomplex<double> >(series->l_max, m_max);
 	int l, m;
 
 	for(m = 0; m <= +m_max; m++)
@@ -77,7 +79,7 @@ static Alm<xcomplex<double>> *sh_series_to_healpix_Alm(const struct sh_series *s
 }
 
 
-static struct sh_series *sh_series_from_healpix_Alm(Alm<xcomplex<double>> &alm)
+static struct sh_series *sh_series_from_healpix_Alm(Alm< xcomplex<double> > &alm)
 {
 	struct sh_series *series;
 	int l_max = alm.Lmax();
@@ -120,7 +122,7 @@ static struct sh_series *sh_series_from_healpix_Alm(Alm<xcomplex<double>> &alm)
 extern "C"
 int sh_series_write_healpix_alm(const struct sh_series *series, const char *filename)
 {
-	Alm<xcomplex<double>> *alms;
+	Alm< xcomplex<double> > *alms;
 	fitshandle f;
 
 	try {
@@ -162,7 +164,7 @@ struct sh_series *sh_series_read_healpix_alm(const char *filename)
 	fitshandle f;
 	int l_max;
 	int m_max;
-	Alm<xcomplex<double>> alms;
+	Alm< xcomplex<double> > alms;
 
 	try {
 		f.open(filename);
