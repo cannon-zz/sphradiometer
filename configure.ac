@@ -69,13 +69,13 @@ AC_SUBST([HEALPIXCXX_LIBS])
 
 # Check for LAPACK
 AC_SUBST([MIN_LAPACK_VERSION], [3.0])
-#PKG_CHECK_MODULES([LAPACK], [lapack-atlas >= ${MIN_LAPACK_VERSION}], , [echo "Not Found!" ; exit 1])
-AC_SUBST([LAPACK_CFLAGS],[-I/usr/include/lapacke])
-AC_SUBST([LAPACK_LIBS],[-llapacke -llapack])
+PKG_CHECK_MODULES([LAPACK], [lapack-atlas >= ${MIN_LAPACK_VERSION}], , [echo "Not Found!" ; exit 1])
+AC_SUBST([LAPACK_CFLAGS])
+AC_SUBST([LAPACK_LIBS])
 old_CFLAGS="$CFLAGS" CFLAGS="$CFLAGS $LAPACK_CFLAGS"
 AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
 CFLAGS="$old_CFLAGS"
-AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])], [-llapack])
+AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])])
 
 # Check for LAL
 AC_SUBST([MIN_LAL_VERSION], [6.19.0])
