@@ -22,9 +22,6 @@ libsphradiometer_la_SOURCES = \
 	sh_series_product.c \
 	sh_series_rotation.c \
 	sh_series_trans.c \
-	gsl_interp2d.h interp2d.c \
-	gsl_spline2d.h spline2d.c \
-	bicubic.c \
 	sky.c
 
 libsphradiometerdiag_la_SOURCES = \
@@ -35,7 +32,7 @@ libsphinspiralskymap_la_CXXFLAGS = $(AM_CXXFLAGS)
 libsphinspiralskymap_la_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS)
 libsphinspiralskymap_la_LIBADD = libsphradiometer.la
 
-libsphradiometer_la_CFLAGS = $(AM_CFLAGS) $(CHEALPIX_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS) -D"RETURN_IF_NULL(x)=if (!x) { return ; }"
+libsphradiometer_la_CFLAGS = $(AM_CFLAGS) $(CHEALPIX_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS)
 libsphradiometer_la_CXXFLAGS = $(AM_CXXFLAGS) $(HEALPIXCXX_CFLAGS)
 libsphradiometer_la_LDFLAGS = $(AM_LDFLAGS) $(CHEALPIX_LIBS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS) $(HEALPIXCXX_LIBS)
 

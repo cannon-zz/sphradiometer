@@ -34,7 +34,7 @@
 #include <string.h>
 #include <fftw3.h>
 #include <gsl/gsl_integration.h>
-#include <gsl_spline2d.h>
+#include <gsl/gsl_spline2d.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_legendre.h>
 #include <sphradiometer/sh_series.h>
