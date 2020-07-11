@@ -1023,7 +1023,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 #endif
-#if 0
+#if 1
 	fprintf(stderr, "make precalculated objects\n");
 	if(write_precalc_logprior(logprior))
 		fprintf(stderr, "false write_precalc_logprior()\n");
