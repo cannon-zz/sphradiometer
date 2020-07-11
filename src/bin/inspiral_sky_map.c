@@ -902,7 +902,7 @@ static int write_precalc_logprior(const struct sh_series *series)
 int main(int argc, char *argv[])
 {
 	struct options *options;
-	struct correlator_network_baselines *baselines;
+	struct correlator_network_baselines *baselines = NULL;
 	struct correlator_network_plan_fd *fdplansp, *fdplansn;
 	COMPLEX16TimeSeries **series;
 	COMPLEX16Sequence **nseries;
@@ -1090,7 +1090,8 @@ int main(int argc, char *argv[])
 	sh_series_free(logprior);
 	correlator_network_plan_fd_free(fdplansp);
 	correlator_network_plan_fd_free(fdplansn);
-	correlator_network_baselines_free(baselines);
+	if(baselines != NULL)
+		correlator_network_baselines_free(baselines);
 	/* following order must be fixed.
 	 * all free except for option must be above */
 	options->instruments->n *= 2;
