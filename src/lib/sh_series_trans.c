@@ -706,8 +706,12 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 
 /*
  * generate a band-limited impulse on the sphere, with bandwidth set by
- * l_max.  the impulse is located at the co-ordinates (theta, phi).
- * returns a newly allocated sh_series on success, or NULL on failure.
+ * l_max.  the peak of the impulse is located at the co-ordinates (theta,
+ * phi).  returns a newly allocated sh_series on success, or NULL on
+ * failure.  this is the spherical equivalent of the sinc function for 1-D
+ * time series analysis, and is obtained in the same manner by projecting a
+ * Dirac delta function onto the harmonic basis and retaining only those
+ * components at or below the requested l_max.
  */
 
 
