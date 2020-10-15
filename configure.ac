@@ -35,20 +35,20 @@ AM_PATH_PYTHON([${MIN_PYTHON_VERSION}])
 AX_PYTHON_DEVEL()
 
 AC_SUBST([MIN_SWIG_VERSION], [3.0])
-AX_PKG_SWIG([${MIN_SWIG_VERSION}],[],[AC_MSG_ERROR("SWIG > ${MIN_SWIG_VERSION} required to build.")])
+AX_PKG_SWIG([${MIN_SWIG_VERSION}],[],[AC_MSG_ERROR("SWIG > ${MIN_SWIG_VERSION} required.")])
 AX_SWIG_PYTHON
 
 # Check for math library
 AC_CHECK_LIB([m], [main], , [AC_MSG_ERROR([cannot find the math library])])
 
 # Check for FFTW
-PKG_CHECK_MODULES([FFTW], [fftw3], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([FFTW], [fftw3], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([FFTW_CFLAGS])
 AC_SUBST([FFTW_LIBS])
 
 # Check for GSL
 AC_SUBST([MIN_GSL_VERSION], [1.9])
-PKG_CHECK_MODULES([GSL], [gsl >= ${MIN_GSL_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([GSL], [gsl >= ${MIN_GSL_VERSION}], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 
@@ -58,18 +58,18 @@ AX_LIB_HDF5([serial])
 
 # Check for healpix
 AC_SUBST([MIN_CHEALPIX_VERSION], [3.30])
-PKG_CHECK_MODULES([CHEALPIX], [chealpix], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([CHEALPIX], [chealpix], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([CHEALPIX_CFLAGS])
 AC_SUBST([CHEALPIX_LIBS])
 
 AC_SUBST([MIN_HEALPIXCXX_VERSION], [3.30])
-PKG_CHECK_MODULES([HEALPIXCXX], [healpix_cxx], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([HEALPIXCXX], [healpix_cxx], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([HEALPIXCXX_CFLAGS])
 AC_SUBST([HEALPIXCXX_LIBS])
 
 # Check for LAPACK
 AC_SUBST([MIN_LAPACK_VERSION], [3.0])
-PKG_CHECK_MODULES([LAPACK], [lapack-atlas >= ${MIN_LAPACK_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([LAPACK], [lapack-atlas >= ${MIN_LAPACK_VERSION}], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
 old_CFLAGS="$CFLAGS" CFLAGS="$CFLAGS $LAPACK_CFLAGS"
@@ -79,21 +79,21 @@ AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack
 
 # Check for LAL
 AC_SUBST([MIN_LAL_VERSION], [6.19.0])
-PKG_CHECK_MODULES([LAL], [lal >= ${MIN_LAL_VERSION} lalsupport >= ${MIN_LAL_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([LAL], [lal >= ${MIN_LAL_VERSION} lalsupport >= ${MIN_LAL_VERSION}], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([LAL_CFLAGS])
 AC_SUBST([LAL_LIBS])
 AC_SUBST([MIN_LALFRAME_VERSION], [1.4.0])
-PKG_CHECK_MODULES([LALFRAME], [lalframe >= ${MIN_LALFRAME_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([LALFRAME], [lalframe >= ${MIN_LALFRAME_VERSION}], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([LALFRAME_CFLAGS])
 AC_SUBST([LALFRAME_LIBS])
 AC_SUBST([MIN_LALSIMULATION_VERSION], [1.8.0])
-PKG_CHECK_MODULES([LALSIMULATION], [lalsimulation >= ${MIN_LALSIMULATION_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([LALSIMULATION], [lalsimulation >= ${MIN_LALSIMULATION_VERSION}], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([LALSIMULATION_CFLAGS])
 AC_SUBST([LALSIMULATION_LIBS])
 
 # Check for S2kit
 AC_SUBST([MIN_S2KIT_VERSION], [1.0])
-PKG_CHECK_MODULES([S2KIT], [s2kit >= ${MIN_S2KIT_VERSION}], , [echo "Not Found!" ; exit 1])
+PKG_CHECK_MODULES([S2KIT], [s2kit >= ${MIN_S2KIT_VERSION}], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([S2KIT_CFLAGS])
 AC_SUBST([S2KIT_LIBS])
 
