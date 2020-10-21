@@ -5,15 +5,20 @@ TESTS = \
 	healpy_validate.py \
 	product_validate \
 	rotation_validate \
-	s2kit_validate \
 	sh_series_validate
 
 check_PROGRAMS = \
 	correlator_validate \
 	product_validate \
 	rotation_validate \
-	s2kit_validate \
 	sh_series_validate
+
+if S2KIT
+TESTS += \
+	s2kit_validate
+check_PROGRAMS += \
+	s2kit_validate
+endif
 
 correlator_validate_SOURCES = correlator_validate.c
 correlator_validate_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
