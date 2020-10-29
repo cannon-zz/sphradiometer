@@ -39,7 +39,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
 
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
@@ -1011,49 +1013,115 @@ int main(int argc, char *argv[])
 	 */
 
 
-#if 0
-	fprintf(stderr, "constructing base correlator\n");
-	baselines = correlator_network_baselines_new(options->instruments);
+	char dirname[FILE_LEN];
+	struct stat statBuf;
+	sprintf(dirname, "%s/precalc", DIRECTORY_PATH);
+	if(stat(dirname, &statBuf)) {
+		/* make directories to store pre-calculated objects */
+		mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO;
 
-	logprior = sh_series_log_uniformsky_prior(correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax);
-	if(!logprior) {
-		exit(1);
-	}
+		fprintf(stderr, "make precalc directory in %s\n", dirname);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			exit(1);
+		}
+		sprintf(dirname, "%s/precalc/correlator_network_plan_fd", DIRECTORY_PATH);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			exit(1);
+		}
+		sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines", DIRECTORY_PATH);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			exit(1);
+		}
+		sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines", DIRECTORY_PATH);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			exit(1);
+		}
+		for(k = 0; k < instrument_array_len(options->instruments); k++){
+			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d", DIRECTORY_PATH, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+		}
+		sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd", DIRECTORY_PATH);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			exit(1);
+		}
+		for(k = 0; k < instrument_array_len(options->instruments); k++){
+			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d", DIRECTORY_PATH, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n", DIRECTORY_PATH, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p", DIRECTORY_PATH, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan", DIRECTORY_PATH, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+		}
+		sprintf(dirname, "%s/precalc/sh_series", DIRECTORY_PATH);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			exit(1);
+		}
+
+		/* prepare pre-calculated objects */
+		fprintf(stderr, "constructing base correlator\n");
+		baselines = correlator_network_baselines_new(options->instruments);
+
+		logprior = sh_series_log_uniformsky_prior(correlator_network_l_max(baselines, series[0]->deltaT) + Projection_lmax);
+		if(!logprior) {
+			exit(1);
+		}
 
 
-	fdplansp = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
-	fdplansn = correlator_network_plan_fd_copy(fdplansp);
+		fdplansp = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
+		fdplansn = correlator_network_plan_fd_copy(fdplansp);
 #if 1
-	fprintf(stderr, "applying projection operator\n");
-	if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0)) {
-		fprintf(stderr, "positive plan is failed\n");
-		exit(1);
-	}
-	if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0)) {
-		fprintf(stderr, "negative plan is failed\n");
-		exit(1);
-	}
+		fprintf(stderr, "applying projection operator\n");
+		if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0)) {
+			fprintf(stderr, "positive plan is failed\n");
+			exit(1);
+		}
+		if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0)) {
+			fprintf(stderr, "negative plan is failed\n");
+			exit(1);
+		}
 #endif
 #if 1
-	fprintf(stderr, "make precalculated objects\n");
-	if(write_precalc_logprior(logprior))
-		fprintf(stderr, "false write_precalc_logprior()\n");
-	if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn)) {
-		fprintf(stderr, "can't save positive plan\n");
-		exit(1);
+		/* save pre-calculated objects */
+		fprintf(stderr, "make precalculated objects\n");
+		if(write_precalc_logprior(logprior))
+			fprintf(stderr, "false write_precalc_logprior()\n");
+		if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn)) {
+			fprintf(stderr, "can't save positive plan\n");
+			exit(1);
+		}
+#endif
+	} else {
+		/* NOTE: series[0]->data->length in precalculated objects must be
+		 * equivalnt to series[0]->data->length in this code */
+		fprintf(stderr, "read precalculated objects\n");
+		logprior = read_precalc_logprior();
+		fdplansp = malloc(sizeof(*fdplansp));
+		fdplansn = malloc(sizeof(*fdplansn));
+		read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length);
 	}
-#endif
-#else
-	/* NOTE: series[0]->data->length in precalculated objects must be
-	 * equivalnt to series[0]->data->length in this code */
-	fprintf(stderr, "read precalculated objects\n");
-	logprior = read_precalc_logprior();
-	fdplansp = malloc(sizeof(*fdplansp));
-	fdplansn = malloc(sizeof(*fdplansn));
-	read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length);
-#endif
-
-
 
 
 	gettimeofday(&t_start, NULL);
