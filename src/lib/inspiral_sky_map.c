@@ -369,9 +369,6 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
 		double correlator = 0;
 		for(j = 0; j < (int) length; j++)
 			correlator += fseries[i][j] * conj(fseries[i][j]);
-#if 1
-		correlator -= length / 2;	// remove noise component
-#endif
 		correlator /= length * length;	// TODO: after considering all TODO, you can decide whether this line is alive or not.
 		for(j = 2; j <= instrument_array_len(instruments); j++)
 			correlator /= j;
