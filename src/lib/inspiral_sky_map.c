@@ -328,12 +328,11 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
  */
 
 
-static int autocorrelator_network_from_projection(struct sh_series *sky, complex double **fseries, struct instrument_array *instruments, unsigned int length)
+static int autocorrelator_network_from_projection(struct sh_series *sky, complex double **fseries, struct correlator_network_plan_fd *plan)
 {
-	// FIXME: This is broken
 	int i, j;
 	struct sh_series *projection = sh_series_new(Projection_lmax, 0);
-	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
+	const LALDetector **det = malloc(instrument_array_len(plan->baselines->baselines[0]->instruments) * sizeof(*det));
 
 	if(!projection || !det) {
 		sh_series_free(projection);
@@ -342,8 +341,8 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
 	}
 
 	/* set instruments information */
-	for(i = 0; i < instrument_array_len(instruments); i++) {
-		det[i] = instrument_array_get(instruments, i)->data;
+	for(i = 0; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++) {
+		det[i] = instrument_array_get(plan->baselines->baselines[0]->instruments, i)->data;
 		if(!det[i]) {
 			sh_series_free(projection);
 			free(det);
@@ -351,13 +350,13 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
 		}
 	}
 
-	for(i = 0; i < instrument_array_len(instruments); i++) {
+	for(i = 0; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++) {
 		/* calc. projection operator */
 		struct ProjectionMatrixWrapperData data = {
 			.i = i,
 			.j = i,
 			.det = det,
-			.n = instrument_array_len(instruments)
+			.n = instrument_array_len(plan->baselines->baselines[0]->instruments)
 		};
 		if(!sh_series_from_func(projection, ProjectionMatrixWrapper, &data)) {
 			sh_series_free(projection);
@@ -367,19 +366,18 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
 
 		/* execute calc. */
 		double correlator = 0;
-		for(j = 0; j < (int) length; j++)
+		for(j = 0; j < (int) plan->plans[i]->delay_product->n; j++)
 			correlator += fseries[i][j] * conj(fseries[i][j]);
-		correlator /= length * length;	// TODO: after considering all TODO, you can decide whether this line is alive or not.
-		for(j = 2; j <= instrument_array_len(instruments); j++)
+		correlator /= plan->plans[i]->delay_product->n * plan->plans[i]->delay_product->n;	// TODO: after considering all TODO, you can decide whether this line is alive or not.
+		for(j = 2; j <= instrument_array_len(plan->baselines->baselines[0]->instruments); j++)
 			correlator /= j;
-		fprintf(stderr, "diagonal weight for channel %d: %g\n", i, correlator);
 		sh_series_add(sky, correlator, projection);
 
 #if 0
 		/* plot projection */
 		char filename[32] ={"\0"};
 		char istr[12];
-		snprintf(istr, sizeof(istr), "%d", i + instrument_array_len(instruments));
+		snprintf(istr, sizeof(istr), "%d", i + instrument_array_len(plan->baselines->baselines[0]->instruments));
 		strcat(filename, "projection");
 		strcat(filename, istr);
 		strcat(filename, ".fits");
@@ -471,7 +469,8 @@ static int generate_alm_sky(struct sh_series *sky, struct correlator_network_pla
 #if 0
 	/* add contributions from diagonal part, auto-correlation. FIXME: check
 	 * consistency between above and below sh_series_scale() */
-	if(autocorrelator_network_from_projection(sky, fseries, instruments, series[0]->data->length)){
+	fprintf(stderr, "including auto-correlation terms\n");
+	if(autocorrelator_network_from_projection(sky, fseries, fdplans)) {
 		fprintf(stderr, "auto-correlator failed\n");
 		exit(1);
 	}
