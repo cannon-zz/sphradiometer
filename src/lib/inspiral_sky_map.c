@@ -122,7 +122,7 @@ static complex double ExcessProjectionMatrix(double theta, double phi, int i, in
 	double fplus[n], fcross[n];
 
 	FDP(fplus, fcross, det, n, theta, phi);
-	return fplus[i] * fplus[j] + fcross[i] * fcross[j];
+	return fplus[i] * fplus[j] + fcross[i] * fcross[j] - (int)(i == j);
 }
 
 
@@ -145,7 +145,7 @@ static complex double CBCProjectionMatrix(double theta, double phi, int i, int j
 		normcross2 += fcross[k] * fcross[k];
 	}
 
-	return (fplus[i] + I * beta * fcross[i]) * (fplus[j] - I * beta * fcross[j]) / (normplus2 + beta*beta * normcross2);
+	return (fplus[i] + I * beta * fcross[i]) * (fplus[j] - I * beta * fcross[j]) / (normplus2 + beta*beta * normcross2) - (int)(i == j);
 }
 
 
