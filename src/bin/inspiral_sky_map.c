@@ -59,8 +59,7 @@
 
 
 #define Projection_lmax 8
-#define DIRECTORY_PATH "/home/tsutsui/Development/sphradiometer"
-#define FILE_LEN strlen(DIRECTORY_PATH) + 110
+#define FILE_LEN 110
 
 
 /*
@@ -77,6 +76,7 @@ struct options {
 	char *snr_cache;
 	char *noise_cache;
 	char **channels;
+	char *precalc_path;
 	char *output_name;
 };
 
@@ -96,6 +96,7 @@ static struct options *command_line_options_new(void)
 		.snr_cache = NULL,
 		.channels = NULL,
 		.noise_cache = NULL,
+		.precalc_path = NULL,
 		.output_name = NULL,
 	};
 
@@ -166,6 +167,7 @@ struct options *command_line_parse(int argc, char *argv[])
 		{"snr-channel",	required_argument,	NULL,	'B'},
 		{"noise-cache",	required_argument,	NULL,	'C'},
 		{"noise-channel",	required_argument,	NULL,	'D'},
+		{"precalc-path",	required_argument, NULL, 'E'},
 		{"output",		required_argument,	NULL,	'H'},
 		{"help",		no_argument,		NULL,	'h'},
 		{NULL,	0,	NULL,	0}
@@ -194,6 +196,11 @@ struct options *command_line_parse(int argc, char *argv[])
 	/* noise-channel */
 	case 'D':
 		command_line_set_instrument(options, optarg);
+		break;
+
+	/* precalc-path */
+	case 'E':
+		options->precalc_path = optarg;
 		break;
 
 	/* output */
@@ -460,14 +467,14 @@ static int whiten(complex double *series, complex double *noise, int length)
  */
 
 
-static struct correlator_baseline *read_precalc_correlator_baseline(const struct instrument_array *instruments, int i)
+static struct correlator_baseline *read_precalc_correlator_baseline(const struct instrument_array *instruments, int i, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
 	struct correlator_baseline *new = malloc(sizeof(*new));
 
 	/* read no pointer objects */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no correlator_baseline.dat in %d\n", i);
@@ -481,7 +488,7 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 	fclose(fp);
 
 	/* read d */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no d.dat in %d\n", i);
@@ -498,14 +505,14 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 }
 
 
-static struct correlator_network_baselines *read_precalc_correlator_network_baselines(const struct instrument_array *instruments)
+static struct correlator_network_baselines *read_precalc_correlator_network_baselines(const struct instrument_array *instruments, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 	struct correlator_network_baselines *new = malloc(sizeof(*new));
 	int i;
 
 	/* read n_baselines */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", DIRECTORY_PATH);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", parent_dir);
 	FILE *fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no n_baselines.dat\n");
@@ -517,20 +524,20 @@ static struct correlator_network_baselines *read_precalc_correlator_network_base
 	/* read baselines */
 	new->baselines = malloc(new->n_baselines * sizeof(*new->baselines));
 	for(i = 0; i < new->n_baselines; i++)
-		new->baselines[i] = read_precalc_correlator_baseline(instruments, i);
+		new->baselines[i] = read_precalc_correlator_baseline(instruments, i, parent_dir);
 
 	return new;
 }
 
 
-static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int i)
+static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int i, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
 	struct sh_series_rotation_plan *new = malloc(sizeof(*new));
 
 	/* read l_max */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no %dth l_max.dat\n", i);
@@ -540,7 +547,7 @@ static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int 
 	fclose(fp);
 
 	/* read D */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no %dth D.dat\n", i);
@@ -560,9 +567,9 @@ static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int 
 }
 
 
-static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, struct correlator_plan_fd *fdplann, const struct instrument_array *instruments, int tseries_length, int i)
+static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, struct correlator_plan_fd *fdplann, const struct instrument_array *instruments, int tseries_length, int i, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
 	int j;
 
@@ -572,7 +579,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 	}
 
 	/* read no pointer objects */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no %dth correlator_plan_fd.dat\n", i);
@@ -586,17 +593,17 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 	fdplann->transient = fdplanp->transient;
 
 	/* read baseline */
-	fdplanp->baseline = read_precalc_correlator_baseline(instruments, i);
+	fdplanp->baseline = read_precalc_correlator_baseline(instruments, i, parent_dir);
 	fdplann->baseline = correlator_baseline_copy(fdplanp->baseline);
 
 	/* read rotation_plan */
-	fdplanp->rotation_plan = read_precalc_sh_series_rotation_plan(i);
+	fdplanp->rotation_plan = read_precalc_sh_series_rotation_plan(i, parent_dir);
 	fdplann->rotation_plan = sh_series_rotation_plan_copy(fdplanp->rotation_plan);
 
 	/* read delay_product */
 	/* positive case */
 	fdplanp->delay_product = malloc(sizeof(*fdplanp->delay_product));
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth positive sh_series_array.dat\n", i);
@@ -622,7 +629,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 
 	/* negative case */
 	fdplann->delay_product = malloc(sizeof(*fdplann->delay_product));
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth negative sh_series_array.dat\n", i);
@@ -661,7 +668,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 }
 
 
-static int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *fdplansp, struct correlator_network_plan_fd *fdplansn, const struct instrument_array *instruments, int tseries_length)
+static int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *fdplansp, struct correlator_network_plan_fd *fdplansn, const struct instrument_array *instruments, int tseries_length, char *parent_dir)
 {
 	if(!fdplansp || !fdplansn) {
 		fprintf(stderr, "memory of correlator_network_plan_fd must be allocated\n");
@@ -669,7 +676,7 @@ static int read_precalc_correlator_network_plan_fd(struct correlator_network_pla
 	}
 
 	/* read baselines */
-	fdplansp->baselines = read_precalc_correlator_network_baselines(instruments);
+	fdplansp->baselines = read_precalc_correlator_network_baselines(instruments, parent_dir);
 	fdplansn->baselines = correlator_network_baselines_copy(fdplansp->baselines);
 
 	/* read plans */
@@ -679,7 +686,7 @@ static int read_precalc_correlator_network_plan_fd(struct correlator_network_pla
 	for(i = 0; i < fdplansp->baselines->n_baselines; i++) {
 		fdplansp->plans[i] = malloc(sizeof(*fdplansp->plans[i]));
 		fdplansn->plans[i] = malloc(sizeof(*fdplansn->plans[i]));
-		if(read_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], instruments, tseries_length, i)) {
+		if(read_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], instruments, tseries_length, i, parent_dir)) {
 			fprintf(stderr, "can't read %dth correlator_plan_fd\n", i);
 			return -1;
 		}
@@ -689,10 +696,10 @@ static int read_precalc_correlator_network_plan_fd(struct correlator_network_pla
 }
 
 
-static struct sh_series *read_precalc_logprior(void)
+static struct sh_series *read_precalc_logprior(char *parent_dir)
 {
-	char filename[FILE_LEN];
-	sprintf(filename, "%s/precalc/sh_series/logprior.fits", DIRECTORY_PATH);
+	char filename[strlen(parent_dir) + FILE_LEN];
+	sprintf(filename, "%s/sh_series/logprior.fits", parent_dir);
 	return sh_series_read_healpix_alm(filename);
 }
 
@@ -706,13 +713,13 @@ static struct sh_series *read_precalc_logprior(void)
  */
 
 
-static int write_precalc_correlator_baseline(const struct correlator_baseline *baseline, int i)
+static int write_precalc_correlator_baseline(const struct correlator_baseline *baseline, int i, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
 
 	/* write no pointer objects */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", parent_dir, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open correlator_baseline.dat\n");
@@ -726,7 +733,7 @@ static int write_precalc_correlator_baseline(const struct correlator_baseline *b
 	fclose(fp);
 
 	/* write d */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", parent_dir, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open d.dat\n");
@@ -742,12 +749,12 @@ static int write_precalc_correlator_baseline(const struct correlator_baseline *b
 }
 
 
-static int write_precalc_correlator_network_baselines(const struct correlator_network_baselines *baselines)
+static int write_precalc_correlator_network_baselines(const struct correlator_network_baselines *baselines, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 
 	/* write n_baselines */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", DIRECTORY_PATH);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/n_baselines.dat", parent_dir);
 	FILE *fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open n_baselines.dat\n");
@@ -759,7 +766,7 @@ static int write_precalc_correlator_network_baselines(const struct correlator_ne
 	/* write baselines */
 	int i;
 	for(i = 0; i < baselines->n_baselines; i++) {
-		if(write_precalc_correlator_baseline(baselines->baselines[i], i)) {
+		if(write_precalc_correlator_baseline(baselines->baselines[i], i, parent_dir)) {
 			fprintf(stderr, "can't save %dth correlator_baseline\n", i);
 			return -1;
 		}
@@ -769,13 +776,13 @@ static int write_precalc_correlator_network_baselines(const struct correlator_ne
 }
 
 
-static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation_plan *plan, int i)
+static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation_plan *plan, int i, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
 
 	/* write l_max */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/l_max.dat", parent_dir, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth l_max.dat\n", i);
@@ -785,7 +792,7 @@ static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation
 	fclose(fp);
 
 	/* write D */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan/D.dat", parent_dir, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth D.dat\n", i);
@@ -803,13 +810,13 @@ static int write_precalc_sh_series_rotation_plan(const struct sh_series_rotation
 }
 
 
-static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *planp, const struct correlator_plan_fd *plann, int i)
+static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *planp, const struct correlator_plan_fd *plann, int i, char *parent_dir)
 {
-	char filename[FILE_LEN];
+	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
 
 	/* write no pointer objects */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/correlator_plan_fd.dat", parent_dir, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth correlator_plan_fd.dat\n", i);
@@ -821,14 +828,14 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 	fclose(fp);
 
 	/* write rotation_plan */
-	if(write_precalc_sh_series_rotation_plan(planp->rotation_plan, i)) {
+	if(write_precalc_sh_series_rotation_plan(planp->rotation_plan, i, parent_dir)) {
 		fprintf(stderr, "can't open %dth rotation_plan.dat\n", i);
 		return -1;
 	}
 
 	/* write delay_product (sh_series_array) */
 	/* positive case */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p/sh_series_array.dat", parent_dir, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth positive sh_series_array.dat\n", i);
@@ -843,7 +850,7 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 	fclose(fp);
 
 	/* negative case */
-	sprintf(filename, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", DIRECTORY_PATH, i);
+	sprintf(filename, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n/sh_series_array.dat", parent_dir, i);
 	fp = fopen(filename, "wb");
 	if(!fp) {
 		fprintf(stderr, "can't open %dth negative sh_series_array.dat\n", i);
@@ -870,10 +877,10 @@ static int write_precalc_correlator_plan_fd(const struct correlator_plan_fd *pla
 }
 
 
-static int write_precalc_correlator_network_plan_fd(const struct correlator_network_plan_fd *fdplansp, const struct correlator_network_plan_fd *fdplansn)
+static int write_precalc_correlator_network_plan_fd(const struct correlator_network_plan_fd *fdplansp, const struct correlator_network_plan_fd *fdplansn, char* parent_dir)
 {
 	/* write baselines */
-	if(write_precalc_correlator_network_baselines(fdplansp->baselines)) {
+	if(write_precalc_correlator_network_baselines(fdplansp->baselines, parent_dir)) {
 		fprintf(stderr, "can't save correlator_network_baselines\n");
 		return -1;
 	}
@@ -881,7 +888,7 @@ static int write_precalc_correlator_network_plan_fd(const struct correlator_netw
 	/* write plans */
 	int i;
 	for(i = 0; i < fdplansp->baselines->n_baselines; i++) {
-		if(write_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], i)) {
+		if(write_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], i, parent_dir)) {
 			fprintf(stderr, "can't save %dth correlator_plan\n", i);
 			return -1;
 		}
@@ -891,10 +898,10 @@ static int write_precalc_correlator_network_plan_fd(const struct correlator_netw
 }
 
 
-static int write_precalc_logprior(const struct sh_series *series)
+static int write_precalc_logprior(const struct sh_series *series, char *parent_dir)
 {
-	char filename[FILE_LEN];
-	sprintf(filename, "%s/precalc/sh_series/logprior.fits", DIRECTORY_PATH);
+	char filename[strlen(parent_dir) + FILE_LEN];
+	sprintf(filename, "%s/sh_series/logprior.fits", parent_dir);
 	return sh_series_write_healpix_alm(series, filename);
 }
 
@@ -1013,68 +1020,67 @@ int main(int argc, char *argv[])
 	 */
 
 
-	char dirname[FILE_LEN];
 	struct stat statBuf;
-	sprintf(dirname, "%s/precalc", DIRECTORY_PATH);
-	if(stat(dirname, &statBuf)) {
+	if(stat(options->precalc_path, &statBuf)) {
 		/* make directories to store pre-calculated objects */
 		mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO;
+		char dirname[strlen(options->precalc_path) + FILE_LEN];
 
-		fprintf(stderr, "make precalc directory in %s\n", dirname);
+		fprintf(stderr, "make precalc directory in %s\n", options->precalc_path);
+		if(mkdir(options->precalc_path, mode)) {
+			fprintf(stderr, "error making %s\n", options->precalc_path);
+			exit(1);
+		}
+		sprintf(dirname, "%s/correlator_network_plan_fd", options->precalc_path);
 		if(mkdir(dirname, mode)) {
 			fprintf(stderr, "error making %s\n", dirname);
 			exit(1);
 		}
-		sprintf(dirname, "%s/precalc/correlator_network_plan_fd", DIRECTORY_PATH);
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines", options->precalc_path);
 		if(mkdir(dirname, mode)) {
 			fprintf(stderr, "error making %s\n", dirname);
 			exit(1);
 		}
-		sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines", DIRECTORY_PATH);
-		if(mkdir(dirname, mode)) {
-			fprintf(stderr, "error making %s\n", dirname);
-			exit(1);
-		}
-		sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines", DIRECTORY_PATH);
-		if(mkdir(dirname, mode)) {
-			fprintf(stderr, "error making %s\n", dirname);
-			exit(1);
-		}
-		for(k = 0; k < instrument_array_len(options->instruments); k++){
-			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_network_baselines/baselines/%d", DIRECTORY_PATH, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-		}
-		sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd", DIRECTORY_PATH);
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines", options->precalc_path);
 		if(mkdir(dirname, mode)) {
 			fprintf(stderr, "error making %s\n", dirname);
 			exit(1);
 		}
 		for(k = 0; k < instrument_array_len(options->instruments); k++){
-			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d", DIRECTORY_PATH, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n", DIRECTORY_PATH, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p", DIRECTORY_PATH, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-			sprintf(dirname, "%s/precalc/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan", DIRECTORY_PATH, k);
+			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d", options->precalc_path, k);
 			if(mkdir(dirname, mode)) {
 				fprintf(stderr, "error making %s\n", dirname);
 				exit(1);
 			}
 		}
-		sprintf(dirname, "%s/precalc/sh_series", DIRECTORY_PATH);
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd", options->precalc_path);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			exit(1);
+		}
+		for(k = 0; k < instrument_array_len(options->instruments); k++){
+			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d", options->precalc_path, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n", options->precalc_path, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p", options->precalc_path, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan", options->precalc_path, k);
+			if(mkdir(dirname, mode)) {
+				fprintf(stderr, "error making %s\n", dirname);
+				exit(1);
+			}
+		}
+		sprintf(dirname, "%s/sh_series", options->precalc_path);
 		if(mkdir(dirname, mode)) {
 			fprintf(stderr, "error making %s\n", dirname);
 			exit(1);
@@ -1106,9 +1112,9 @@ int main(int argc, char *argv[])
 #if 1
 		/* save pre-calculated objects */
 		fprintf(stderr, "make precalculated objects\n");
-		if(write_precalc_logprior(logprior))
+		if(write_precalc_logprior(logprior, options->precalc_path))
 			fprintf(stderr, "false write_precalc_logprior()\n");
-		if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn)) {
+		if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->precalc_path)) {
 			fprintf(stderr, "can't save positive plan\n");
 			exit(1);
 		}
@@ -1117,10 +1123,10 @@ int main(int argc, char *argv[])
 		/* NOTE: series[0]->data->length in precalculated objects must be
 		 * equivalnt to series[0]->data->length in this code */
 		fprintf(stderr, "read precalculated objects\n");
-		logprior = read_precalc_logprior();
+		logprior = read_precalc_logprior(options->precalc_path);
 		fdplansp = malloc(sizeof(*fdplansp));
 		fdplansn = malloc(sizeof(*fdplansn));
-		read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length);
+		read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length, options->precalc_path);
 	}
 
 
