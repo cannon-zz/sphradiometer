@@ -77,6 +77,7 @@ struct options {
 	char *noise_cache;
 	char **channels;
 	char *precalc_path;
+	char *psd_cache;
 	char *output_name;
 };
 
@@ -97,6 +98,7 @@ static struct options *command_line_options_new(void)
 		.channels = NULL,
 		.noise_cache = NULL,
 		.precalc_path = NULL,
+		.psd_cache = NULL,
 		.output_name = NULL,
 	};
 
@@ -167,6 +169,7 @@ struct options *command_line_parse(int argc, char *argv[])
 		{"snr-channel",	required_argument,	NULL,	'B'},
 		{"noise-cache",	required_argument,	NULL,	'C'},
 		{"precalc-path",	required_argument,	NULL,	'D'},
+		{"psd-cache",	required_argument,	NULL,	'E'},
 		{"output",		required_argument,	NULL,	'H'},
 		{"help",		no_argument,		NULL,	'h'},
 		{NULL,	0,	NULL,	0}
@@ -195,6 +198,11 @@ struct options *command_line_parse(int argc, char *argv[])
 	/* precalc-path */
 	case 'D':
 		options->precalc_path = optarg;
+		break;
+
+	/* psd-cache */
+	case 'E':
+		options->psd_cache = optarg;
 		break;
 
 	/* output */
@@ -352,11 +360,52 @@ static COMPLEX16Sequence *get_complex16sequence_from_cache(
 }
 
 
+static double *get_PSD_from_cache(
+	const char *cache_name,
+	const char *channel_name,
+	unsigned length
+)
+{
+	char channel[3];
+	char instrument[] = {channel_name[0], channel_name[1], '\0'};
+	double *data = malloc(length * sizeof(*data));
+	FILE *fp = fopen(cache_name, "r");
+
+	if(!fp) {
+		fprintf(stderr, "file open error\n");
+		return NULL;
+	}
+
+	/* count # of characters */
+	int n = 0;
+	while(fgetc(fp) != EOF)
+		n++;
+	fseek(fp, 0, SEEK_SET);
+
+	/* read data */
+	char filepath[n];
+	while(fscanf(fp, "%s %s", channel, filepath) != EOF) {
+		if(strcmp(channel, instrument) == 0) {
+			unsigned i;
+			FILE *fpp = fopen(filepath, "r");
+			/* "length" is the length of data on time domain.  PSD
+			 * is defined on frequency domain.  Thus, the length of
+			 * PSD is about half of "length". */
+			for(i = 0; i < (length - (length & 1)) / 2 + 1; i++)
+				fscanf(fpp, "%lf", &data[i]);
+			fclose(fpp);
+		}
+	}
+
+	fclose(fp);
+	return data;
+}
+
+
 static COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *series)
 {
 	return series->data;
 }
-
 
 
 /*
@@ -987,6 +1036,7 @@ int main(int argc, char *argv[])
 	struct correlator_network_plan_fd *fdplansp, *fdplansn;
 	COMPLEX16TimeSeries **series;
 	COMPLEX16Sequence **nseries;
+	double **psds;
 	struct sh_series *skyp;
 	struct sh_series *skyn;
 	struct sh_series *logprior;
@@ -1058,6 +1108,23 @@ int main(int argc, char *argv[])
 
 
 	time_series_pad(series, nseries, instrument_array_len(options->instruments));
+
+#if 0
+	fprintf(stderr, "read psds\n");
+	psds = malloc(instrument_array_len(options->instruments) * sizeof(*psds));
+	if(!psds) {
+		XLALPrintError("out of memory\n");
+		exit(1);
+	}
+	for(k = 0; k < instrument_array_len(options->instruments); k++) {
+		psds[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
+		if(!psds[k]) {
+			XLALPrintError("failure loading snr data\n");
+			exit(1);
+		}
+	}
+	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < (series[k]->data->length - (series[k]->data->length & 1)) / 2 + 1; j++) fprintf(stderr, "%g\n", psds[k][j]); fprintf(stderr, "\n"); }*/
+#endif
 
 #if 0
 	// replace with white noise
