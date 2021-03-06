@@ -713,6 +713,77 @@ static struct sh_series *read_precalc_logprior(char *parent_dir)
  */
 
 
+static int make_precalc_directories(struct options *options)
+{
+	int k;
+
+	mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO;
+	char dirname[strlen(options->precalc_path) + FILE_LEN];
+
+	fprintf(stderr, "make precalc directory in %s\n", options->precalc_path);
+	if(mkdir(options->precalc_path, mode)) {
+		fprintf(stderr, "error making %s\n", options->precalc_path);
+		return -1;
+	}
+	sprintf(dirname, "%s/correlator_network_plan_fd", options->precalc_path);
+	if(mkdir(dirname, mode)) {
+		fprintf(stderr, "error making %s\n", dirname);
+		return -1;
+	}
+	sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines", options->precalc_path);
+	if(mkdir(dirname, mode)) {
+		fprintf(stderr, "error making %s\n", dirname);
+		return -1;
+	}
+	sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines", options->precalc_path);
+	if(mkdir(dirname, mode)) {
+		fprintf(stderr, "error making %s\n", dirname);
+		return -1;
+	}
+	for(k = 0; k < instrument_array_len(options->instruments); k++){
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+	}
+	sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd", options->precalc_path);
+	if(mkdir(dirname, mode)) {
+		fprintf(stderr, "error making %s\n", dirname);
+		return -1;
+	}
+	for(k = 0; k < instrument_array_len(options->instruments); k++){
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+	}
+	sprintf(dirname, "%s/sh_series", options->precalc_path);
+	if(mkdir(dirname, mode)) {
+		fprintf(stderr, "error making %s\n", dirname);
+		return -1;
+	}
+
+	return 0;
+}
+
+
 static int write_precalc_correlator_baseline(const struct correlator_baseline *baseline, int i, char *parent_dir)
 {
 	char filename[strlen(parent_dir) + FILE_LEN];
@@ -1022,70 +1093,6 @@ int main(int argc, char *argv[])
 
 	struct stat statBuf;
 	if(stat(options->precalc_path, &statBuf)) {
-		/* make directories to store pre-calculated objects */
-		mode_t mode = S_IRWXU | S_IRWXG | S_IRWXO;
-		char dirname[strlen(options->precalc_path) + FILE_LEN];
-
-		fprintf(stderr, "make precalc directory in %s\n", options->precalc_path);
-		if(mkdir(options->precalc_path, mode)) {
-			fprintf(stderr, "error making %s\n", options->precalc_path);
-			exit(1);
-		}
-		sprintf(dirname, "%s/correlator_network_plan_fd", options->precalc_path);
-		if(mkdir(dirname, mode)) {
-			fprintf(stderr, "error making %s\n", dirname);
-			exit(1);
-		}
-		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines", options->precalc_path);
-		if(mkdir(dirname, mode)) {
-			fprintf(stderr, "error making %s\n", dirname);
-			exit(1);
-		}
-		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines", options->precalc_path);
-		if(mkdir(dirname, mode)) {
-			fprintf(stderr, "error making %s\n", dirname);
-			exit(1);
-		}
-		for(k = 0; k < instrument_array_len(options->instruments); k++){
-			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d", options->precalc_path, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-		}
-		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd", options->precalc_path);
-		if(mkdir(dirname, mode)) {
-			fprintf(stderr, "error making %s\n", dirname);
-			exit(1);
-		}
-		for(k = 0; k < instrument_array_len(options->instruments); k++){
-			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d", options->precalc_path, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_n", options->precalc_path, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/delay_product_p", options->precalc_path, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-			sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan", options->precalc_path, k);
-			if(mkdir(dirname, mode)) {
-				fprintf(stderr, "error making %s\n", dirname);
-				exit(1);
-			}
-		}
-		sprintf(dirname, "%s/sh_series", options->precalc_path);
-		if(mkdir(dirname, mode)) {
-			fprintf(stderr, "error making %s\n", dirname);
-			exit(1);
-		}
-
 		/* prepare pre-calculated objects */
 		fprintf(stderr, "constructing base correlator\n");
 		baselines = correlator_network_baselines_new(options->instruments);
@@ -1110,12 +1117,18 @@ int main(int argc, char *argv[])
 		}
 #endif
 #if 1
+		/* make directories to store pre-calculated objects */
+		if(make_precalc_directories(options)) {
+			fprintf(stderr, "can't make precalculated directories\n");
+			exit(1);
+		}
+
 		/* save pre-calculated objects */
 		fprintf(stderr, "make precalculated objects\n");
 		if(write_precalc_logprior(logprior, options->precalc_path))
 			fprintf(stderr, "false write_precalc_logprior()\n");
 		if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->precalc_path)) {
-			fprintf(stderr, "can't save positive plan\n");
+			fprintf(stderr, "can't save correlator network plan\n");
 			exit(1);
 		}
 #endif
