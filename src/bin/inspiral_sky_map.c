@@ -166,8 +166,7 @@ struct options *command_line_parse(int argc, char *argv[])
 		{"snr-cache",	required_argument,	NULL,	'A'},
 		{"snr-channel",	required_argument,	NULL,	'B'},
 		{"noise-cache",	required_argument,	NULL,	'C'},
-		{"noise-channel",	required_argument,	NULL,	'D'},
-		{"precalc-path",	required_argument, NULL, 'E'},
+		{"precalc-path",	required_argument,	NULL,	'D'},
 		{"output",		required_argument,	NULL,	'H'},
 		{"help",		no_argument,		NULL,	'h'},
 		{NULL,	0,	NULL,	0}
@@ -193,13 +192,8 @@ struct options *command_line_parse(int argc, char *argv[])
 		options->noise_cache = optarg;
 		break;
 
-	/* noise-channel */
-	case 'D':
-		command_line_set_instrument(options, optarg);
-		break;
-
 	/* precalc-path */
-	case 'E':
+	case 'D':
 		options->precalc_path = optarg;
 		break;
 
@@ -1013,9 +1007,6 @@ int main(int argc, char *argv[])
 		XLALPrintError("need auto-correlation series of consistent template as noise\n");
 		exit(1);
 	}*/
-	//options->instruments->n /= 2;	// FIXME: after removing regulator
-	/* NOTE: have to free options->channels[k > options->instrument->n].
-	 * it's done at the end. */
 
 
 	/*
@@ -1190,9 +1181,6 @@ int main(int argc, char *argv[])
 	correlator_network_plan_fd_free(fdplansn);
 	if(baselines != NULL)
 		correlator_network_baselines_free(baselines);
-	/* following order must be fixed.
-	 * all free except for option must be above */
-	//options->instruments->n *= 2;	// FIXME: after removing regulator
 	command_line_options_free(options);
 
 	return 0;
