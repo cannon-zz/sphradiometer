@@ -369,7 +369,6 @@ static double *get_PSD_from_cache(
 	char channel[3];
 	char instrument[] = {channel_name[0], channel_name[1], '\0'};
 	double *data = malloc(length * sizeof(*data));
-	double *f = malloc(length * sizeof(*f));
 	FILE *fp = fopen(cache_name, "r");
 
 	if(!fp) {
@@ -393,7 +392,7 @@ static double *get_PSD_from_cache(
 			 * is defined on frequency domain.  Thus, the length of
 			 * PSD is about half of "length". */
 			for(i = 0; i < (length - (length & 1)) / 2 + 1; i++)
-				fscanf(fpp, "%lf %lf", &f[i], &data[i]);
+				fscanf(fpp, "%lf", &data[i]);
 			fclose(fpp);
 		}
 	}
