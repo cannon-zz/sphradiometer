@@ -116,7 +116,7 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 }
 
 
-static complex double ExcessProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n)
+static complex double ExcessProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double *psds)
 {
 	/* this is general parameterized one */
 	double fplus[n], fcross[n];
@@ -126,7 +126,7 @@ static complex double ExcessProjectionMatrix(double theta, double phi, int i, in
 }
 
 
-static complex double CBCProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double beta, double psi)
+static complex double CBCProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double beta, double psi, double *psds)
 {
 	/* this is CBC parameterized one for arbitrary beta & psi */
 	double fplus[n], fcross[n];
@@ -141,10 +141,12 @@ static complex double CBCProjectionMatrix(double theta, double phi, int i, int j
 		 * So we can set zero. */
 		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, psi, 0.0);
 		/* calculate norms of vector fp & fc */
-		normplus2 += fplus[k] * fplus[k];
-		normcross2 += fcross[k] * fcross[k];
+		normplus2 += fplus[k] * fplus[k] / psds[k];
+		normcross2 += fcross[k] * fcross[k] / psds[k];
 	}
 
+	normplus2 *= sqrt(psds[i] * psds[j]);
+	normcross2 *= sqrt(psds[i] * psds[j]);
 	return (fplus[i] + I * beta * fcross[i]) * (fplus[j] - I * beta * fcross[j]) / (normplus2 + beta*beta * normcross2) - (int)(i == j);
 }
 
@@ -155,6 +157,7 @@ struct ProjectionMatrixWrapperData {
 	int n;
 	double beta;
 	double psi;
+	double *psds;
 };
 
 
@@ -165,21 +168,21 @@ static complex double ProjectionMatrixWrapper(double theta, double phi, void *_d
 #if 0
 	return ExcessProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n);
 #else
-	return CBCProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n, data->beta, data->psi);
+	return CBCProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n, data->beta, data->psi, data->psds);
 #endif
 }
 
 
-static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct correlator_plan_fd *plan, const struct sh_series *projection)
+static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct correlator_plan_fd *plan, struct sh_series *const *projection)
 {
 	struct sh_series_array *result;
 	struct sh_series_product_plan *product_plan;
 	int i;
 
-	result = sh_series_array_new(plan->delay_product->n, plan->delay_product->l_max + projection->l_max, plan->delay_product->series[0].polar && projection->polar);
+	result = sh_series_array_new(plan->delay_product->n, plan->delay_product->l_max + projection[0]->l_max, plan->delay_product->series[0].polar && projection[0]->polar);
 	if(!result)
 		return NULL;
-	product_plan = sh_series_product_plan_new(&result->series[0], &plan->delay_product->series[0], projection);
+	product_plan = sh_series_product_plan_new(&result->series[0], &plan->delay_product->series[0], projection[0]);
 	if(!product_plan) {
 		XLALPrintError("sh_series_product_plan_new() failed\n");
 		sh_series_array_free(result);
@@ -188,7 +191,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 
 	for(i = 0; i < plan->delay_product->n; i++) {
 		fprintf(stderr, "%.3g%%   \r", 100. * (i + 1.) / plan->delay_product->n);
-		if(!sh_series_product(&result->series[i], &plan->delay_product->series[i], projection, product_plan)) {
+		if(!sh_series_product(&result->series[i], &plan->delay_product->series[i], projection[i], product_plan)) {
 			XLALPrintError("sh_series_product() failed\n");
 			sh_series_array_free(result);
 			return NULL;
@@ -204,15 +207,15 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 }
 
 
-int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan, double beta, double psi)
+int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan, double beta, double psi, double *psd)
 {
-	int i;
-	struct sh_series *projection = sh_series_new(Projection_lmax, 0);
+	int i, j;
+	struct sh_series **projection = malloc(plan->plans[0]->delay_product->n * sizeof(*projection));
 	const struct instrument_array *instruments = plan->baselines->baselines[0]->instruments;
 	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
 	if(!projection || !instruments || !det) {
-		sh_series_free(projection);
+		free(projection);
 		free(det);
 		return -1;
 	}
@@ -220,42 +223,56 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 	for(i = 0; i < instrument_array_len(instruments); i++) {
 		det[i] = instrument_array_get(instruments, i)->data;
 		if(!det[i]) {
-			sh_series_free(projection);
+			free(projection);
 			free(det);
 			return -1;
 		}
 	}
 
-	for(i = 0; i < plan->baselines->n_baselines; i++) {
-		struct ProjectionMatrixWrapperData data = {
-			.i = plan->baselines->baselines[i]->index_a,
-			.j = plan->baselines->baselines[i]->index_b,
-			.det = det,
-			.n = instrument_array_len(instruments),
-			.beta = beta,
-			.psi = psi
-		};
-		if(!sh_series_from_func(projection, ProjectionMatrixWrapper, &data)) {
-			sh_series_free(projection);
+	for(i = 0; i < plan->plans[0]->delay_product->n; i++) {
+		projection[i] = sh_series_new(Projection_lmax, 0);
+		if(!projection[i]) {
+			for(j = i; j > -1; j--) {
+				sh_series_free(projection[j]);
+			}
+			free(projection);
 			free(det);
+			fprintf(stderr, "%d\n", i);
 			return -1;
 		}
+	}
+
+	for(i = 0; i < plan->baselines->n_baselines; i++) {
+		fprintf(stderr, "generate Projection distribution from %d and %d\n", plan->baselines->baselines[i]->index_a, plan->baselines->baselines[i]->index_b);
+		for(j = 0; j < plan->plans[i]->delay_product->n; j++) {
+			struct ProjectionMatrixWrapperData data = {
+				.i = plan->baselines->baselines[i]->index_a,
+				.j = plan->baselines->baselines[i]->index_b,
+				.det = det,
+				.n = instrument_array_len(instruments),
+				.beta = beta,
+				.psi = psi,
+				.psds = &(psd[j * instrument_array_len(instruments)])
+			};
+			if(!sh_series_from_func(projection[j], ProjectionMatrixWrapper, &data)) {
+				goto error;
+			}
 
 #if 0
-		/* plot projection */
-		char filename[32] ={"\0"};
-		char istr[12];
-		snprintf(istr, sizeof(istr), "%d", i);
-		strcat(filename, "projection");
-		strcat(filename, istr);
-		strcat(filename, ".fits");
-		if(sh_series_write_healpix_alm(projection, filename)) {
-			fprintf(stderr, "write \"%s\" failed\n", filename);
-			free(det);
-			exit(1);
-		}
+			/* plot projection */
+			char filename[32] ={"\0"};
+			char istr[12];
+			snprintf(istr, sizeof(istr), "%d", i);
+			strcat(filename, "projection");
+			strcat(filename, istr);
+			strcat(filename, ".fits");
+			if(sh_series_write_healpix_alm(projection[j], filename)) {
+				fprintf(stderr, "write \"%s\" failed\n", filename);
+				free(det);
+				exit(1);
+			}
 #endif
-		fprintf(stderr, "generate Projection distribution from %d and %d\n", data.i, data.j);
+		}
 
 		/* the delay operator is computed with the baseline rotated
 		 * to lie along the z axis to take advantage of the
@@ -263,20 +280,20 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 		 * rotate the projection function we've just computed the
 		 * same way */
 		{
-		struct sh_series *cpy = sh_series_copy(projection);
 		double *R = sh_series_invrot_matrix(plan->baselines->baselines[i]->theta, plan->baselines->baselines[i]->phi);
-		struct sh_series_rotation_plan *rot = sh_series_rotation_plan_new(projection, R);
+		struct sh_series_rotation_plan *rot = sh_series_rotation_plan_new(projection[0], R);
 		free(R);
-		sh_series_rotate(projection, cpy, rot);
+		for(j = 0; j < plan->plans[i]->delay_product->n; j++) {
+			struct sh_series *cpy = sh_series_copy(projection[j]);
+			sh_series_rotate(projection[j], cpy, rot);
+			sh_series_free(cpy);
+		}
 		sh_series_rotation_plan_free(rot);
-		sh_series_free(cpy);
 		}
 		/* multiply each frequency bin of the delay operator by the
 		 * projection operator */
 		if(!correlator_plan_mult_by_projection(plan->plans[i], projection)) {
-			sh_series_free(projection);
-			free(det);
-			return -1;
+			goto error;
 		}
 		/* replace the correlator's intermediate "1D" storage with
 		 * one that does not have azimuthal symmetry, increase it
@@ -290,32 +307,35 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 		 * with respect to the sky, and not pay the price of the
 		 * rotation */
 		if(!sh_series_set_polar(plan->plans[i]->power_1d, 0) || !sh_series_resize(plan->plans[i]->power_1d, plan->plans[i]->delay_product->series[0].l_max)) {
-			sh_series_free(projection);
-			free(det);
-			return -1;
+			goto error;
 		}
 		{
 		double *R = sh_series_rot_matrix(plan->baselines->baselines[i]->theta, plan->baselines->baselines[i]->phi);
 		if(!R) {
-			sh_series_free(projection);
-			free(det);
-			return -1;
+			goto error;
 		}
 		sh_series_rotation_plan_free(plan->plans[i]->rotation_plan);
 		plan->plans[i]->rotation_plan = sh_series_rotation_plan_new(plan->plans[i]->power_1d, R);
 		free(R);
 		if(!plan->plans[i]->rotation_plan) {
-			sh_series_free(projection);
-			free(det);
-			return -1;
+			goto error;
 		}
 		}
 	}
 
-	sh_series_free(projection);
+	for(i = 0; i < plan->plans[0]->delay_product->n; i++)
+		sh_series_free(projection[i]);
+	free(projection);
 	free(det);
 
 	return 0;
+
+error:
+	for(i = 0; i < plan->plans[0]->delay_product->n; i++)
+		sh_series_free(projection[i]);
+	free(projection);
+	free(det);
+	return -1;
 }
 
 

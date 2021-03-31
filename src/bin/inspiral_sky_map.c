@@ -1180,11 +1180,11 @@ int main(int argc, char *argv[])
 		fdplansn = correlator_network_plan_fd_copy(fdplansp);
 #if 1
 		fprintf(stderr, "applying projection operator\n");
-		if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0)) {
+		if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0, psds)) {
 			fprintf(stderr, "positive plan is failed\n");
 			exit(1);
 		}
-		if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0)) {
+		if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0, psds)) {
 			fprintf(stderr, "negative plan is failed\n");
 			exit(1);
 		}
