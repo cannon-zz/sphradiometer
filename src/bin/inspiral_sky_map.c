@@ -402,6 +402,19 @@ static double *get_PSD_from_cache(
 }
 
 
+static double *make_one_line(double **mat, int n_det, int length)
+{
+	int i, j;
+	double *vec = malloc(n_det * length * sizeof(*vec));
+
+	for(i = 0; i < n_det; i++)
+		for(j = 0; j < length; j++)
+			vec[i + n_det * j] = mat[i][j];
+
+	return vec;
+}
+
+
 static COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *series)
 {
 	return series->data;
