@@ -1049,7 +1049,7 @@ int main(int argc, char *argv[])
 	struct correlator_network_plan_fd *fdplansp, *fdplansn;
 	COMPLEX16TimeSeries **series;
 	COMPLEX16Sequence **nseries;
-	double **psds;
+	double *psds;
 	struct sh_series *skyp;
 	struct sh_series *skyn;
 	struct sh_series *logprior;
@@ -1122,20 +1122,22 @@ int main(int argc, char *argv[])
 
 	time_series_pad(series, nseries, instrument_array_len(options->instruments));
 
-#if 0
+#if 1
 	fprintf(stderr, "read psds\n");
-	psds = malloc(instrument_array_len(options->instruments) * sizeof(*psds));
-	if(!psds) {
+	double **temp = malloc(instrument_array_len(options->instruments) * sizeof(*temp));
+	if(!temp) {
 		XLALPrintError("out of memory\n");
 		exit(1);
 	}
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
-		psds[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
-		if(!psds[k]) {
+		temp[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
+		if(!temp[k]) {
 			XLALPrintError("failure loading snr data\n");
 			exit(1);
 		}
 	}
+	psds = make_one_line(temp, instrument_array_len(options->instruments), series[0]->data->length);
+	free(temp);
 	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < (series[k]->data->length - (series[k]->data->length & 1)) / 2 + 1; j++) fprintf(stderr, "%g\n", psds[k][j]); fprintf(stderr, "\n"); }*/
 #endif
 
@@ -1254,6 +1256,7 @@ int main(int argc, char *argv[])
 	}
 	free(series);
 	free(nseries);
+	free(psds);
 	sh_series_free(skyp);
 	sh_series_free(skyn);
 	sh_series_free(logprior);
