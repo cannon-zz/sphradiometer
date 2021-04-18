@@ -1172,13 +1172,10 @@ int main(int argc, char *argv[])
 
 
 	options = command_line_parse(argc, argv);
-	/* after removing the regulator (avoiding numerical instability), we
-	 * need the following check */
-	/*
 	if(!options->noise_cache){
 		XLALPrintError("need auto-correlation series of consistent template as noise\n");
 		exit(1);
-	}*/
+	}
 
 
 	/*
@@ -1201,7 +1198,6 @@ int main(int argc, char *argv[])
 	}
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		nseries[k] = get_complex16sequence_from_cache(options->noise_cache, options->channels[k]);	// FIXME: depend on a input order from command line, now
-		//nseries[k] = convert_TimeSeries2Sequence(get_complex16series_from_cache(options->snr_cache, options->channels[k]));	// FIXME: after removing the regularator
 		if(!nseries[k]) {
 			XLALPrintError("failure loading auto-correlation data\n");
 			exit(1);
