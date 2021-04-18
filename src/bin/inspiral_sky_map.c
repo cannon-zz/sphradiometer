@@ -1200,13 +1200,23 @@ int main(int argc, char *argv[])
 		}
 	}
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
-		//nseries[k] = get_complex16sequence_from_cache(options->noise_cache, options->channels[k + instrument_array_len(options->instruments)]);	// FIXME: depend on a input order from command line, now
-		nseries[k] = convert_TimeSeries2Sequence(get_complex16series_from_cache(options->snr_cache, options->channels[k]));	// FIXME: after removing the regularator
+		nseries[k] = get_complex16sequence_from_cache(options->noise_cache, options->channels[k]);	// FIXME: depend on a input order from command line, now
+		//nseries[k] = convert_TimeSeries2Sequence(get_complex16series_from_cache(options->snr_cache, options->channels[k]));	// FIXME: after removing the regularator
 		if(!nseries[k]) {
 			XLALPrintError("failure loading auto-correlation data\n");
 			exit(1);
 		}
 	}
+
+
+	/*
+	 * Whitening
+	 */
+
+
+	for(k = 0; k < instrument_array_len(options->instruments); k++)
+		if(KLwhiten(series[k], nseries[k]))
+			exit(1);
 
 
 	/*
