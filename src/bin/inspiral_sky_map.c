@@ -29,6 +29,8 @@
 #include <complex.h>
 #include <fftw3.h>
 #include <getopt.h>
+#include <gsl/gsl_complex_math.h>
+#include <gsl/gsl_eigen.h>
 #include <gsl/gsl_math.h>
 #include <math.h>
 #include <sphradiometer/inspiral_sky_map.h>
@@ -509,6 +511,113 @@ static int whiten(complex double *series, complex double *noise, int length)
 
 	for(i = 0; i < length; i++)
 		series[i] /= sqrt(cabs(noise[i]));
+
+	return 0;
+}
+
+
+gsl_matrix_complex *AutoCorrelation2Covariance(COMPLEX16Sequence *nseries, int length)
+{
+	int i, j;
+	gsl_matrix_complex *cov = gsl_matrix_complex_calloc(length, length);
+
+	/* upper half of covariance matrix */
+	for(i = 0; i < length / 2; i++)
+		for(j = 0; j < (length / 2 + 1 + i); j++)
+			gsl_matrix_complex_set(cov, i, j, gsl_complex_rect(creal(nseries->data[length / 2 - i + j]), cimag(nseries->data[length / 2 - i + j])));
+	/* lower half of covariance matrix */
+	for(i = 0; i < length / 2 + 1; i++)
+		for(j = i; j < length; j++)
+			gsl_matrix_complex_set(cov, length / 2 + i, j, gsl_complex_rect(creal(nseries->data[- i + j]), cimag(nseries->data[- i + j])));
+
+	return cov;
+}
+
+
+complex double *gsl_matrix_complex_column_series(gsl_matrix_complex *mat, int i, int length)
+{
+	int j;
+	complex double *column = malloc(length * sizeof(*column));
+
+	for(j = 0; j < length; j++)
+		column[j] = GSL_REAL(gsl_matrix_complex_get(mat, j, i)) + I * GSL_IMAG(gsl_matrix_complex_get(mat, j, i));
+
+	return column;
+}
+
+
+complex double inner_product(complex double *a, complex double *b, int length)
+{
+	int i;
+	complex double prod = 0;
+
+	for(i = 0; i < length; i++)
+		prod += *a++ * conj(*b++);
+
+	return prod;
+}
+
+
+static int add_series(complex double *dest, complex double *a, complex double scale, int length)
+{
+	int i;
+
+	for(i = 0; i < length; i++)
+		dest[i] += a[i] * scale;
+
+	return 0;
+}
+
+
+static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
+{
+	if((series->data->length & 1) == 0){
+		fprintf(stderr, "data length must be odd\n");
+		return 1;
+	}
+
+	int i, imax;
+	double sumeval;
+	gsl_vector *eval = gsl_vector_alloc(series->data->length);
+	gsl_matrix_complex *evec = gsl_matrix_complex_alloc(series->data->length, series->data->length);
+	gsl_eigen_hermv_workspace *w = gsl_eigen_hermv_alloc(series->data->length);
+	complex double *result = calloc(sizeof(*result), series->data->length);
+
+	/* Obtain eigen systems.  The covariance matrix is broken to obtain
+	 * eigenvalues and eigenvectors.  However, after that, we don't use the
+	 * matrix.  Then we don't copy the matrix. */
+	gsl_matrix_complex *cov = AutoCorrelation2Covariance(nseries, (int) series->data->length);
+	gsl_eigen_hermv(cov, eval, evec, w);
+	gsl_eigen_hermv_free(w);
+	gsl_matrix_complex_free(cov);
+
+	/* sort eigens */
+	gsl_eigen_hermv_sort(eval, evec, GSL_EIGEN_SORT_ABS_DESC);
+
+	/* If data does not have numerical errors, then abs(sumeval) ==
+	 * series->data->length is satisfied.  Since real data has the
+	 * numerical errors, the broken point have to be found. */
+	imax = 0;
+	sumeval = 0;
+	do {
+		sumeval += gsl_vector_get(eval, imax++);
+	} while(fabs(sumeval) < (double) series->data->length);
+	fprintf(stderr, "cutoff index: %d\n", imax - 1);
+
+	/* KL whiten */
+	for(i = 0; i < imax; i++) {
+		complex double *evec_i = gsl_matrix_complex_column_series(evec, i, (int) series->data->length);
+		add_series(result, evec_i, inner_product(series->data->data, evec_i, (int) series->data->length) / sqrt(fabs(gsl_vector_get(eval, i))), (int) series->data->length);
+		free(evec_i);
+	}
+
+	/* store result */
+	free(series->data->data);
+	series->data->data = result;
+
+	/* free */
+	gsl_matrix_complex_free(evec);
+	gsl_vector_free(eval);
 
 	return 0;
 }
