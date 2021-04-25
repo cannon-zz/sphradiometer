@@ -1240,9 +1240,11 @@ int main(int argc, char *argv[])
 	 */
 
 
+#if 0
 	for(k = 0; k < instrument_array_len(options->instruments); k++)
 		if(KLwhiten(series[k], nseries[k]))
 			exit(1);
+#endif
 
 
 	/*
