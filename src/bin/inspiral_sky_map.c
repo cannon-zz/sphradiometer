@@ -169,7 +169,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	struct option long_options[] = {
 		{"snr-cache",	required_argument,	NULL,	'A'},
 		{"snr-channel",	required_argument,	NULL,	'B'},
-		{"noise-cache",	required_argument,	NULL,	'C'},
+		{"noise-cache",	optional_argument,	NULL,	'C'},
 		{"precalc-path",	required_argument,	NULL,	'D'},
 		{"psd-cache",	required_argument,	NULL,	'E'},
 		{"output",		required_argument,	NULL,	'H'},
@@ -1203,10 +1203,6 @@ int main(int argc, char *argv[])
 
 
 	options = command_line_parse(argc, argv);
-	if(!options->noise_cache){
-		XLALPrintError("need auto-correlation series of consistent template as noise\n");
-		exit(1);
-	}
 
 
 	/*
@@ -1228,7 +1224,10 @@ int main(int argc, char *argv[])
 		}
 	}
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
-		nseries[k] = get_complex16sequence_from_cache(options->noise_cache, options->channels[k]);
+		if(!options->noise_cache)
+			nseries[k] = convert_TimeSeries2Sequence(get_complex16series_from_cache(options->snr_cache, options->channels[k]));
+		else
+			nseries[k] = get_complex16sequence_from_cache(options->noise_cache, options->channels[k]);
 		if(!nseries[k]) {
 			XLALPrintError("failure loading auto-correlation data\n");
 			exit(1);
