@@ -546,6 +546,32 @@ complex double *gsl_matrix_complex_column_series(gsl_matrix_complex *mat, int i)
 }
 
 
+double *convert_gsl_vector2array(gsl_vector *vector)
+{
+	int i;
+	double *result = malloc(vector->size * sizeof(*result));
+
+	for(i = 0; i < (int) vector->size; i++)
+		result[i] = gsl_vector_get(vector, i);
+
+	return result;
+}
+
+
+complex double **convert_gsl_matrix_complex2columns(gsl_matrix_complex *mat)
+{
+	/* the index of the input point to the rows, but the index of the
+	 * output point to the columns */
+	int i;
+	complex double **result = malloc(mat->size2 * sizeof(*result));
+
+	for(i = 0; i < (int) mat->size2; i++)
+		result[i] = gsl_matrix_complex_column_series(mat, i);
+
+	return result;
+}
+
+
 complex double inner_product(complex double *a, complex double *b, int length)
 {
 	int i;
@@ -569,6 +595,24 @@ static int add_series(complex double *dest, complex double *a, complex double sc
 }
 
 
+static int eigens_from_AutoCorrelation(gsl_vector *eval, gsl_matrix_complex *evec, COMPLEX16Sequence *nseries, int length)
+{
+	/* initialize */
+	gsl_matrix_complex *cov = AutoCorrelation2Covariance(nseries, length);
+	gsl_eigen_hermv_workspace *w = gsl_eigen_hermv_alloc(length);
+
+	/* get eigen systems.  NOTE: The covariance matrix is broken to get
+	 * eigenvalues and eigenvectors. */
+	gsl_eigen_hermv(cov, eval, evec, w);
+
+	/* free */
+	gsl_eigen_hermv_free(w);
+	gsl_matrix_complex_free(cov);
+
+	return 0;
+}
+
+
 static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
 {
 	if((series->data->length & 1) == 0){
@@ -578,21 +622,21 @@ static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
 
 	int i, imax;
 	double sumeval;
-	gsl_vector *eval = gsl_vector_alloc(series->data->length);
-	gsl_matrix_complex *evec = gsl_matrix_complex_alloc(series->data->length, series->data->length);
-	gsl_eigen_hermv_workspace *w = gsl_eigen_hermv_alloc(series->data->length);
+	double *eval;
+	complex double **evec_columns;
+	gsl_vector *eval_gsl = gsl_vector_alloc(series->data->length);
+	gsl_matrix_complex *evec_gsl = gsl_matrix_complex_alloc(series->data->length, series->data->length);
 	complex double *result = calloc(sizeof(*result), series->data->length);
 
-	/* Obtain eigen systems.  The covariance matrix is broken to obtain
-	 * eigenvalues and eigenvectors.  However, after that, we don't use the
-	 * matrix.  Then we don't copy the matrix. */
-	gsl_matrix_complex *cov = AutoCorrelation2Covariance(nseries, (int) series->data->length);
-	gsl_eigen_hermv(cov, eval, evec, w);
-	gsl_eigen_hermv_free(w);
-	gsl_matrix_complex_free(cov);
+	/* get eigens */
+	eigens_from_AutoCorrelation(eval_gsl, evec_gsl, nseries, series->data->length);
+	gsl_eigen_hermv_sort(eval_gsl, evec_gsl, GSL_EIGEN_SORT_ABS_DESC);
 
-	/* sort eigens */
-	gsl_eigen_hermv_sort(eval, evec, GSL_EIGEN_SORT_ABS_DESC);
+	/* convert gsl to series */
+	eval = convert_gsl_vector2array(eval_gsl);
+	evec_columns = convert_gsl_matrix_complex2columns(evec_gsl);
+	gsl_matrix_complex_free(evec_gsl);
+	gsl_vector_free(eval_gsl);
 
 	/* If data does not have numerical errors, then abs(sumeval) ==
 	 * series->data->length is satisfied.  Since real data has the
@@ -600,15 +644,13 @@ static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
 	imax = 0;
 	sumeval = 0;
 	do {
-		sumeval += gsl_vector_get(eval, imax++);
+		sumeval += eval[imax++];
 	} while(fabs(sumeval) < (double) series->data->length);
 	fprintf(stderr, "cutoff index: %d\n", imax - 1);
 
 	/* KL whiten */
 	for(i = 0; i < imax; i++) {
-		complex double *evec_i = gsl_matrix_complex_column_series(evec, i, (int) series->data->length);
-		add_series(result, evec_i, inner_product(series->data->data, evec_i, (int) series->data->length) / sqrt(fabs(gsl_vector_get(eval, i))), (int) series->data->length);
-		free(evec_i);
+		add_series(result, evec_columns[i], inner_product(series->data->data, evec_columns[i], (int) series->data->length) / sqrt(fabs(eval[i])), (int) series->data->length);
 	}
 
 	/* store result */
@@ -616,8 +658,8 @@ static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
 	series->data->data = result;
 
 	/* free */
-	gsl_matrix_complex_free(evec);
-	gsl_vector_free(eval);
+	free(eval);
+	free(evec_columns);
 
 	return 0;
 }
