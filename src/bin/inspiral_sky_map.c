@@ -534,12 +534,12 @@ gsl_matrix_complex *AutoCorrelation2Covariance(COMPLEX16Sequence *nseries, int l
 }
 
 
-complex double *gsl_matrix_complex_column_series(gsl_matrix_complex *mat, int i, int length)
+complex double *gsl_matrix_complex_column_series(gsl_matrix_complex *mat, int i)
 {
 	int j;
-	complex double *column = malloc(length * sizeof(*column));
+	complex double *column = malloc(mat->size1 * sizeof(*column));
 
-	for(j = 0; j < length; j++)
+	for(j = 0; j < (int) mat->size1; j++)
 		column[j] = GSL_REAL(gsl_matrix_complex_get(mat, j, i)) + I * GSL_IMAG(gsl_matrix_complex_get(mat, j, i));
 
 	return column;
