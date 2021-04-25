@@ -505,17 +505,6 @@ static int threshold(complex double *series, complex double *noise, int length, 
 }
 
 
-static int whiten(complex double *series, complex double *noise, int length)
-{
-	int i;
-
-	for(i = 0; i < length; i++)
-		series[i] /= sqrt(cabs(noise[i]));
-
-	return 0;
-}
-
-
 gsl_matrix_complex *AutoCorrelation2Covariance(COMPLEX16Sequence *nseries, int length)
 {
 	int i, j;

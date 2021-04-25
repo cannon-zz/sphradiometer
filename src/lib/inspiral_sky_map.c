@@ -425,6 +425,17 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
  */
 
 
+static int whiten(complex double *series, complex double *noise, int length)
+{
+	int i;
+
+	for(i = 0; i < length; i++)
+		series[i] /= sqrt(cabs(noise[i]));
+
+	return 0;
+}
+
+
 /*
  * ============================================================================
  *
