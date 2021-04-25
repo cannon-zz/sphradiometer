@@ -425,6 +425,104 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
  */
 
 
+complex double inner_product(complex double *a, complex double *b, int length)
+{
+	int i;
+	complex double prod = 0;
+
+	for(i = 0; i < length; i++)
+		prod += *a++ * conj(*b++);
+
+	return prod;
+}
+
+
+complex double *matrix_dot_vector(complex double **mat, complex double *vec, int dim)
+{
+	int i;
+	complex double *result = malloc(dim * sizeof(*result));
+
+	for(i = 0; i < dim; i++)
+		result[i] = inner_product(mat[i], vec, dim);
+
+	return result;
+}
+
+
+void complex_conjugate_vector(complex double *vec, int dim)
+{
+	int i;
+
+	for(i = 0; i < dim; i++)
+		vec[i] = conj(vec[i]);
+}
+
+
+complex double **convert_basis_from_frequency(complex double **mat, complex double **evec_columns, int dim)
+{
+	/* mat is on frequency domain.  this function convert mat on evec. */
+	int i, j;
+	complex double **result = malloc(dim * sizeof(*result));
+
+	/* initialize */
+	for(i = 0; i < dim; i++)
+		result[i] = malloc(dim * sizeof(*result[i]));
+
+	/* M_{i, j} = \tilde{evec[i]}^{f*} M_{f, f'} \tilde{evec[j]}^{f'} */
+	for(i = 0; i < dim; i++) {
+		/* When constructing fftplan, save_i is broken.  Not to loss
+		 * evec_columns, save_i is used. */
+		complex double *save_i = malloc(dim * sizeof(*save_i));
+		memcpy(save_i, evec_columns[i], dim * sizeof(*save_i));
+		complex double *fevec_i = malloc(dim * sizeof(*fevec_i));
+		fftw_plan fftplan_i = correlator_ctseries_to_fseries_plan(save_i, fevec_i, dim);
+		correlator_ctseries_to_fseries(fftplan_i);
+
+		/* make fevec_i complex conjugate */
+		complex_conjugate_vector(fevec_i, dim);
+
+		for(j = 0; j < dim; j++) {
+			/* When constructing fftplan, save_j is broken.  Not to loss
+			 * evec_columns, save_j is used. */
+			complex double *save_j = malloc(dim * sizeof(*save_j));
+			memcpy(save_j, evec_columns[j], dim * sizeof(*save_j));
+			complex double *fevec_j = malloc(dim * sizeof(*fevec_j));
+			fftw_plan fftplan_j = correlator_ctseries_to_fseries_plan(save_j, fevec_j, dim);
+			correlator_ctseries_to_fseries(fftplan_j);
+
+			/* store */
+			complex double *M_dot_e = matrix_dot_vector(mat, fevec_j, dim);
+			result[i][j] = inner_product(fevec_i, M_dot_e, dim);
+
+			/* free */
+			free(M_dot_e);
+			free(save_j);
+			free(fevec_j);
+			fftw_destroy_plan(fftplan_j);
+		}
+
+		/* free */
+		free(save_i);
+		free(fevec_i);
+		fftw_destroy_plan(fftplan_i);
+	}
+
+	return result;
+}
+
+
+double *KL_transform(COMPLEX16TimeSeries *series, complex double **evec_columns)
+{
+	int i;
+	double *result = malloc(series->data->length * sizeof(*result));
+
+	for(i = 0; i < (int) series->data->length; i++)
+		result[i] = inner_product(series->data->data, evec_columns[i], (int) series->data->length);
+
+	return result;
+}
+
+
 static int whiten(complex double *series, complex double *noise, int length)
 {
 	int i;
