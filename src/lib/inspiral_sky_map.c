@@ -140,13 +140,13 @@ static complex double CBCProjectionMatrix(double theta, double phi, int i, int j
 		/* gmst is rotated in generate_alm_sky().
 		 * So we can set zero. */
 		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, psi, 0.0);
+		fplus[k] /= psds[k];
+		fcross[k] /= psds[k];
 		/* calculate norms of vector fp & fc */
-		normplus2 += fplus[k] * fplus[k] / psds[k];
-		normcross2 += fcross[k] * fcross[k] / psds[k];
+		normplus2 += fplus[k] * fplus[k];
+		normcross2 += fcross[k] * fcross[k];
 	}
 
-	normplus2 *= sqrt(psds[i] * psds[j]);
-	normcross2 *= sqrt(psds[i] * psds[j]);
 	return (fplus[i] + I * beta * fcross[i]) * (fplus[j] - I * beta * fcross[j]) / (normplus2 + beta*beta * normcross2) - (int)(i == j);
 }
 
