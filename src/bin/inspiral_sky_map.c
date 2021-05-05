@@ -169,7 +169,7 @@ struct options *command_line_parse(int argc, char *argv[])
 	struct option long_options[] = {
 		{"snr-cache",	required_argument,	NULL,	'A'},
 		{"snr-channel",	required_argument,	NULL,	'B'},
-		{"noise-cache",	optional_argument,	NULL,	'C'},
+		{"noise-cache",	required_argument,	NULL,	'C'},
 		{"precalc-path",	required_argument,	NULL,	'D'},
 		{"psd-cache",	required_argument,	NULL,	'E'},
 		{"output",		required_argument,	NULL,	'H'},
