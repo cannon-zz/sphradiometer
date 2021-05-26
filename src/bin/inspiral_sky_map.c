@@ -507,6 +507,14 @@ static int threshold(complex double *series, complex double *noise, int length, 
 
 gsl_matrix_complex *AutoCorrelation2Covariance(COMPLEX16Sequence *nseries, int length)
 {
+	/* The diagonal components of the covariant matrix must be one.  If the
+	 * data length is in even, the center of template auto-correlation
+	 * cannot be obtained as 1. */
+	if((length & 1) == 0){
+		fprintf(stderr, "data length must be odd\n");
+		return NULL;
+	}
+
 	int i, j;
 	gsl_matrix_complex *cov = gsl_matrix_complex_calloc(length, length);
 
@@ -588,6 +596,10 @@ static int eigens_from_AutoCorrelation(gsl_vector *eval, gsl_matrix_complex *eve
 {
 	/* initialize */
 	gsl_matrix_complex *cov = AutoCorrelation2Covariance(nseries, length);
+	if(!cov) {
+		fprintf(stderr, "failure of making covariant matrix from template auto-correlaiton");
+		return 1;
+	}
 	gsl_eigen_hermv_workspace *w = gsl_eigen_hermv_alloc(length);
 
 	/* get eigen systems.  NOTE: The covariance matrix is broken to get
@@ -604,11 +616,6 @@ static int eigens_from_AutoCorrelation(gsl_vector *eval, gsl_matrix_complex *eve
 
 static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
 {
-	if((series->data->length & 1) == 0){
-		fprintf(stderr, "data length must be odd\n");
-		return 1;
-	}
-
 	int i, imax;
 	double sumeval;
 	double *eval;
@@ -618,7 +625,11 @@ static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
 	complex double *result = calloc(sizeof(*result), series->data->length);
 
 	/* get eigens */
-	eigens_from_AutoCorrelation(eval_gsl, evec_gsl, nseries, series->data->length);
+	if(eigens_from_AutoCorrelation(eval_gsl, evec_gsl, nseries, series->data->length)) {
+		gsl_matrix_complex_free(evec_gsl);
+		gsl_vector_free(eval_gsl);
+		return 1;
+	}
 	gsl_eigen_hermv_sort(eval_gsl, evec_gsl, GSL_EIGEN_SORT_ABS_DESC);
 
 	/* convert gsl to series */
