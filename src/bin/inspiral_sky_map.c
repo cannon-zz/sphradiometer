@@ -1270,6 +1270,7 @@ int main(int argc, char *argv[])
 			series[k]->data->data[j] *= window->data->data[j];
 			nseries[k]->data[j] *= window->data->data[j];
 		}
+		XLALDestroyREAL8Window(window);
 	}
 
 
