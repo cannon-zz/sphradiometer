@@ -1226,7 +1226,7 @@ int main(int argc, char *argv[])
 	struct correlator_network_plan_fd *fdplansp, *fdplansn;
 	COMPLEX16TimeSeries **series;
 	COMPLEX16Sequence **nseries;
-	double *psds;
+	double **psds;
 	struct sh_series *skyp;
 	struct sh_series *skyn;
 	struct sh_series *logprior;
@@ -1321,7 +1321,7 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 	}
-	psds = make_one_line(temp, instrument_array_len(options->instruments), series[0]->data->length);
+	psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
 	free(temp);
 	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < (series[k]->data->length - (series[k]->data->length & 1)) / 2 + 1; j++) fprintf(stderr, "%g\n", psds[k][j]); fprintf(stderr, "\n"); }*/
 #endif

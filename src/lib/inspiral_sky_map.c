@@ -207,7 +207,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 }
 
 
-int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan, double beta, double psi, double *psd)
+int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan, double beta, double psi, double **psd)
 {
 	int i, j;
 	struct sh_series **projection = malloc(plan->plans[0]->delay_product->n * sizeof(*projection));
@@ -252,7 +252,7 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 				.n = instrument_array_len(instruments),
 				.beta = beta,
 				.psi = psi,
-				.psds = &(psd[j * instrument_array_len(instruments)])
+				.psds = psd[j]
 			};
 			if(!sh_series_from_func(projection[j], ProjectionMatrixWrapper, &data)) {
 				goto error;
