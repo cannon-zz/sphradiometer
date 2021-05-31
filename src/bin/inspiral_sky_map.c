@@ -1224,6 +1224,8 @@ int main(int argc, char *argv[])
 	struct options *options;
 	struct correlator_network_baselines *baselines = NULL;
 	struct correlator_network_plan_fd *fdplansp, *fdplansn;
+	struct autocorrelator_network_plan_fd *fdautoplanp;
+	struct autocorrelator_network_plan_fd *fdautoplann;
 	COMPLEX16TimeSeries **series;
 	COMPLEX16Sequence **nseries;
 	double **psds;
@@ -1401,8 +1403,16 @@ int main(int argc, char *argv[])
 	}
 
 
+	fprintf(stderr, "construct plans for auto-correlations\n");
+	fdautoplanp = autocorrelator_network_plan_fd_new(fdplansp->baselines->baselines[0]->instruments, +1, 0, psds, (int) fdplansp->plans[0]->delay_product->n);
+	fdautoplann = autocorrelator_network_plan_fd_new(fdplansn->baselines->baselines[0]->instruments, -1, 0, psds, (int) fdplansn->plans[0]->delay_product->n);
+	if(!fdautoplanp || !fdautoplann) {
+		fprintf(stderr, "memory error\n");
+		exit(1);
+	}
+
 	gettimeofday(&t_start, NULL);
-	if(generate_alm_skys(&skyp, &skyn, fdplansp, fdplansn, series, nseries, logprior)) {
+	if(generate_alm_skys(&skyp, &skyn, fdplansp, fdplansn, fdautoplanp, fdautoplann, series, nseries, logprior)) {
 		fprintf(stderr, "generate_alm_skys error\n");
 		exit(1);
 	}
@@ -1447,6 +1457,8 @@ int main(int argc, char *argv[])
 	sh_series_free(logprior);
 	correlator_network_plan_fd_free(fdplansp);
 	correlator_network_plan_fd_free(fdplansn);
+	autocorrelator_network_plan_fd_free(fdautoplanp);
+	autocorrelator_network_plan_fd_free(fdautoplann);
 	if(baselines != NULL)
 		correlator_network_baselines_free(baselines);
 	command_line_options_free(options);

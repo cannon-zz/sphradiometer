@@ -153,6 +153,18 @@ struct correlator_network_plan_fd {
 
 
 /*
+ * Frequency-domain auto-correlation plan for detectors.
+ */
+
+
+struct autocorrelator_network_plan_fd {
+	const struct instrument_array *instruments;
+	struct sh_series ***projections;
+	int length;
+};
+
+
+/*
  * ============================================================================
  *
  *                                   Macros

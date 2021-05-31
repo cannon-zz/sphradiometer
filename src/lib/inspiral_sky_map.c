@@ -348,70 +348,138 @@ error:
  */
 
 
-static int autocorrelator_network_from_projection(struct sh_series *sky, complex double **fseries, struct correlator_network_plan_fd *plan)
+struct sh_series ***diagonal_projections(const struct instrument_array *instruments, double beta, double psi, double **psd, int length)
 {
-	int i, j;
-	struct sh_series *projection = sh_series_new(Projection_lmax, 0);
-	const LALDetector **det = malloc(instrument_array_len(plan->baselines->baselines[0]->instruments) * sizeof(*det));
+	int i, j, k;
+	struct sh_series ***projection = malloc(instrument_array_len(instruments) * sizeof(*projection));
+	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
 	if(!projection || !det) {
-		sh_series_free(projection);
+		free(projection);
 		free(det);
-		return -1;
+		return NULL;
 	}
 
 	/* set instruments information */
-	for(i = 0; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++) {
-		det[i] = instrument_array_get(plan->baselines->baselines[0]->instruments, i)->data;
-		if(!det[i]) {
-			sh_series_free(projection);
+	for(i = 0; i < instrument_array_len(instruments); i++) {
+		det[i] = instrument_array_get(instruments, i)->data;
+		projection[i] = malloc(length * sizeof(*projection));
+		if(!det[i] || !projection[i]) {
+			free(projection);
 			free(det);
-			return -1;
+			return NULL;
 		}
 	}
 
-	for(i = 0; i < instrument_array_len(plan->baselines->baselines[0]->instruments); i++) {
-		/* calc. projection operator */
-		struct ProjectionMatrixWrapperData data = {
-			.i = i,
-			.j = i,
-			.det = det,
-			.n = instrument_array_len(plan->baselines->baselines[0]->instruments)
-		};
-		if(!sh_series_from_func(projection, ProjectionMatrixWrapper, &data)) {
-			sh_series_free(projection);
-			free(det);
-			return -1;
+	for(k = 0; k < instrument_array_len(instruments); k++) {
+		for(i = 0; i < length; i++) {
+			projection[k][i] = sh_series_new(Projection_lmax, 0);
+			if(!projection[k][i]) {
+				for(j = i; j > -1; j--) {
+					sh_series_free(projection[k][j]);
+				}
+				free(projection);
+				free(det);
+				fprintf(stderr, "fail %d-th frequency projection operator\n", i);
+				return NULL;
+			}
 		}
+	}
 
-		/* execute calc. */
-		double correlator = 0;
-		for(j = 0; j < (int) plan->plans[i]->delay_product->n; j++)
-			correlator += fseries[i][j] * conj(fseries[i][j]);
-		correlator /= plan->plans[i]->delay_product->n * plan->plans[i]->delay_product->n;	// TODO: after considering all TODO, you can decide whether this line is alive or not.
-		for(j = 2; j <= instrument_array_len(plan->baselines->baselines[0]->instruments); j++)
-			correlator /= j;
-		sh_series_add(sky, correlator, projection);
+	for(i = 0; i < instrument_array_len(instruments); i++) {
+		fprintf(stderr, "generate Projection distribution from %d and %d\n", i, i);
+		for(j = 0; j < length; j++) {
+			struct ProjectionMatrixWrapperData data = {
+				.i = i,
+				.j = i,
+				.det = det,
+				.n = instrument_array_len(instruments),
+				.beta = beta,
+				.psi = psi,
+				.psds = psd[j]
+			};
+			if(!sh_series_from_func(projection[i][j], ProjectionMatrixWrapper, &data)) {
+				goto error;
+			}
 
 #if 0
-		/* plot projection */
-		char filename[32] ={"\0"};
-		char istr[12];
-		snprintf(istr, sizeof(istr), "%d", i + instrument_array_len(plan->baselines->baselines[0]->instruments));
-		strcat(filename, "projection");
-		strcat(filename, istr);
-		strcat(filename, ".fits");
-		fprintf(stderr, "generate Projection distribution from %d and %d\n", data.i, data.j);
-		sh_series_scale(projection, correlator);
-		if(sh_series_write_healpix_alm(projection, filename)) {
-			fprintf(stderr, "write \"%s\" failed\n", filename);
-			free(det);
-			exit(1);
-		}
+			/* plot projection */
+			char filename[32] ={"\0"};
+			char istr[12];
+			snprintf(istr, sizeof(istr), "%d", i);
+			strcat(filename, "projection");
+			strcat(filename, istr);
+			strcat(filename, ".fits");
+			if(sh_series_write_healpix_alm(projection[j], filename)) {
+				fprintf(stderr, "write \"%s\" failed\n", filename);
+				free(det);
+				exit(1);
+			}
 #endif
+		}
 	}
 
-	sh_series_free(projection);
+	free(det);
+	return projection;
+
+error:
+	for(i = 0; i < instrument_array_len(instruments); i++) {
+		for(j = 0; j < length; j++)
+			sh_series_free(projection[i][j]);
+	}
+	free(projection);
+	free(det);
+	return NULL;
+}
+
+
+struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const struct instrument_array *instruments, double beta, double psi, double **psd, int length)
+{
+	struct autocorrelator_network_plan_fd *new = malloc(sizeof(*new));
+
+	if(!new) {
+		free(new);
+		return NULL;
+	}
+
+	new->instruments = instruments;
+	new->length = length;
+	new->projections = diagonal_projections(instruments, beta, psi, psd, length);
+
+	return new;
+}
+
+
+void autocorrelator_network_plan_fd_free(struct autocorrelator_network_plan_fd *plan)
+{
+	int i, j;
+
+	for(i = 0; i < instrument_array_len(plan->instruments); i++) {
+		for(j = 0; j < plan->length; j++) {
+			sh_series_free(plan->projections[i][j]);
+		}
+	}
+
+	free(plan->projections);
+	free(plan);
+}
+
+
+static int autocorrelator_network_from_projection(struct sh_series *sky, complex double **fseries, struct autocorrelator_network_plan_fd *plan)
+{
+	int i, j;
+	double normalization_factor;
+
+	normalization_factor = 1. / (plan->length * plan->length);
+	for(j = 2; j <= instrument_array_len(plan->instruments); j++)
+		normalization_factor /= j;
+
+	for(i = 0; i < instrument_array_len(plan->instruments); i++) {
+		/* execute calc. */
+		for(j = 0; j < plan->length; j++)
+			sh_series_add(sky, fseries[i][j] * conj(fseries[i][j]) * normalization_factor, plan->projections[i][j]);
+	}
+
 	return 0;
 }
 
@@ -572,7 +640,7 @@ struct sh_series *sh_series_log_uniformsky_prior(int l_max)
 
 
 
-static int generate_alm_sky(struct sh_series *sky, struct correlator_network_plan_fd *fdplans, complex double **fseries, complex double **fnseries, double gmst, struct sh_series *logprior)
+static int generate_alm_sky(struct sh_series *sky, struct correlator_network_plan_fd *fdplans, struct autocorrelator_network_plan_fd *fdautoplan, complex double **fseries, complex double **fnseries, double gmst, struct sh_series *logprior)
 {
 	/*
 	 * Compute angular distribution of integrated cross power.
@@ -599,7 +667,7 @@ static int generate_alm_sky(struct sh_series *sky, struct correlator_network_pla
 	/* add contributions from diagonal part, auto-correlation. FIXME: check
 	 * consistency between above and below sh_series_scale() */
 	fprintf(stderr, "including auto-correlation terms\n");
-	if(autocorrelator_network_from_projection(sky, fseries, fdplans)) {
+	if(autocorrelator_network_from_projection(sky, fseries, fdautoplan)) {
 		fprintf(stderr, "auto-correlator failed\n");
 		exit(1);
 	}
@@ -645,7 +713,7 @@ static int generate_alm_sky(struct sh_series *sky, struct correlator_network_pla
 }
 
 
-int generate_alm_skys(struct sh_series **skyp, struct sh_series **skyn, struct correlator_network_plan_fd *fdplansp, struct correlator_network_plan_fd *fdplansn, COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, struct sh_series *logprior)
+int generate_alm_skys(struct sh_series **skyp, struct sh_series **skyn, struct correlator_network_plan_fd *fdplansp, struct correlator_network_plan_fd *fdplansn, struct autocorrelator_network_plan_fd *fdautoplanp, struct autocorrelator_network_plan_fd *fdautoplann, COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, struct sh_series *logprior)
 {
 	complex double **fseries;
 	complex double **fnseries;
@@ -774,14 +842,14 @@ int generate_alm_skys(struct sh_series **skyp, struct sh_series **skyn, struct c
 
 
 	*skyp = sh_series_new_zero(logprior->l_max, 0);
-	if(generate_alm_sky(*skyp, fdplansp, fseries, fnseries, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0), logprior)) {
+	if(generate_alm_sky(*skyp, fdplansp, fdautoplanp, fseries, fnseries, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0), logprior)) {
 		fprintf(stderr, "positive generate_alm_sky error\n");
 		return -1;
 	}
 
 
 	*skyn = sh_series_new_zero(logprior->l_max, 0);
-	if(generate_alm_sky(*skyn, fdplansn, fseries, fnseries, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0), logprior)) {
+	if(generate_alm_sky(*skyn, fdplansn, fdautoplann, fseries, fnseries, gmst_from_epoch_and_offset(series[0]->epoch, series[0]->data->length * series[0]->deltaT / 2.0), logprior)) {
 		fprintf(stderr, "negative generate_alm_sky error\n");
 		return -1;
 	}
