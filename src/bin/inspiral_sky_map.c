@@ -401,6 +401,28 @@ static double *get_PSD_from_cache(
 }
 
 
+void PSD_times_sqrt_AutoCorrelation(double *psd, COMPLEX16Sequence *series)
+{
+	int i;
+	complex double *fseries;
+	complex double *cpy;
+	fftw_plan fftplan;
+
+	/* fourier transform */
+	cpy = malloc(series->length * sizeof(*cpy));
+	memcpy(cpy, series->data, series->length * sizeof(*cpy));
+	fseries = malloc(series->length * sizeof(*fseries));
+	fftplan = correlator_ctseries_to_fseries_plan(series->data, fseries, series->length);
+	memcpy(series->data, cpy, series->length * sizeof(*cpy));
+	free(cpy);
+	correlator_ctseries_to_fseries(fftplan);
+
+	/* multiply */
+	for(i = 0; i < (int) series->length; i++)
+		psd[i] *= sqrt(cabs(fseries[i]));
+}
+
+
 static double **transpose_matrix(double **mat, int n_det, int length)
 {
 	/* mat is a (n_det * length)-matrix */
@@ -1319,6 +1341,7 @@ int main(int argc, char *argv[])
 			XLALPrintError("failure loading snr data\n");
 			exit(1);
 		}
+		PSD_times_sqrt_AutoCorrelation(temp[k], nseries[k]);
 	}
 	psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
 	free(temp);
