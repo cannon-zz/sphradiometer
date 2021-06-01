@@ -390,9 +390,6 @@ static double *get_PSD_from_cache(
 		if(strcmp(channel, instrument) == 0) {
 			unsigned i;
 			FILE *fpp = fopen(filepath, "r");
-			/* "length" is the length of data on time domain.  PSD
-			 * is defined on frequency domain.  Thus, the length of
-			 * PSD is about half of "length". */
 			for(i = 0; i < length; i++)
 				fscanf(fpp, "%lf", &data[i]);
 			fclose(fpp);
