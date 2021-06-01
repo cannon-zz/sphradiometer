@@ -126,6 +126,15 @@ static complex double ExcessProjectionMatrix(double theta, double phi, int i, in
 }
 
 
+/*
+ * psds have a different normalization with the paper.  However, fplus & fcross
+ * and those normalization terms weighted with the psds have the same excess
+ * factors.  Projection operator is defined like $P \sim fs / |fs|$, and then
+ * the operator is convention-free.  Thus you don't have to consider the
+ * convention difference.
+ */
+
+
 static complex double CBCProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double beta, double psi, double *psds)
 {
 	/* this is CBC parameterized one for arbitrary beta & psi */
