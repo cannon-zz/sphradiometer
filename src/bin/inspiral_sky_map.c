@@ -1386,12 +1386,15 @@ int main(int argc, char *argv[])
 		fdplansp = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
 		fdplansn = correlator_network_plan_fd_copy(fdplansp);
 #if 1
+		/* The extra phase factors from gmst are cancelled in the
+		 * projection operator due to the complex conjugate factor for
+		 * beta == +/-1.  Thus gmst can be set 0. */
 		fprintf(stderr, "applying projection operator\n");
-		if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0, psds)) {
+		if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0, 0, psds)) {
 			fprintf(stderr, "positive plan is failed\n");
 			exit(1);
 		}
-		if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0, psds)) {
+		if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0, 0, psds)) {
 			fprintf(stderr, "negative plan is failed\n");
 			exit(1);
 		}
@@ -1423,9 +1426,12 @@ int main(int argc, char *argv[])
 	}
 
 
+	/* The extra phase factors from gmst are cancelled in the projection
+	 * operator due to the complex conjugate factor for beta == +/-1.  Thus
+	 * gmst can be set 0. */
 	fprintf(stderr, "construct plans for auto-correlations\n");
-	fdautoplanp = autocorrelator_network_plan_fd_new(fdplansp->baselines->baselines[0]->instruments, +1, 0, psds, (int) fdplansp->plans[0]->delay_product->n);
-	fdautoplann = autocorrelator_network_plan_fd_new(fdplansn->baselines->baselines[0]->instruments, -1, 0, psds, (int) fdplansn->plans[0]->delay_product->n);
+	fdautoplanp = autocorrelator_network_plan_fd_new(fdplansp->baselines->baselines[0]->instruments, +1, 0, 0, psds, (int) fdplansp->plans[0]->delay_product->n);
+	fdautoplann = autocorrelator_network_plan_fd_new(fdplansn->baselines->baselines[0]->instruments, -1, 0, 0, psds, (int) fdplansn->plans[0]->delay_product->n);
 	if(!fdautoplanp || !fdautoplann) {
 		fprintf(stderr, "memory error\n");
 		exit(1);
