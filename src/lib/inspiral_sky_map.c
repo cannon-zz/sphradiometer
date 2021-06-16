@@ -146,7 +146,7 @@ static complex double CBCProjectionMatrix(double theta, double phi, int i, int j
 	normplus2 = normcross2 = 0.0;
 	for(k = 0; k < n; k++){
 		/* store fp, fc */
-		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, psi, gmst);
+		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, -phi, M_PI_2 - theta, psi, gmst);
 		fplus[k] /= psds[k];
 		fcross[k] /= psds[k];
 		/* calculate norms of vector fp & fc */
