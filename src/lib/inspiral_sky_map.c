@@ -135,7 +135,7 @@ static complex double ExcessProjectionMatrix(double theta, double phi, int i, in
  */
 
 
-static complex double CBCProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double beta, double psi, double gmst, double *psds)
+static complex double CBCProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double beta, double psi, double *psds)
 {
 	/* this is CBC parameterized one for arbitrary beta & psi */
 	double fplus[n], fcross[n];
@@ -146,7 +146,9 @@ static complex double CBCProjectionMatrix(double theta, double phi, int i, int j
 	normplus2 = normcross2 = 0.0;
 	for(k = 0; k < n; k++){
 		/* store fp, fc */
-		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, psi, gmst);
+		/* gmst is rotated in generate_alm_sky().
+		 * So we can set zero. */
+		XLALComputeDetAMResponse(&fplus[k], &fcross[k], det[k]->response, phi, M_PI_2 - theta, psi, 0.0);
 		fplus[k] /= psds[k];
 		fcross[k] /= psds[k];
 		/* calculate norms of vector fp & fc */
@@ -164,7 +166,6 @@ struct ProjectionMatrixWrapperData {
 	int n;
 	double beta;
 	double psi;
-	double gmst;
 	double *psds;
 };
 
@@ -176,7 +177,7 @@ static complex double ProjectionMatrixWrapper(double theta, double phi, void *_d
 #if 0
 	return ExcessProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n);
 #else
-	return CBCProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n, data->beta, data->psi, data->gmst, data->psds);
+	return CBCProjectionMatrix(theta, phi, data->i, data->j, data->det, data->n, data->beta, data->psi, data->psds);
 #endif
 }
 
@@ -215,7 +216,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 }
 
 
-int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan, double beta, double psi, double gmst, double **psd)
+int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *plan, double beta, double psi, double **psd)
 {
 	int i, j;
 	struct sh_series **projection = malloc(plan->plans[0]->delay_product->n * sizeof(*projection));
@@ -245,7 +246,7 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 			}
 			free(projection);
 			free(det);
-			fprintf(stderr, "fail %d-th frequency projection operator\n", i);
+			fprintf(stderr, "%d\n", i);
 			return -1;
 		}
 	}
@@ -260,7 +261,6 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 				.n = instrument_array_len(instruments),
 				.beta = beta,
 				.psi = psi,
-				.gmst = gmst,
 				.psds = psd[j]
 			};
 			if(!sh_series_from_func(projection[j], ProjectionMatrixWrapper, &data)) {
@@ -357,7 +357,7 @@ error:
  */
 
 
-struct sh_series ***diagonal_projections(const struct instrument_array *instruments, double beta, double psi, double gmst, double **psd, int length)
+struct sh_series ***diagonal_projections(const struct instrument_array *instruments, double beta, double psi, double **psd, int length)
 {
 	int i, j, k;
 	struct sh_series ***projection = malloc(instrument_array_len(instruments) * sizeof(*projection));
@@ -405,7 +405,6 @@ struct sh_series ***diagonal_projections(const struct instrument_array *instrume
 				.n = instrument_array_len(instruments),
 				.beta = beta,
 				.psi = psi,
-				.gmst = gmst,
 				.psds = psd[j]
 			};
 			if(!sh_series_from_func(projection[i][j], ProjectionMatrixWrapper, &data)) {
@@ -443,7 +442,7 @@ error:
 }
 
 
-struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const struct instrument_array *instruments, double beta, double psi, double gmst, double **psd, int length)
+struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const struct instrument_array *instruments, double beta, double psi, double **psd, int length)
 {
 	struct autocorrelator_network_plan_fd *new = malloc(sizeof(*new));
 
@@ -454,7 +453,7 @@ struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const 
 
 	new->instruments = instruments;
 	new->length = length;
-	new->projections = diagonal_projections(instruments, beta, psi, gmst, psd, length);
+	new->projections = diagonal_projections(instruments, beta, psi, psd, length);
 
 	return new;
 }

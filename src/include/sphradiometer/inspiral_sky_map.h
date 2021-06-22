@@ -43,8 +43,8 @@
 
 struct sh_series *sh_series_log_uniformsky_prior(int);
 
-int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *, double, double, double, double **);
-struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const struct instrument_array *, double, double, double, double **, int);
+int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *, double, double, double **);
+struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const struct instrument_array *, double, double, double **, int);
 void autocorrelator_network_plan_fd_free(struct autocorrelator_network_plan_fd *);
 
 int generate_alm_skys(struct sh_series **, struct sh_series **, struct correlator_network_plan_fd *, struct correlator_network_plan_fd *, struct autocorrelator_network_plan_fd *, struct autocorrelator_network_plan_fd *, COMPLEX16TimeSeries **, COMPLEX16Sequence **, struct sh_series *);
