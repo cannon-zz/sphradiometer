@@ -5,13 +5,15 @@ TESTS = \
 	healpy_validate.py \
 	product_validate \
 	rotation_validate \
-	sh_series_validate
+	sh_series_validate \
+	sh_series_io_validate
 
 check_PROGRAMS = \
 	correlator_validate \
 	product_validate \
 	rotation_validate \
-	sh_series_validate
+	sh_series_validate \
+	sh_series_io_validate
 
 if S2KIT
 TESTS += \
@@ -45,10 +47,16 @@ sh_series_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 #sh_series_validate_LDFLAGS = $(AM_LDFLAGS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 sh_series_validate_LDADD = ../src/lib/libsphradiometer.la ../src/lib/libsphradiometerdiag.la
 
+sh_series_io_validate_SOURCES = sh_series_io_validate.c
+sh_series_io_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
+#sh_series_io_validate_LDFLAGS = $(AM_LDFLAGS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
+sh_series_io_validate_LDADD = ../src/lib/libsphradiometer.la ../src/lib/libsphradiometerdiag.la
+
 plots :
 	-rm -vf tests_*.png
 	./plottests tests_*.fits
 
 clean-local :
+	-rm -f test.fits
 	-rm -f tests_{exact,fdaverage,tdaverage}_*.fits
 	-rm -f tests_*.png
