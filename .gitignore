@@ -28,6 +28,11 @@ test/correlator_validate
 test/product_validate
 test/rotation_validate
 test/s2kit_validate
+test/sh_series_io_validate
 test/sh_series_validate
+test/test.fits
 test/tests
+test/tests_exact_*.fits
+test/tests_fdaverage_*.fits
+test/tests_tdaverage_*.fits
 stamp-h1
