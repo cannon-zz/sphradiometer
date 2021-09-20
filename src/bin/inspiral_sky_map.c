@@ -948,6 +948,65 @@ static int read_precalc_correlator_network_plan_fd(struct correlator_network_pla
 }
 
 
+static int read_precalc_autocorrelator_network_plan_fd(struct autocorrelator_network_plan_fd *fdplansp, struct autocorrelator_network_plan_fd *fdplansn, const struct instrument_array *instruments, int tseries_length, char *parent_dir)
+{
+	char filename[strlen(parent_dir) + FILE_LEN];
+	FILE *fp;
+	int i, j;
+
+	if(!fdplansp || !fdplansn) {
+		fprintf(stderr, "memory of correlator_network_plan_fd must be allocated\n");
+		return -1;
+	}
+
+	/* read no pointer objects */
+	sprintf(filename, "%s/autocorrelator_network_plan_fd/length.dat", parent_dir);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "no length.dat\n");
+		return -1;
+	}
+	fread(&fdplansp->length, sizeof(fdplansp->length), 1, fp);
+	fclose(fp);
+	fdplansn->length = fdplansp->length;
+
+	/* read projections */
+	/* positive case */
+	fdplansp->projections = malloc(instrument_array_len(instruments) * sizeof(*fdplansp->projections));
+	for(i = 0; i < instrument_array_len(instruments); i++) {
+		fdplansp->projections[i] = malloc(fdplansp->length * sizeof(*fdplansp->projections[i]));
+		for(j = 0; j < fdplansp->length; j++) {
+			sprintf(filename, "%s/autocorrelator_network_plan_fd/psh_series/%d/sh_series_p/projections%d.fits", parent_dir, i, j);
+			fdplansp->projections[i][j] = sh_series_read_healpix_alm(filename);
+			if(!fdplansp->projections[i][j]) {
+				fprintf(stderr, "no %dth projections%d.fits\n", i, j);
+				return -1;
+			}
+		}
+	}
+
+	/* negative case */
+	fdplansn->projections = malloc(instrument_array_len(instruments) * sizeof(*fdplansn->projections));
+	for(i = 0; i < instrument_array_len(instruments); i++) {
+		fdplansn->projections[i] = malloc(fdplansn->length * sizeof(*fdplansn->projections[i]));
+		for(j = 0; j < fdplansn->length; j++) {
+			sprintf(filename, "%s/autocorrelator_network_plan_fd/psh_series/%d/sh_series_n/projections%d.fits", parent_dir, i, j);
+			fdplansn->projections[i][j] = sh_series_read_healpix_alm(filename);
+			if(!fdplansn->projections[i][j]) {
+				fprintf(stderr, "no %dth projections%d.fits\n", i, j);
+				return -1;
+			}
+		}
+	}
+
+	/* substitute instruments */
+	fdplansp->instruments = instrument_array_copy(instruments);
+	fdplansn->instruments = instrument_array_copy(instruments);
+
+	return 0;
+}
+
+
 static struct sh_series *read_precalc_logprior(char *parent_dir)
 {
 	char filename[strlen(parent_dir) + FILE_LEN];
@@ -1021,6 +1080,33 @@ static int make_precalc_directories(struct options *options)
 			return -1;
 		}
 		sprintf(dirname, "%s/correlator_network_plan_fd/correlator_plan_fd/%d/rotation_plan", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+	}
+	sprintf(dirname, "%s/autocorrelator_network_plan_fd", options->precalc_path);
+	if(mkdir(dirname, mode)) {
+		fprintf(stderr, "error making %s\n", dirname);
+		return -1;
+	}
+	sprintf(dirname, "%s/autocorrelator_network_plan_fd/psh_series", options->precalc_path);
+	if(mkdir(dirname, mode)) {
+		fprintf(stderr, "error making %s\n", dirname);
+		return -1;
+	}
+	for(k = 0; k < instrument_array_len(options->instruments); k++){
+		sprintf(dirname, "%s/autocorrelator_network_plan_fd/psh_series/%d", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+		sprintf(dirname, "%s/autocorrelator_network_plan_fd/psh_series/%d/sh_series_n", options->precalc_path, k);
+		if(mkdir(dirname, mode)) {
+			fprintf(stderr, "error making %s\n", dirname);
+			return -1;
+		}
+		sprintf(dirname, "%s/autocorrelator_network_plan_fd/psh_series/%d/sh_series_p", options->precalc_path, k);
 		if(mkdir(dirname, mode)) {
 			fprintf(stderr, "error making %s\n", dirname);
 			return -1;
@@ -1221,6 +1307,52 @@ static int write_precalc_correlator_network_plan_fd(const struct correlator_netw
 }
 
 
+static int write_precalc_autocorrelator_network_plan_fd(const struct autocorrelator_network_plan_fd *fdplansp, const struct autocorrelator_network_plan_fd *fdplansn, char* parent_dir)
+{
+	char filename[strlen(parent_dir) + FILE_LEN];
+	FILE *fp;
+	int i, k;
+
+	/* write no pointer objects */
+	sprintf(filename, "%s/autocorrelator_network_plan_fd/length.dat", parent_dir);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open length.dat\n");
+		return -1;
+	}
+	fwrite(&fdplansp->length, sizeof(fdplansp->length), 1, fp);
+	fclose(fp);
+
+	/* write projections */
+	/* positive case */
+	for(i = 0; i < instrument_array_len(fdplansp->instruments); i++) {
+		for(k = 0; k < fdplansp->length; k++) {
+			sprintf(filename, "%s/autocorrelator_network_plan_fd/psh_series/%d/sh_series_p/projections%d.fits", parent_dir, i, k);
+			if(sh_series_write_healpix_alm(fdplansp->projections[i][k], filename)) {
+				fprintf(stderr, "can't save %dth projections%d.fits\n", i, k);
+				return -1;
+			}
+		}
+	}
+
+	/* negative case */
+	for(i = 0; i < instrument_array_len(fdplansn->instruments); i++) {
+		for(k = 0; k < fdplansn->length; k++) {
+			sprintf(filename, "%s/autocorrelator_network_plan_fd/psh_series/%d/sh_series_n/projections%d.fits", parent_dir, i, k);
+			if(sh_series_write_healpix_alm(fdplansn->projections[i][k], filename)) {
+				fprintf(stderr, "can't save %dth projections%d.fits\n", i, k);
+				return -1;
+			}
+		}
+	}
+
+	/* instruments which is a member of correlator_baseline are given by
+	 * command line options.  Then, we don't have to store it. */
+
+	return 0;
+}
+
+
 static int write_precalc_logprior(const struct sh_series *series, char *parent_dir)
 {
 	char filename[strlen(parent_dir) + FILE_LEN];
@@ -1396,6 +1528,13 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 #endif
+		fprintf(stderr, "construct plans for auto-correlations\n");
+		fdautoplanp = autocorrelator_network_plan_fd_new(fdplansp->baselines->baselines[0]->instruments, +1, 0, psds, (int) fdplansp->plans[0]->delay_product->n, logprior->l_max);
+		fdautoplann = autocorrelator_network_plan_fd_new(fdplansn->baselines->baselines[0]->instruments, -1, 0, psds, (int) fdplansn->plans[0]->delay_product->n, logprior->l_max);
+		if(!fdautoplanp || !fdautoplann) {
+			fprintf(stderr, "memory error\n");
+			exit(1);
+		}
 #if 1
 		/* make directories to store pre-calculated objects */
 		if(make_precalc_directories(options)) {
@@ -1411,6 +1550,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "can't save correlator network plan\n");
 			exit(1);
 		}
+		if(write_precalc_autocorrelator_network_plan_fd(fdautoplanp, fdautoplann, options->precalc_path)) {
+			fprintf(stderr, "can't save autocorrelator network plan\n");
+			exit(1);
+		}
 #endif
 	} else {
 		/* NOTE: series[0]->data->length in precalculated objects must be
@@ -1420,15 +1563,9 @@ int main(int argc, char *argv[])
 		fdplansp = malloc(sizeof(*fdplansp));
 		fdplansn = malloc(sizeof(*fdplansn));
 		read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length, options->precalc_path);
-	}
-
-
-	fprintf(stderr, "construct plans for auto-correlations\n");
-	fdautoplanp = autocorrelator_network_plan_fd_new(fdplansp->baselines->baselines[0]->instruments, +1, 0, psds, (int) fdplansp->plans[0]->delay_product->n);
-	fdautoplann = autocorrelator_network_plan_fd_new(fdplansn->baselines->baselines[0]->instruments, -1, 0, psds, (int) fdplansn->plans[0]->delay_product->n);
-	if(!fdautoplanp || !fdautoplann) {
-		fprintf(stderr, "memory error\n");
-		exit(1);
+		fdautoplanp = malloc(sizeof(*fdautoplanp));
+		fdautoplann = malloc(sizeof(*fdautoplann));
+		read_precalc_autocorrelator_network_plan_fd(fdautoplanp, fdautoplann, options->instruments, series[0]->data->length, options->precalc_path);
 	}
 
 	gettimeofday(&t_start, NULL);
