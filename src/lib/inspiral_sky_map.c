@@ -47,9 +47,6 @@
 #include <lal/Window.h>
 
 
-#define Projection_lmax 8
-
-
 /*
  * ============================================================================
  *
@@ -221,7 +218,7 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 	int i, j;
 	struct sh_series **projection = malloc(plan->plans[0]->delay_product->n * sizeof(*projection));
 	const struct instrument_array *instruments = plan->baselines->baselines[0]->instruments;
-	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
+	LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
 	if(!projection || !instruments || !det) {
 		free(projection);
@@ -238,20 +235,16 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 		}
 	}
 
-	for(i = 0; i < plan->plans[0]->delay_product->n; i++) {
-		projection[i] = sh_series_new(Projection_lmax, 0);
-		if(!projection[i]) {
-			for(j = i; j > -1; j--) {
-				sh_series_free(projection[j]);
-			}
-			free(projection);
-			free(det);
-			fprintf(stderr, "%d\n", i);
-			return -1;
-		}
-	}
 
 	for(i = 0; i < plan->baselines->n_baselines; i++) {
+		/* initialize */
+		for(j = 0; j < plan->plans[i]->delay_product->n; j++) {
+			projection[j] = sh_series_new(plan->plans[i]->delay_product->l_max, 0);
+			if(!projection[j]) {
+				goto error;
+			}
+		}
+
 		fprintf(stderr, "generate Projection distribution from %d and %d\n", plan->baselines->baselines[i]->index_a, plan->baselines->baselines[i]->index_b);
 		for(j = 0; j < plan->plans[i]->delay_product->n; j++) {
 			struct ProjectionMatrixWrapperData data = {
@@ -330,10 +323,11 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 			goto error;
 		}
 		}
+		/* free */
+		for(j = 0; j < plan->plans[i]->delay_product->n; j++)
+			sh_series_free(projection[j]);
 	}
 
-	for(i = 0; i < plan->plans[0]->delay_product->n; i++)
-		sh_series_free(projection[i]);
 	free(projection);
 	free(det);
 
@@ -357,11 +351,11 @@ error:
  */
 
 
-struct sh_series ***diagonal_projections(const struct instrument_array *instruments, double beta, double psi, double **psd, int length)
+struct sh_series ***diagonal_projections(const struct instrument_array *instruments, double beta, double psi, double **psd, int length, int l_max)
 {
 	int i, j, k;
 	struct sh_series ***projection = malloc(instrument_array_len(instruments) * sizeof(*projection));
-	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
+	LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
 	if(!projection || !det) {
 		free(projection);
@@ -382,7 +376,7 @@ struct sh_series ***diagonal_projections(const struct instrument_array *instrume
 
 	for(k = 0; k < instrument_array_len(instruments); k++) {
 		for(i = 0; i < length; i++) {
-			projection[k][i] = sh_series_new(Projection_lmax, 0);
+			projection[k][i] = sh_series_new(l_max, 0);
 			if(!projection[k][i]) {
 				for(j = i; j > -1; j--) {
 					sh_series_free(projection[k][j]);
@@ -442,7 +436,7 @@ error:
 }
 
 
-struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const struct instrument_array *instruments, double beta, double psi, double **psd, int length)
+struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const struct instrument_array *instruments, double beta, double psi, double **psd, int length, int l_max)
 {
 	struct autocorrelator_network_plan_fd *new = malloc(sizeof(*new));
 
@@ -453,7 +447,7 @@ struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const 
 
 	new->instruments = instruments;
 	new->length = length;
-	new->projections = diagonal_projections(instruments, beta, psi, psd, length);
+	new->projections = diagonal_projections(instruments, beta, psi, psd, length, l_max);
 
 	return new;
 }
