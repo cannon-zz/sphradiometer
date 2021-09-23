@@ -185,7 +185,7 @@ static struct correlator_plan_fd *correlator_plan_mult_by_projection(struct corr
 	struct sh_series_product_plan *product_plan;
 	int i;
 
-	result = sh_series_array_new(plan->delay_product->n, plan->delay_product->l_max + projection[0]->l_max, plan->delay_product->series[0].polar && projection[0]->polar);
+	result = sh_series_array_new(plan->delay_product->n, plan->delay_product->l_max, plan->delay_product->series[0].polar && projection[0]->polar);
 	if(!result)
 		return NULL;
 	product_plan = sh_series_product_plan_new(&result->series[0], &plan->delay_product->series[0], projection[0]);
