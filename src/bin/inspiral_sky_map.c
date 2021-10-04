@@ -1378,7 +1378,7 @@ int main(int argc, char *argv[])
 	struct autocorrelator_network_plan_fd *fdautoplann;
 	COMPLEX16TimeSeries **series;
 	COMPLEX16Sequence **nseries;
-	double **psds;
+	double **psds = NULL;
 	struct sh_series *skyp;
 	struct sh_series *skyn;
 	struct sh_series *logprior;
@@ -1459,23 +1459,32 @@ int main(int argc, char *argv[])
 
 	time_series_pad(series, nseries, instrument_array_len(options->instruments));
 
+
+	/*
+	 * Generate sky alm
+	 */
+
+
+	struct stat statBuf;
+	if(stat(options->precalc_path, &statBuf)) {
 #if 1
-	fprintf(stderr, "read psds\n");
-	double **temp = malloc(instrument_array_len(options->instruments) * sizeof(*temp));
-	if(!temp) {
-		XLALPrintError("out of memory\n");
-		exit(1);
-	}
-	for(k = 0; k < instrument_array_len(options->instruments); k++) {
-		temp[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
-		if(!temp[k]) {
-			XLALPrintError("failure loading snr data\n");
+		/* read psds */
+		fprintf(stderr, "read psds\n");
+		double **temp = malloc(instrument_array_len(options->instruments) * sizeof(*temp));
+		if(!temp) {
+			XLALPrintError("out of memory\n");
 			exit(1);
 		}
-		PSD_times_sqrt_AutoCorrelation(temp[k], nseries[k]);
-	}
-	psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
-	free(temp);
+		for(k = 0; k < instrument_array_len(options->instruments); k++) {
+			temp[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
+			if(!temp[k]) {
+				XLALPrintError("failure loading snr data\n");
+				exit(1);
+			}
+			//PSD_times_sqrt_AutoCorrelation(temp[k], nseries[k]);
+		}
+		psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
+		free(temp);
 	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < (series[k]->data->length - (series[k]->data->length & 1)) / 2 + 1; j++) fprintf(stderr, "%g\n", psds[k][j]); fprintf(stderr, "\n"); }*/
 #endif
 
@@ -1496,14 +1505,6 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-
-	/*
-	 * Generate sky alm
-	 */
-
-
-	struct stat statBuf;
-	if(stat(options->precalc_path, &statBuf)) {
 		/* prepare pre-calculated objects */
 		fprintf(stderr, "constructing base correlator\n");
 		baselines = correlator_network_baselines_new(options->instruments);
@@ -1607,7 +1608,8 @@ int main(int argc, char *argv[])
 	}
 	free(series);
 	free(nseries);
-	free(psds);
+	if(psds != NULL)
+		free(psds);
 	sh_series_free(skyp);
 	sh_series_free(skyn);
 	sh_series_free(logprior);
