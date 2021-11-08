@@ -663,7 +663,7 @@ static int generate_alm_sky(struct sh_series *sky, struct correlator_network_pla
 	 * Therefore it's OK to twice simply. NOTE: We have to pick up only
 	 * real part because correlator is Hermite. However this manipulation
 	 * is already done in sh_series_write_healpix_alm(). */
-	//sh_series_scale(sky, 2.0);
+	sh_series_scale(sky, 2.0);
 	/* above one is for only cross-correlator, below one for cross- and
 	 * auto-correlator */
 #if 0
@@ -689,7 +689,7 @@ static int generate_alm_sky(struct sh_series *sky, struct correlator_network_pla
 	 * as multiplying a regulator. The regulator should be normalized. One
 	 * SNR timeseries give us one 2 as normalized factor. Hence multiply 4.
 	 * */
-	sh_series_scale(sky, fdplans->baselines->n_baselines * 8.0);
+	sh_series_scale(sky, fdplans->baselines->n_baselines * 4.0);
 	fprintf(stderr, "finished integration\n");
 
 

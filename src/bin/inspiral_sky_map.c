@@ -1467,7 +1467,6 @@ int main(int argc, char *argv[])
 
 	struct stat statBuf;
 	if(stat(options->precalc_path, &statBuf)) {
-#if 1
 		/* read psds */
 		fprintf(stderr, "read psds\n");
 		double **temp = malloc(instrument_array_len(options->instruments) * sizeof(*temp));
@@ -1476,16 +1475,29 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 		for(k = 0; k < instrument_array_len(options->instruments); k++) {
-			temp[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
+#if 1
+			temp[k] = malloc(series[k]->data->length * sizeof(*temp[k]));
 			if(!temp[k]) {
 				XLALPrintError("failure loading snr data\n");
 				exit(1);
 			}
+			for(int i = 0; i < (int) series[k]->data->length; i++)
+				temp[k][i] = 1.;
+#else
+			if(!options->psd_cache) {
+				temp[k] = malloc(series[k]->data->length * sizeof(*temp[k]));
+			} else {
+				temp[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
+			}
+			if(!temp[k]) {
+				XLALPrintError("failure loading snr data\n");
+				exit(1);
+			}
+#endif
 			//PSD_times_sqrt_AutoCorrelation(temp[k], nseries[k]);
 		}
 		psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
 		free(temp);
-#endif
 
 		/* prepare pre-calculated objects */
 		fprintf(stderr, "constructing base correlator\n");
