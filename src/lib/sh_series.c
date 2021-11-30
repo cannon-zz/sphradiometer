@@ -574,11 +574,14 @@ struct sh_series *sh_series_clip(struct sh_series *series, double epsilon)
 
 
 /*
- * Compute the inner product of two functions on the sphere.  This uses an
- * algorithm that retains high accuracy when summing large numbers of
- * coefficients, but is slower than a simple sum-in-a-loop, and requires
- * memory for scratch space.  Returns the inner product on success, and
- * complex NaN on failure.
+ * Compute the inner product of two functions on the sphere.
+ *
+ * \int a(\Omega) \conj{b}(\Omega) d^{2} \Omega
+ *
+ * This uses an algorithm that retains high accuracy when summing large
+ * numbers of coefficients, but is slower than a simple sum-in-a-loop, and
+ * requires memory for scratch space.  Returns the inner product on
+ * success, and complex NaN on failure.
  */
 
 
@@ -637,10 +640,10 @@ complex double sh_series_dot(const struct sh_series *a, const struct sh_series *
  * Replace an sh_series object with its Laplacian.  Spherical harmonics are
  * eigenfunctions of the Laplacian,
  *
- * 	\grad^{2} Y_{lm}(\hat{s}) = -l (l + 1) Y_{lm}(\hat{s})
+ * 	\grad^{2} Y_{lm}(\hat{s}) = -l (l + 1) Y_{lm}(\hat{s}).
  *
- * so all we do is run down the list of coefficients multiplying each by
- * the eigenvalue.
+ * Each coefficient of the series is multiplyied by the corresponding
+ * eigenvalue.
  */
 
 
