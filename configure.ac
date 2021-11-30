@@ -25,6 +25,7 @@ AC_SUBST([pkgconfigdir],[${libdir}/pkgconfig])
 # Checks for programs
 AC_PROG_CC_C99
 AC_PROG_CXX
+AC_OPENMP
 AC_PROG_INSTALL
 LT_INIT
 PKG_PROG_PKG_CONFIG()
