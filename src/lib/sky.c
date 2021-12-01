@@ -129,11 +129,19 @@ double *sky_equatorial_to_galactic_rot_matrix(void)
 	 * ascension = (X axis RA).
 	 */
 
-	return euler_rotation_matrix(-SKY_MW_Z_J2000_RA_RAD, SKY_MW_Z_J2000_DEC_RAD - M_PI_2, asin(cos(SKY_MW_X_J2000_DEC_RAD) * sin(SKY_MW_Z_J2000_RA_RAD - SKY_MW_X_J2000_RA_RAD)));
+	return euler_rotation_matrix(
+		-SKY_MW_Z_J2000_RA_RAD,
+		SKY_MW_Z_J2000_DEC_RAD - M_PI_2,
+		asin(cos(SKY_MW_X_J2000_DEC_RAD) * sin(SKY_MW_Z_J2000_RA_RAD - SKY_MW_X_J2000_RA_RAD))
+	);
 }
 
 
 double *sky_galactic_to_equatorial_rot_matrix(void)
 {
-	return euler_inv_rotation_matrix(-SKY_MW_Z_J2000_RA_RAD, SKY_MW_Z_J2000_DEC_RAD - M_PI_2, asin(cos(SKY_MW_X_J2000_DEC_RAD) * sin(SKY_MW_Z_J2000_RA_RAD - SKY_MW_X_J2000_RA_RAD)));
+	return euler_inv_rotation_matrix(
+		-SKY_MW_Z_J2000_RA_RAD,
+		SKY_MW_Z_J2000_DEC_RAD - M_PI_2,
+		asin(cos(SKY_MW_X_J2000_DEC_RAD) * sin(SKY_MW_Z_J2000_RA_RAD - SKY_MW_X_J2000_RA_RAD))
+	);
 }
