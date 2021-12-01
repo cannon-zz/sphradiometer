@@ -326,6 +326,38 @@ static int test_realimag(void)
 }
 
 
+static int test_add(void)
+{
+	int i;
+	for(i = 0; i < 10000; i++) {
+		struct sh_series *a = random_sh_series(floor(randrange(0, 21)), random() & 1);
+		struct sh_series *b = random_sh_series(floor(randrange(0, a->l_max)), (random() & 1) | a->polar);
+		complex double z = randrange(1., 10.);
+		struct sh_series *c = sh_series_add(sh_series_copy(a), z, b);
+		int j;
+
+		for(j = 0; j < 10; j++) {
+			double theta = randrange(0., M_PI);
+			double phi = randrange(0., 2. * M_PI);
+			complex double A_plus_z_times_B = sh_series_eval(a, theta, phi) + z * sh_series_eval(b, theta, phi);
+			complex double C = sh_series_eval(c, theta, phi);
+
+			double err = cabs(C - A_plus_z_times_B);
+			if(err > 1e-13) {
+				fprintf(stderr, "sh_series_add failed:  a: l_max=%d,polar=%d,  b: l_max=%d,polar=%d.\n", a->l_max, a->polar, b->l_max, b->polar);
+				return -1;
+			}
+		}
+
+		sh_series_free(a);
+		sh_series_free(b);
+		sh_series_free(c);
+	}
+
+	return 0;
+}
+
+
 static int test_projection1(void)
 {
 	struct sh_series *test = sh_series_new(10, 0);
@@ -621,6 +653,7 @@ int main(int argc, char *argv[])
 	assert(test_evaluation2() == 0);
 	assert(test_conj() == 0);
 	assert(test_realimag() == 0);
+	assert(test_add() == 0);
 	assert(test_projection1() == 0);
 	assert(test_projection2() == 0);
 	assert(test_interpolation() == 0);
