@@ -245,21 +245,32 @@ static int test_galactic_rotation_matrix(void)
 	 * equatorial co-ordinates of the galactic co-ordinate system's x
 	 * axis to (0, 0) and z axis to (0, pi/2)? */
 	{
+	/* components of galactic co-ordinate system's x axis in equatorial
+	 * co-ordinates */
 	double *v = vector_from_radec(SKY_MW_X_J2000_RA_RAD, SKY_MW_X_J2000_DEC_RAD);
+	/* rotation matrix to rotate the equatorial co-ordinate system to
+	 * the galactic co-ordinate system */
 	double *R = sky_equatorial_to_galactic_rot_matrix();
 	double ra, dec;
+	/* after the rotation the vector should lie on the x axis (because
+	 * it is this co-ordinate system's x axis) */
 	vector_rotate(v, R);
 	radec_from_vector(&ra, &dec, v);
 	free(v);
-	/*fprintf(stderr, "X rotated to (%g pi, %g pi)\n", ra / M_PI, dec / M_PI);*/
+	/*fprintf(stderr, "X rotated to (%g pi, %g pi), expected (0., 0.)\n", ra / M_PI, dec / M_PI);*/
 	assert(fabs(ra - 0.) < 1e-3 && fabs(dec - 0.) < 1e-3);
+	/* components of the galactic co-ordinate system's z axis in
+	 * equatorial co-ordinates */
 	v = vector_from_radec(SKY_MW_Z_J2000_RA_RAD, SKY_MW_Z_J2000_DEC_RAD);
+	/* after the rotation the vector should lie on the z axis (because
+	 * it is this co-ordinate system's z axis) */
 	vector_rotate(v, R);
 	radec_from_vector(&ra, &dec, v);
 	free(v);
 	free(R);
-	/*fprintf(stderr, "Z rotated to (%g pi, %g pi)\n", ra / M_PI, dec / M_PI);*/
-	assert(fabs(ra - 0.) < 1e-8 && fabs(dec - M_PI_2) < 1e-8);
+	/*fprintf(stderr, "Z rotated to (%g pi, %g pi), expected (0., 0.5 pi)\n", ra / M_PI, dec / M_PI);*/
+	/* if dec is correct then ra is degenerate, so we don't check it */
+	assert(fabs(dec - M_PI_2) < 1e-14);
 	}
 
 	/* are sky_equatorial_to_galactic_rot_matrix() and
