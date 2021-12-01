@@ -219,21 +219,22 @@ static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nph
 complex double sh_series_eval(const struct sh_series *series, double theta, double phi)
 {
 	complex double vals[series->l_max + 1];
+	complex double *v_last = vals + series->l_max + 1;
 	complex double *coeff = series->coeff;
 	int m_max = series->polar ? 0 : series->l_max;
-	int l, m;
+	int m;
 	complex double val = 0.0;
 
-	for(m = 0; m <= m_max; m++) {
+	for(m = 0; m <= m_max; m++, v_last--) {
 		complex double *v = vals;
 		sh_series_Y_array(v, series->l_max, m, theta, phi);
-		for(l = abs(m); l <= (int) series->l_max; l++)
+		while(v < v_last)
 			val += *(coeff++) * *(v++);
 	}
-	for(m = -m_max; m < 0; m++) {
+	for(m = -m_max, v_last++; m < 0; m++, v_last++) {
 		complex double *v = vals;
 		sh_series_Y_array(v, series->l_max, m, theta, phi);
-		for(l = abs(m); l <= (int) series->l_max; l++)
+		while(v < v_last)
 			val += *(coeff++) * *(v++);
 	}
 
