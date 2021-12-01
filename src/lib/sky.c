@@ -63,6 +63,12 @@ double *euler_rotation_matrix(double gamma, double beta, double alpha)
 		z = 2
 	};
 	double *R = malloc(9 * sizeof(*R));
+	double cos_alpha = cos(alpha);
+	double sin_alpha = sin(alpha);
+	double cos_beta = cos(beta);
+	double sin_beta = sin(beta);
+	double cos_gamma = cos(gamma);
+	double sin_gamma = sin(gamma);
 
 	if(!R)
 		return NULL;
@@ -80,15 +86,15 @@ double *euler_rotation_matrix(double gamma, double beta, double alpha)
 	 * Rz(alpha).Ry(beta).Rz(gamma);
 	 */
 
-	R[3 * x + x] =  cos(alpha) * cos(beta) * cos(gamma) - sin(alpha) * sin(gamma);
-	R[3 * x + y] = -cos(alpha) * cos(beta) * sin(gamma) - sin(alpha) * cos(gamma);
-	R[3 * x + z] =  cos(alpha) * sin(beta);
-	R[3 * y + x] =  sin(alpha) * cos(beta) * cos(gamma) + cos(alpha) * sin(gamma);
-	R[3 * y + y] = -sin(alpha) * cos(beta) * sin(gamma) + cos(alpha) * cos(gamma);
-	R[3 * y + z] =  sin(alpha) * sin(beta);
-	R[3 * z + x] = -sin(beta) * cos(gamma);
-	R[3 * z + y] =  sin(beta) * sin(gamma);
-	R[3 * z + z] =  cos(beta);
+	R[3 * x + x] =  cos_alpha * cos_beta * cos_gamma - sin_alpha * sin_gamma;
+	R[3 * x + y] = -cos_alpha * cos_beta * sin_gamma - sin_alpha * cos_gamma;
+	R[3 * x + z] =  cos_alpha * sin_beta;
+	R[3 * y + x] =  sin_alpha * cos_beta * cos_gamma + cos_alpha * sin_gamma;
+	R[3 * y + y] = -sin_alpha * cos_beta * sin_gamma + cos_alpha * cos_gamma;
+	R[3 * y + z] =  sin_alpha * sin_beta;
+	R[3 * z + x] = -sin_beta * cos_gamma;
+	R[3 * z + y] =  sin_beta * sin_gamma;
+	R[3 * z + z] =  cos_beta;
 
 	return R;
 }
