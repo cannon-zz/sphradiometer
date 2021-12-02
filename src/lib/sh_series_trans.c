@@ -49,6 +49,13 @@
  */
 
 
+static complex double cexpi(double x)
+{
+	/* about 1% faster than cexp(I * x) */
+	return cos(x) + I * sin(x);
+}
+
+
 /*
  * Return Y_{lm}(theta, phi), and Y^{*}_{lm}(theta, phi).
  */
@@ -57,14 +64,14 @@
 complex double sh_series_Y(unsigned int l, int m, double theta, double phi)
 {
 	assert(0. <= theta && theta <= M_PI);
-	return ((m < 0 && m & 1) ? -1.0 : +1.0) * (cos(m * phi) + I * sin(m * phi)) * gsl_sf_legendre_sphPlm(l, abs(m), cos(theta));
+	return ((m < 0 && m & 1) ? -1.0 : +1.0) * cexpi(m * phi) * gsl_sf_legendre_sphPlm(l, abs(m), cos(theta));
 }
 
 
 complex double sh_series_Yconj(unsigned int l, int m, double theta, double phi)
 {
 	assert(0. <= theta && theta <= M_PI);
-	return ((m < 0 && m & 1) ? -1.0 : +1.0) * (cos(m * phi) - I * sin(m * phi)) * gsl_sf_legendre_sphPlm(l, abs(m), cos(theta));
+	return ((m < 0 && m & 1) ? -1.0 : +1.0) * cexpi(-m * phi) * gsl_sf_legendre_sphPlm(l, abs(m), cos(theta));
 }
 
 
@@ -77,7 +84,7 @@ complex double sh_series_Yconj(unsigned int l, int m, double theta, double phi)
 complex double *sh_series_Y_array(complex double *array, unsigned int l_max, int m, double theta, double phi)
 {
 	double tmp[l_max + 1 - abs(m)];
-	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexp(I * m * phi);
+	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexpi(m * phi);
 	int i;
 
 	assert(0. <= theta && theta <= M_PI);
@@ -93,7 +100,7 @@ complex double *sh_series_Y_array(complex double *array, unsigned int l_max, int
 complex double *sh_series_Yconj_array(complex double *array, unsigned int l_max, int m, double theta, double phi)
 {
 	double tmp[l_max + 1 - abs(m)];
-	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexp(I * -m * phi);
+	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexpi(-m * phi);
 	int i;
 
 	assert(0. <= theta && theta <= M_PI);
