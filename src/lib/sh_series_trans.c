@@ -83,14 +83,15 @@ complex double sh_series_Yconj(unsigned int l, int m, double theta, double phi)
 
 complex double *sh_series_Y_array(complex double *array, unsigned int l_max, int m, double theta, double phi)
 {
-	double tmp[l_max + 1 - abs(m)];
+	int n = l_max - abs(m) + 1;
+	double tmp[n];
 	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexpi(m * phi);
 	int i;
 
 	assert(0. <= theta && theta <= M_PI);
 	gsl_sf_legendre_sphPlm_array(l_max, abs(m), cos(theta), tmp);
 
-	for(i = 0; i <= (int) l_max - abs(m); i++)
+	for(i = 0; i < n; i++)
 		array[i] = factor * tmp[i];
 
 	return array;
@@ -99,14 +100,15 @@ complex double *sh_series_Y_array(complex double *array, unsigned int l_max, int
 
 complex double *sh_series_Yconj_array(complex double *array, unsigned int l_max, int m, double theta, double phi)
 {
-	double tmp[l_max + 1 - abs(m)];
+	int n = l_max + 1 - abs(m);
+	double tmp[n];
 	const complex double factor = ((m < 0) && (m & 1) ? -1.0 : +1.0) * cexpi(-m * phi);
 	int i;
 
 	assert(0. <= theta && theta <= M_PI);
 	gsl_sf_legendre_sphPlm_array(l_max, abs(m), cos(theta), tmp);
 
-	for(i = 0; i <= (int) l_max - abs(m); i++)
+	for(i = 0; i < n; i++)
 		array[i] = factor * tmp[i];
 
 	return array;
@@ -425,8 +427,7 @@ static complex double *sh_series_mesh_from_func(unsigned int l_max, complex doub
 	int nt, np;
 	double *cos_theta_array, *cos_theta_weights;
 	complex double *f = sh_series_mesh_new(l_max, &nt, &np, &cos_theta_array, &cos_theta_weights);
-	const double dphi = 2 * M_PI / np;
-	int i, j;
+	const double dphi = 2. * M_PI / np;
 
 	if(!f)
 		return NULL;
@@ -436,10 +437,13 @@ static complex double *sh_series_mesh_from_func(unsigned int l_max, complex doub
 	if(nphi)
 		*nphi = np;
 
-	for(i = 0; i < nt; i++) {
+	{
+	complex double *_f = f;
+	for(int i = 0; i < nt; i++) {
 		double theta = acos(cos_theta_array[i]);
-		for(j = 0; j < np; j++)
-			*(f + i * np + j) = func(theta, dphi * j, data);
+		for(int j = 0; j < np; j++)
+			*(_f++) = func(theta, dphi * j, data);
+	}
 	}
 
 	free(cos_theta_array);
@@ -454,8 +458,7 @@ static double *sh_series_mesh_from_realfunc(unsigned int l_max, double (*func)(d
 	int nt, np;
 	double *cos_theta_array, *cos_theta_weights;
 	double *f = sh_series_real_mesh_new(l_max, &nt, &np, &cos_theta_array, &cos_theta_weights);
-	const double dphi = 2 * M_PI / np;
-	int i, j;
+	const double dphi = 2. * M_PI / np;
 
 	if(!f)
 		return NULL;
@@ -465,10 +468,13 @@ static double *sh_series_mesh_from_realfunc(unsigned int l_max, double (*func)(d
 	if(nphi)
 		*nphi = np;
 
-	for(i = 0; i < nt; i++) {
+	{
+	double *_f = f;
+	for(int i = 0; i < nt; i++) {
 		double theta = acos(cos_theta_array[i]);
-		for(j = 0; j < np; j++)
-			*(f + i * np + j) = func(theta, dphi * j, data);
+		for(int j = 0; j < np; j++)
+			*(_f++) = func(theta, dphi * j, data);
+	}
 	}
 
 	free(cos_theta_array);
@@ -489,9 +495,10 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 {
 	int ntheta, nphi;
 	double *cos_theta_array, *cos_theta_weights;
+	unsigned int bw = series->l_max + 1;
+	int m_max = series->polar ? 0 : series->l_max;
 	complex double *F;
 	double *P;
-	int l, m, i, j;
 
 	if(pixels_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights))
 		return NULL;
@@ -520,33 +527,42 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	 * which are needed for the integral over cos(theta) below so we
 	 * don't do that in the inner loop */
 
-	for(i = 0; i < ntheta; i++)
-		for(j = 0; j < nphi; j++)
-			*(F + i * nphi + j) *= cos_theta_weights[i] * (2 * M_PI / nphi);
+	{
+	complex double *_F = F;
+	for(int i = 0; i < ntheta; i++) {
+		double weight = cos_theta_weights[i] * (2. * M_PI / nphi);
+		for(int j = 0; j < nphi; j++)
+			*(_F++) *= weight;
+	}
+	}
 
 	/* for each non-negative m, */
-	for(m = 0; m <= (int) (series->polar ? 0 : series->l_max); m++) {
+	for(int m = 0; m <= m_max; m++) {
 		/* populate P[][] with (normalized) P_{l m}(cos theta) */
-		for(i = 0; i < ntheta; i++)
-			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * (series->l_max + 1) + m);
+		for(int i = 0; i < ntheta; i++)
+			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * bw + m);
 		/* for each l s.t. m <= l <= l_max, */
-		for(l = m; l <= (int) series->l_max; l++) {
+		for(int l = m; l <= (int) series->l_max; l++) {
 			/* integrate H_{m}(theta) sin(theta) P_{l m}(cos
 			 * theta) over theta (+m case) */
+			complex double *_F = F + m;
+			double *_P = P + l;
 			complex double c = 0.0;
-			for(i = 0; i < ntheta; i++)
-				c += *(F + i * nphi + m) * *(P + i * (series->l_max + 1) + l);
+			for(int i = 0; i < ntheta; i++, _F += nphi, _P += bw)
+				c += *_F * *_P;
 			sh_series_set(series, l, m, c);
 		}
 		if(m) {
 			const double sign = m & 1 ? -1.0 : +1.0;
 			/* for each l s.t. m <= l <= l_max, */
-			for(l = m; l <= (int) series->l_max; l++) {
+			for(int l = m; l <= (int) series->l_max; l++) {
 				/* integrate H_{-m}(theta) sin(theta) P_{l
 				 * -m}(cos theta) over theta (-m case) */
+				complex double *_F = F + nphi - m;
+				double *_P = P + l;
 				complex double c = 0.0;
-				for(i = 0; i < ntheta; i++)
-					c += *(F + i * nphi + (nphi - m)) * *(P + i * (series->l_max + 1) + l);
+				for(int i = 0; i < ntheta; i++, _F += nphi, _P += bw)
+					c += *_F * *_P;
 				sh_series_set(series, l, -m, sign * c);
 			}
 		}
@@ -566,9 +582,10 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 {
 	int ntheta, nphi;
 	double *cos_theta_array, *cos_theta_weights;
+	unsigned int bw = series->l_max + 1;
+	int m_max = series->polar ? 0 : series->l_max;
 	complex double *F;
 	double *P;
-	int l, m, i, j;
 
 	if(pixels_from_l_max(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights))
 		return NULL;
@@ -597,22 +614,29 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	 * which are needed for the integral over cos(theta) below so we
 	 * don't do that in the inner loop */
 
-	for(i = 0; i < ntheta; i++)
-		for(j = 0; j < (nphi / 2 + 1); j++)
-			*(F + i * (nphi / 2 + 1) + j) *= cos_theta_weights[i] * (2 * M_PI / nphi);
+	{
+	complex double *_F = F;
+	for(int i = 0; i < ntheta; i++) {
+		double weight = cos_theta_weights[i] * (2. * M_PI / nphi);
+		for(int j = 0; j < (nphi / 2 + 1); j++)
+			*(_F++) *= weight;
+	}
+	}
 
 	/* for each non-negative m, */
-	for(m = 0; m <= (int) (series->polar ? 0 : series->l_max); m++) {
+	for(int m = 0; m <= m_max; m++) {
 		/* populate P[][] with (normalized) P_{lm}(cos theta) */
-		for(i = 0; i < ntheta; i++)
-			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * (series->l_max + 1) + m);
+		for(int i = 0; i < ntheta; i++)
+			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * bw + m);
 		/* for each l s.t. m <= l <= l_max, */
-		for(l = m; l <= (int) series->l_max; l++) {
+		for(int l = m; l <= (int) series->l_max; l++) {
 			/* integrate H_{m}(theta) sin(theta) P_{lm}(cos
 			 * theta) over theta for +/-m */
+			complex double *_F = F + m;
+			double *_P = P + l;
 			complex double c = 0.0;
-			for(i = 0; i < ntheta; i++)
-				c += *(F + i * (nphi / 2 + 1) + m) * *(P + i * (series->l_max + 1) + l);
+			for(int i = 0; i < ntheta; i++, _F += nphi / 2 + 1, _P += bw)
+				c += *_F * *_P;
 			sh_series_set(series, l, -m, (m & 1 ? -1 : 1) * conj(sh_series_set(series, l, m, c)));
 		}
 	}
@@ -671,11 +695,10 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 {
 	int ntheta, nphi;
 	double *cos_theta_array, *cos_theta_weights;
+	int m_max = series->polar ? 0 : series->l_max;
 	complex double *mesh = sh_series_mesh_new(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights);
 	complex double *F = calloc(ntheta * nphi, sizeof(*F));
 	double P[series->l_max + 1];
-	int i;
-	int l, m;
 
 	/* not needed */
 	free(cos_theta_weights);
@@ -688,15 +711,14 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 	}
 
 	/* populate F[] */
-	for(i = 0; i < ntheta; i++)
-		for(m = (series->polar ? 0 : -(int) series->l_max); m <= (series->polar ? 0 : (int) series->l_max); m++) {
-			complex double *series_vals = series->coeff + sh_series_moffset(series->l_max, m);
-			complex double x;
+	for(int i = 0; i < ntheta; i++)
+		for(int m = -m_max; m <= m_max; m++) {
+			complex double *coeff = series->coeff + sh_series_moffset(series->l_max, m);
+			complex double x = 0.;
 			/* compute (normalized) P_{lm}(cos theta) */
 			gsl_sf_legendre_sphPlm_array(series->l_max, abs(m), cos_theta_array[i], P + abs(m));
-			x = 0.;
-			for(l = abs(m); l <= (int) series->l_max; l++)
-				x += *series_vals++ * P[l];
+			for(int l = abs(m); l <= (int) series->l_max; l++)
+				x += *coeff++ * P[l];
 			*(F + i * nphi + (m + nphi) % nphi) = (m < 0) && (m & 1) ? -x : +x;
 		}
 
@@ -730,7 +752,6 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 struct sh_series *sh_series_impulse(unsigned int l_max, double theta, double phi)
 {
 	struct sh_series *series = sh_series_new(l_max, 0);
-	int m;
 
 	if(!series)
 		return NULL;
@@ -738,7 +759,7 @@ struct sh_series *sh_series_impulse(unsigned int l_max, double theta, double phi
 	/* project a Dirac delta onto the spherical harmonic basis upto and
 	 * including order l_max */
 
-	for(m = -(int) l_max; m <= (int) l_max; m++)
+	for(int m = -(int) l_max; m <= (int) l_max; m++)
 		sh_series_Yconj_array(series->coeff + sh_series_moffset(l_max, m), l_max, m, theta, phi);
 
 	return series;
