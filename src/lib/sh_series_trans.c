@@ -233,16 +233,20 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
 	complex double val = 0.0;
 
 	for(m = 0; m <= m_max; m++, v_last--) {
-		complex double *v = vals;
-		sh_series_Y_array(v, series->l_max, m, theta, phi);
-		while(v < v_last)
-			val += *(coeff++) * *(v++);
+		complex double *v;
+		complex double x = 0.;
+		sh_series_Y_array(vals, series->l_max, m, theta, phi);
+		for(v = vals; v < v_last;)
+			x += *(coeff++) * *(v++);
+		val += x;
 	}
 	for(m = -m_max, v_last++; m < 0; m++, v_last++) {
-		complex double *v = vals;
-		sh_series_Y_array(v, series->l_max, m, theta, phi);
-		while(v < v_last)
-			val += *(coeff++) * *(v++);
+		complex double *v;
+		complex double x = 0.;
+		sh_series_Y_array(vals, series->l_max, m, theta, phi);
+		for(v = vals; v < v_last;)
+			x += *(coeff++) * *(v++);
+		val += x;
 	}
 
 	return val;
