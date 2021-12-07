@@ -23,7 +23,7 @@ AC_CONFIG_FILES([ \
 AC_SUBST([pkgconfigdir],[${libdir}/pkgconfig])
 
 # Checks for programs
-AC_PROG_CC_C99
+AC_PROG_CC()
 AC_PROG_CXX
 AC_OPENMP
 AC_PROG_INSTALL
