@@ -229,12 +229,12 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
 {
 	complex double vals[series->l_max + 1];
 	complex double *v_last = vals + series->l_max + 1;
-	complex double *coeff = series->coeff;
+	complex double *coeff = series->coeff, *_coeff = series->coeff + sh_series_length(series->l_max, series->polar) - 1;
 	int m_max = series->polar ? 0 : series->l_max;
 	int m;
 	complex double val = 0.0;
 
-	for(m = 0; m <= m_max; m++, v_last--) {
+	for(m = 0; m <= 0; m++, v_last--) {
 		complex double *v;
 		complex double x = 0.;
 		sh_series_Y_array(vals, series->l_max, m, theta, phi);
@@ -242,13 +242,20 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
 			x += *(coeff++) * *(v++);
 		val += x;
 	}
-	for(m = -m_max, v_last++; m < 0; m++, v_last++) {
-		complex double *v;
-		complex double x = 0.;
+	/* we avoid the full cost of computing Y_lm for -m using the
+	 * symmetry property for m>0
+	 *
+	 * Y_l(-m)(theta,phi) = (m & 1 ? -1. : +1.) * Y_lm^*(theta,phi)
+	 */
+	for(; m <= m_max; m++) {
+		complex double *v, *_v;
+		complex double x = 0., _x = 0.;
 		sh_series_Y_array(vals, series->l_max, m, theta, phi);
-		for(v = vals; v < v_last;)
+		for(v = vals, _v = --v_last; v <= v_last;) {
 			x += *(coeff++) * *(v++);
-		val += x;
+			_x += *(_coeff--) * conj(*(_v--));
+		}
+		val += x + (m & 1 ? -_x : +_x);
 	}
 
 	return val;
