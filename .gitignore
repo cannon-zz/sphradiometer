@@ -25,6 +25,7 @@ src/lib/sphradiometer.pc
 src/python/sphradiometer.py
 src/python/sphradiometer_wrap.c
 test/correlator_validate
+test/gsl_validate
 test/product_validate
 test/rotation_validate
 test/s2kit_validate

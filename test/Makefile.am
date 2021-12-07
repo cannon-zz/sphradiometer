@@ -2,6 +2,7 @@ AM_CPPFLAGS = -I../src/include
 
 TESTS = \
 	correlator_validate \
+	gsl_validate \
 	healpy_validate.py \
 	product_validate \
 	rotation_validate \
@@ -10,6 +11,7 @@ TESTS = \
 
 check_PROGRAMS = \
 	correlator_validate \
+	gsl_validate \
 	product_validate \
 	rotation_validate \
 	sh_series_validate \
@@ -26,6 +28,11 @@ correlator_validate_SOURCES = correlator_validate.c
 correlator_validate_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 correlator_validate_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 correlator_validate_LDADD = ../src/lib/libsphradiometer.la ../src/lib/libsphradiometerdiag.la
+
+gsl_validate_SOURCES = gsl_validate.c
+gsl_validate_CFLAGS = $(AM_CFLAGS) $(GSL_CFLAGS)
+gsl_validate_LDFLAGS = $(AM_LDLAGS) $(GSL_LIBS)
+gsl_validate_LDADD = ../src/lib/libsphradiometer.la ../src/lib/libsphradiometerdiag.la
 
 product_validate_SOURCES = product_validate.c
 product_validate_CFLAGS = $(AM_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
