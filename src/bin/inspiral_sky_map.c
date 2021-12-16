@@ -581,7 +581,7 @@ complex double *gsl_matrix_complex_column_series(gsl_matrix_complex *mat, int i)
 	complex double *column = malloc(mat->size1 * sizeof(*column));
 
 	for(j = 0; j < (int) mat->size1; j++)
-		column[j] = GSL_REAL(gsl_matrix_complex_get(mat, j, i)) + I * GSL_IMAG(gsl_matrix_complex_get(mat, j, i));
+		column[j] = gsl_matrix_complex_get(mat, j, i);
 
 	return column;
 }
