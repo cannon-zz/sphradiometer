@@ -1485,24 +1485,6 @@ int main(int argc, char *argv[])
 		}
 		psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
 		free(temp);
-	/*for(k = 0; k < instrument_array_len(options->instruments); k++) { unsigned j; for(j = 0; j < (series[k]->data->length - (series[k]->data->length & 1)) / 2 + 1; j++) fprintf(stderr, "%g\n", psds[k][j]); fprintf(stderr, "\n"); }*/
-#endif
-
-#if 0
-	// replace with white noise
-	for(k = 0; k < (int) series[0]->data->length; k++)
-		series[0]->data->data[k] = (double) random() / RAND_MAX + I*(double) random() / RAND_MAX - (0.5 + I*0.5);
-	for(k = 1; k < n; k++)
-		memcpy(series[k]->data->data, series[0]->data->data, series[0]->data->length * sizeof(*series[0]->data->data));
-#endif
-	/*for(k = 0; k < n; k++) { unsigned j; for(j = 0; j < series[k]->data->length; j++) fprintf(stderr, "%g+I*%g\n", creal(series[k]->data->data[j]), cimag(series[k]->data->data[j])); fprintf(stderr, "\n"); }*/
-#if 0
-	/* replace with exp(2*pi*i*x) for determination of numerical error */
-	for(k = 0; k < n; k++) {
-		unsigned j;
-		for(j = 0; j < series[k]->data->length; j++)
-			series[k]->data->data[j] = cos(2 * M_PI * j / series[k]->data->length) + I * sin(2 * M_PI * j / series[k]->data->length);
-	}
 #endif
 
 		/* prepare pre-calculated objects */
