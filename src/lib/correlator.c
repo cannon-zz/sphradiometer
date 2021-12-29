@@ -52,6 +52,19 @@
  */
 
 
+unsigned int correlator_baseline_power_l_max_naive(double D, double delta_t)
+{
+	/* the expression below is the naive estimate, and in the Phys.
+	 * Rev.  paper I reported using l_max + 2 to achieve the desired
+	 * numerical accuracy.  since then it seems that improvements to
+	 * numerical stability in other parts of the library have allowed
+	 * this parameter to be reduced to the naive estimate, while
+	 * retaining the desired accurancy in the correlator output */
+
+	return floor(M_PI / (2. * asin(delta_t / (2. * D))) + 1.);
+}
+
+
 unsigned int correlator_baseline_power_l_max(const struct correlator_baseline *baseline, double delta_t)
 {
 	double D = vector_magnitude(baseline->d);
@@ -60,14 +73,7 @@ unsigned int correlator_baseline_power_l_max(const struct correlator_baseline *b
 	if(delta_t <= 0. || D <= 0.)
 		return (unsigned int) -1;
 
-	l_max = floor(M_PI / (2. * asin(delta_t / (2. * D))) + 1.);
-
-	/* the expression above is the naive estimate, and in the Phys.
-	 * Rev.  paper I reported using l_max + 2 to achieve the desired
-	 * numerical accuracy.  since then it seems that improvements to
-	 * numerical stability in other parts of the library have allowed
-	 * this parameter to be reduced to the naive estimate, while
-	 * retaining the desired accurancy in the correlator output */
+	l_max = correlator_baseline_power_l_max_naive(D, delta_t);
 
 	return l_max;
 }
