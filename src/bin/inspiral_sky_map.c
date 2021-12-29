@@ -1466,110 +1466,149 @@ int main(int argc, char *argv[])
 
 
 	struct stat statBuf;
-	if(stat(options->precalc_path, &statBuf)) {
-		/* read psds */
-		fprintf(stderr, "read psds\n");
-		double **temp = malloc(instrument_array_len(options->instruments) * sizeof(*temp));
-		if(!temp) {
-			XLALPrintError("out of memory\n");
-			exit(1);
-		}
-		for(k = 0; k < instrument_array_len(options->instruments); k++) {
-#if 1
-			temp[k] = malloc(series[k]->data->length * sizeof(*temp[k]));
-			if(!temp[k]) {
-				XLALPrintError("failure loading snr data\n");
+	if(instrument_array_len(options->instruments) > 1) {
+		if(stat(options->precalc_path, &statBuf)) {
+			/* read psds */
+			fprintf(stderr, "read psds\n");
+			double **temp = malloc(instrument_array_len(options->instruments) * sizeof(*temp));
+			if(!temp) {
+				XLALPrintError("out of memory\n");
 				exit(1);
 			}
-			for(int i = 0; i < (int) series[k]->data->length; i++)
-				temp[k][i] = 1.;
-#else
-			if(!options->psd_cache) {
-				temp[k] = malloc(series[k]->data->length * sizeof(*temp[k]));
-			} else {
-				temp[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
+			for(k = 0; k < instrument_array_len(options->instruments); k++) {
+				/* NOTE:  we force the flat PSD code path */
+				if(1 || !options->psd_cache) {
+					temp[k] = malloc(series[k]->data->length * sizeof(*temp[k]));
+					if(!temp[k]) {
+						XLALPrintError("failure allocating snr data\n");
+						exit(1);
+					}
+					for(int i = 0; i < (int) series[k]->data->length; i++)
+						temp[k][i] = 1.;
+				} else {
+					temp[k] = get_PSD_from_cache(options->psd_cache, options->channels[k], series[k]->data->length);
+					if(!temp[k]) {
+						XLALPrintError("failure loading snr data\n");
+						exit(1);
+					}
+				}
+				//PSD_times_sqrt_AutoCorrelation(temp[k], nseries[k]);
 			}
-			if(!temp[k]) {
-				XLALPrintError("failure loading snr data\n");
+			psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
+			for(k = 0; k < instrument_array_len(options->instruments); k++) {
+				free(temp[k]);
+			}
+			free(temp);
+
+			/* prepare pre-calculated objects */
+			fprintf(stderr, "constructing base correlator\n");
+			baselines = correlator_network_baselines_new(options->instruments);
+
+			logprior = sh_series_log_uniformsky_prior(correlator_network_l_max(baselines, series[0]->deltaT));
+			if(!logprior) {
+				exit(1);
+			}
+
+
+			fdplansp = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
+			fdplansn = correlator_network_plan_fd_copy(fdplansp);
+			if(!fdplansp || !fdplansn) {
+				fprintf(stderr, "memory error\n");
+				exit(1);
+			}
+#if 1
+			fprintf(stderr, "applying projection operator\n");
+			if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0, psds)) {
+				fprintf(stderr, "positive plan is failed\n");
+				exit(1);
+			}
+			if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0, psds)) {
+				fprintf(stderr, "negative plan is failed\n");
 				exit(1);
 			}
 #endif
-			//PSD_times_sqrt_AutoCorrelation(temp[k], nseries[k]);
-		}
-		psds = transpose_matrix(temp, instrument_array_len(options->instruments), series[0]->data->length);
-		free(temp);
-
-		/* prepare pre-calculated objects */
-		fprintf(stderr, "constructing base correlator\n");
-		baselines = correlator_network_baselines_new(options->instruments);
-
-		logprior = sh_series_log_uniformsky_prior(correlator_network_l_max(baselines, series[0]->deltaT));
-		if(!logprior) {
-			exit(1);
-		}
-
-
-		fdplansp = correlator_network_plan_fd_new(baselines, series[0]->data->length, series[0]->deltaT);
-		fdplansn = correlator_network_plan_fd_copy(fdplansp);
-		if(!fdplansp || !fdplansn) {
-			fprintf(stderr, "memory error\n");
-			exit(1);
-		}
+			fprintf(stderr, "construct plans for auto-correlations\n");
+			fdautoplanp = autocorrelator_network_plan_fd_new(fdplansp->baselines->baselines[0]->instruments, +1, 0, psds, (int) fdplansp->plans[0]->delay_product->n, logprior->l_max);
+			fdautoplann = autocorrelator_network_plan_fd_new(fdplansn->baselines->baselines[0]->instruments, -1, 0, psds, (int) fdplansn->plans[0]->delay_product->n, logprior->l_max);
+			if(!fdautoplanp || !fdautoplann) {
+				fprintf(stderr, "memory error\n");
+				exit(1);
+			}
 #if 1
-		fprintf(stderr, "applying projection operator\n");
-		if(correlator_network_plan_mult_by_projection(fdplansp, +1, 0, psds)) {
-			fprintf(stderr, "positive plan is failed\n");
-			exit(1);
-		}
-		if(correlator_network_plan_mult_by_projection(fdplansn, -1, 0, psds)) {
-			fprintf(stderr, "negative plan is failed\n");
-			exit(1);
-		}
+			/* make directories to store pre-calculated objects */
+			if(make_precalc_directories(options)) {
+				fprintf(stderr, "can't make precalculated directories\n");
+				exit(1);
+			}
+
+			/* save pre-calculated objects */
+			fprintf(stderr, "make precalculated objects\n");
+			if(write_precalc_logprior(logprior, options->precalc_path)) {
+				fprintf(stderr, "false write_precalc_logprior()\n");
+				exit(1);
+			}
+			if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->precalc_path)) {
+				fprintf(stderr, "can't save correlator network plan\n");
+				exit(1);
+			}
+			if(write_precalc_autocorrelator_network_plan_fd(fdautoplanp, fdautoplann, options->precalc_path)) {
+				fprintf(stderr, "can't save autocorrelator network plan\n");
+				exit(1);
+			}
 #endif
-		fprintf(stderr, "construct plans for auto-correlations\n");
-		fdautoplanp = autocorrelator_network_plan_fd_new(fdplansp->baselines->baselines[0]->instruments, +1, 0, psds, (int) fdplansp->plans[0]->delay_product->n, logprior->l_max);
-		fdautoplann = autocorrelator_network_plan_fd_new(fdplansn->baselines->baselines[0]->instruments, -1, 0, psds, (int) fdplansn->plans[0]->delay_product->n, logprior->l_max);
-		if(!fdautoplanp || !fdautoplann) {
-			fprintf(stderr, "memory error\n");
-			exit(1);
-		}
-#if 1
-		/* make directories to store pre-calculated objects */
-		if(make_precalc_directories(options)) {
-			fprintf(stderr, "can't make precalculated directories\n");
-			exit(1);
+		} else {
+			/* NOTE: series[0]->data->length in precalculated objects must be
+			 * equivalnt to series[0]->data->length in this code */
+			fprintf(stderr, "read precalculated objects\n");
+			logprior = read_precalc_logprior(options->precalc_path);
+			fdplansp = malloc(sizeof(*fdplansp));
+			fdplansn = malloc(sizeof(*fdplansn));
+			read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length, options->precalc_path);
+			fdautoplanp = malloc(sizeof(*fdautoplanp));
+			fdautoplann = malloc(sizeof(*fdautoplann));
+			read_precalc_autocorrelator_network_plan_fd(fdautoplanp, fdautoplann, options->instruments, series[0]->data->length, options->precalc_path);
 		}
 
-		/* save pre-calculated objects */
-		fprintf(stderr, "make precalculated objects\n");
-		if(write_precalc_logprior(logprior, options->precalc_path))
-			fprintf(stderr, "false write_precalc_logprior()\n");
-		if(write_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->precalc_path)) {
-			fprintf(stderr, "can't save correlator network plan\n");
+		gettimeofday(&t_start, NULL);
+		if(generate_alm_skys(&skyp, &skyn, fdplansp, fdplansn, fdautoplanp, fdautoplann, series, nseries, logprior)) {
+			fprintf(stderr, "generate_alm_skys error\n");
 			exit(1);
 		}
-		if(write_precalc_autocorrelator_network_plan_fd(fdautoplanp, fdautoplann, options->precalc_path)) {
-			fprintf(stderr, "can't save autocorrelator network plan\n");
-			exit(1);
-		}
-#endif
 	} else {
-		/* NOTE: series[0]->data->length in precalculated objects must be
-		 * equivalnt to series[0]->data->length in this code */
-		fprintf(stderr, "read precalculated objects\n");
-		logprior = read_precalc_logprior(options->precalc_path);
-		fdplansp = malloc(sizeof(*fdplansp));
-		fdplansn = malloc(sizeof(*fdplansn));
-		read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length, options->precalc_path);
-		fdautoplanp = malloc(sizeof(*fdautoplanp));
-		fdautoplann = malloc(sizeof(*fdautoplann));
-		read_precalc_autocorrelator_network_plan_fd(fdautoplanp, fdautoplann, options->instruments, series[0]->data->length, options->precalc_path);
-	}
+		if(stat(options->precalc_path, &statBuf)) {
+			/* prepare pre-calculated objects */
+			logprior = sh_series_log_uniformsky_prior(correlator_baseline_power_l_max_naive(series[0]->data->length * series[0]->deltaT, series[0]->deltaT));
+			if(!logprior) {
+				exit(1);
+			}
 
-	gettimeofday(&t_start, NULL);
-	if(generate_alm_skys(&skyp, &skyn, fdplansp, fdplansn, fdautoplanp, fdautoplann, series, nseries, logprior)) {
-		fprintf(stderr, "generate_alm_skys error\n");
-		exit(1);
+#if 1
+			/* make directories to store pre-calculated objects */
+			if(make_precalc_directories(options)) {
+				fprintf(stderr, "can't make precalculated directories\n");
+				exit(1);
+			}
+
+			/* save pre-calculated objects */
+			fprintf(stderr, "make precalculated objects\n");
+			if(write_precalc_logprior(logprior, options->precalc_path)) {
+				fprintf(stderr, "false write_precalc_logprior()\n");
+				exit(1);
+			}
+#endif
+		} else {
+			/* NOTE: series[0]->data->length in precalculated objects must be
+			 * equivalnt to series[0]->data->length in this code */
+			fprintf(stderr, "read precalculated objects\n");
+			logprior = read_precalc_logprior(options->precalc_path);
+		}
+
+		/* For single detector case, the antenna Projection operator is
+		 * unity, that is, independent of the sky direction.  Thus, the
+		 * sky probability maps are equal to prior distribution. */
+		gettimeofday(&t_start, NULL);
+		skyp = sh_series_copy(logprior);
+		skyn = sh_series_copy(logprior);
 	}
 
 
@@ -1600,23 +1639,30 @@ int main(int argc, char *argv[])
 	 */
 
 
+	if(psds != NULL) {
+		for(k = 0; k < (int) series[0]->data->length; k++) {
+			free(psds[k]);
+		}
+		free(psds);
+	}
 	for(k = 0; k < instrument_array_len(options->instruments); k++) {
 		XLALDestroyCOMPLEX16TimeSeries(series[k]);
 		XLALDestroyCOMPLEX16Sequence(nseries[k]);
 	}
 	free(series);
 	free(nseries);
-	if(psds != NULL)
-		free(psds);
 	sh_series_free(skyp);
 	sh_series_free(skyn);
 	sh_series_free(logprior);
-	correlator_network_plan_fd_free(fdplansp);
-	correlator_network_plan_fd_free(fdplansn);
-	autocorrelator_network_plan_fd_free(fdautoplanp);
-	autocorrelator_network_plan_fd_free(fdautoplann);
-	if(baselines != NULL)
+	if(fdplansp != NULL) {
+		/* if the # of detectors > 1, then the followings are defined
+		 * simultaneously */
+		correlator_network_plan_fd_free(fdplansp);
+		correlator_network_plan_fd_free(fdplansn);
+		autocorrelator_network_plan_fd_free(fdautoplanp);
+		autocorrelator_network_plan_fd_free(fdautoplann);
 		correlator_network_baselines_free(baselines);
+	}
 	command_line_options_free(options);
 
 	return 0;

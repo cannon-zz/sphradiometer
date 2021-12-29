@@ -461,6 +461,7 @@ void autocorrelator_network_plan_fd_free(struct autocorrelator_network_plan_fd *
 		for(j = 0; j < plan->length; j++) {
 			sh_series_free(plan->projections[i][j]);
 		}
+		free(plan->projections[i]);
 	}
 
 	free(plan->projections);
@@ -869,6 +870,10 @@ int generate_alm_skys(struct sh_series **skyp, struct sh_series **skyn, struct c
 		fftw_destroy_plan(fftplans[k]);
 		fftw_destroy_plan(nfftplans[k]);
 	}
+	free(fseries);
+	free(fnseries);
+	free(fftplans);
+	free(nfftplans);
 
 	return 0;
 }
