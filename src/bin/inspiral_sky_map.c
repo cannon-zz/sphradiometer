@@ -248,63 +248,6 @@ struct options *command_line_parse(int argc, char *argv[])
  */
 
 
-static COMPLEX16TimeSeries *get_complex16series_from_cache(
-	const char *cache_name,
-	const char *channel_name
-)
-{
-	char instrument[] = {channel_name[0], channel_name[1], '\0'};
-	LALCache *cache;
-	LALFrStream *stream;
-	COMPLEX8TimeSeries *data;
-	COMPLEX16TimeSeries *result;
-	unsigned i;
-
-	/* construct stream */
-	cache = XLALCacheImport(cache_name);
-	if(!cache)
-		XLAL_ERROR_NULL(XLAL_EFUNC);
-	XLALCacheSieve(cache, 0, 0, instrument, NULL, NULL);
-	if(cache->length != 1) {
-		XLALPrintError("error: cache must contain exactly 1 file for instrument %s", instrument);
-		XLALDestroyCache(cache);
-		XLAL_ERROR_NULL(XLAL_EDATA);
-	}
-	stream = XLALFrStreamCacheOpen(cache);
-	XLALDestroyCache(cache);
-	if(!stream)
-		XLAL_ERROR_NULL(XLAL_EFUNC);
-
-	/* turn on checking for missing data */
-	stream->mode = LAL_FR_STREAM_VERBOSE_MODE;
-
-	/* get data */
-	data = XLALFrFileReadCOMPLEX8TimeSeries(stream->file, channel_name, 0);
-
-	/* check for gaps and close */
-	XLALFrStreamClose(stream);
-
-	/* error checking */
-	if(!data)
-		XLAL_ERROR_NULL(XLAL_EFUNC);
-
-	/* convert to double precision */
-	result = XLALCreateCOMPLEX16TimeSeries(data->name, &data->epoch, data->f0, data->deltaT, &data->sampleUnits, data->data->length);
-	for(i = 0; i < data->data->length; i++)
-		result->data->data[i] = data->data->data[i];
-	XLALDestroyCOMPLEX8TimeSeries(data);
-	/*for(i = 0; i < result->data->length; i++) fprintf(stderr, "%g+I*%g\n", creal(result->data->data[i]), cimag(result->data->data[i]));*/
-
-	/* done */
-	{
-	char *s = XLALGPSToStr(NULL, &result->epoch);
-	fprintf(stderr, "%s: loaded \"%s\" at %s s, duration=%g s (%d samples)\n", instrument, result->name, s, result->data->length * result->deltaT, result->data->length);
-	LALFree(s);
-	}
-	return result;
-}
-
-
 static COMPLEX16Sequence *get_complex16sequence_from_cache(
 	const char *cache_name,
 	const char *channel_name
@@ -455,73 +398,6 @@ static double *make_one_line(double **mat, int n_det, int length)
 			vec[i + n_det * j] = mat[i][j];
 
 	return vec;
-}
-
-
-static COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *series)
-{
-	return series->data;
-}
-
-
-/*
- * make the time series span the same intervals
- * FIXME:  this leaves the final GPS times slightly different.  why?
- */
-
-
-static int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, int n_series)
-{
-	int i;
-	LIGOTimeGPS start;
-	LIGOTimeGPS end;
-
-	start = end = series[0]->epoch;
-	XLALGPSAdd(&end, series[0]->deltaT * series[0]->data->length);
-	for(i = 1; i < n_series; i++) {
-		LIGOTimeGPS this_end = series[i]->epoch;
-		XLALGPSAdd(&this_end, series[i]->deltaT * series[i]->data->length);
-		if(XLALGPSCmp(&start, &series[i]->epoch) > 0)
-			start = series[i]->epoch;
-		if(XLALGPSCmp(&end, &this_end) < 0)
-			end = this_end;
-	}
-
-	long data_length = (long) (round(2 * LAL_REARTH_SI / LAL_C_SI / series[0]->deltaT) + series[0]->data->length);
-	for(i = 0; i < n_series; i++) {
-		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / series[i]->deltaT), round(XLALGPSDiff(&end, &start) / series[i]->deltaT));
-		XLALResizeCOMPLEX16TimeSeries(series[i], round((series[i]->data->length - data_length) / 2.), data_length);
-		XLALResizeCOMPLEX16Sequence(nseries[i], -((int) series[i]->data->length - (int) nseries[i]->length) / 2, series[i]->data->length);
-	}
-
-#if 0
-	for(i = 0; i < n_series; i++) {
-		char *s = XLALGPSToStr(NULL, &series[i]->epoch);
-		fprintf(stderr, "zero-padded interval for \"%s\": %s s, duration=%g s (%d samples)\n", series[i]->name, s, series[i]->data->length * series[i]->deltaT, series[i]->data->length);
-		LALFree(s);
-		{
-		unsigned j;
-		for(j = 0; j < series[i]->data->length; j++) {
-			LIGOTimeGPS t = series[i]->epoch;
-			XLALGPSAdd(&t, j * series[i]->deltaT);
-			s = XLALGPSToStr(NULL, &t);
-			fprintf(stderr, "%s: %g+I*%g\n", s, creal(series[i]->data->data[j]), cimag(series[i]->data->data[j]));
-			LALFree(s);
-		}
-		fprintf(stderr, "\n");
-		}
-	}
-#endif
-
-	return 0;
-}
-
-
-void scale_COMPLEX16Sequence(COMPLEX16Sequence *series, double factor)
-{
-	unsigned int i;
-	for(i = 0; i < series->length; i++)
-		series->data[i] *= factor;
 }
 
 

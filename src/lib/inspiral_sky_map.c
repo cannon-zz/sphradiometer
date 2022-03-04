@@ -39,6 +39,7 @@
 
 #include <lal/Date.h>
 #include <lal/DetResponse.h>
+#include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimulation.h>
 #include <lal/Sequence.h>
@@ -49,6 +50,75 @@
 
 
 #define FILE_LEN 110
+
+
+/*
+ * ============================================================================
+ *
+ *                                 Data Input
+ *
+ * ============================================================================
+ */
+
+
+COMPLEX16TimeSeries *get_complex16series_from_cache(const char *cache_name, const char *channel_name)
+{
+	char instrument[] = {channel_name[0], channel_name[1], '\0'};
+	LALCache *cache;
+	LALFrStream *stream;
+	COMPLEX8TimeSeries *data;
+	COMPLEX16TimeSeries *result;
+	unsigned i;
+
+	/* construct stream */
+	cache = XLALCacheImport(cache_name);
+	if(!cache)
+		XLAL_ERROR_NULL(XLAL_EFUNC);
+	XLALCacheSieve(cache, 0, 0, instrument, NULL, NULL);
+	if(cache->length != 1) {
+		XLALPrintError("error: cache must contain exactly 1 file for instrument %s", instrument);
+		XLALDestroyCache(cache);
+		XLAL_ERROR_NULL(XLAL_EDATA);
+	}
+	stream = XLALFrStreamCacheOpen(cache);
+	XLALDestroyCache(cache);
+	if(!stream)
+		XLAL_ERROR_NULL(XLAL_EFUNC);
+
+	/* turn on checking for missing data */
+	stream->mode = LAL_FR_STREAM_VERBOSE_MODE;
+
+	/* get data */
+	data = XLALFrFileReadCOMPLEX8TimeSeries(stream->file, channel_name, 0);
+
+	/* check for gaps and close */
+	XLALFrStreamClose(stream);
+
+	/* error checking */
+	if(!data)
+		XLAL_ERROR_NULL(XLAL_EFUNC);
+
+	/* convert to double precision */
+	result = XLALCreateCOMPLEX16TimeSeries(data->name, &data->epoch, data->f0, data->deltaT, &data->sampleUnits, data->data->length);
+	for(i = 0; i < data->data->length; i++)
+		result->data->data[i] = data->data->data[i];
+	XLALDestroyCOMPLEX8TimeSeries(data);
+	/*for(i = 0; i < result->data->length; i++) fprintf(stderr, "%g+I*%g\n", creal(result->data->data[i]), cimag(result->data->data[i]));*/
+
+	/* done */
+	{
+	char *s = XLALGPSToStr(NULL, &result->epoch);
+	fprintf(stderr, "%s: loaded \"%s\" at %s s, duration=%g s (%d samples)\n", instrument, result->name, s, result->data->length * result->deltaT, result->data->length);
+	LALFree(s);
+	}
+	return result;
+}
+
+
+COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *series)
+{
+	return XLALCopyCOMPLEX16Sequence(series->data);
+}
 
 
 /*

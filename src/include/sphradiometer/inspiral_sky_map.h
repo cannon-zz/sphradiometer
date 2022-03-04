@@ -41,6 +41,8 @@
  */
 
 
+COMPLEX16TimeSeries *get_complex16series_from_cache(const char *, const char *);
+COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *);
 struct sh_series *sh_series_log_uniformsky_prior(int);
 
 int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd *, double, double, double **);
