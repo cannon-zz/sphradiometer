@@ -28,9 +28,9 @@ libsphradiometer_la_SOURCES = \
 libsphradiometerdiag_la_SOURCES = \
 	diagnostics.c
 
-libsphinspiralskymap_la_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS)
+libsphinspiralskymap_la_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(LAL_CFLAGS) $(LALFRAME_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS)
 libsphinspiralskymap_la_CXXFLAGS = $(AM_CXXFLAGS)
-libsphinspiralskymap_la_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS)
+libsphinspiralskymap_la_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(LAL_LIBS) $(LALFRAME_LIBS) $(LALSIMULATION_LIBS) $(LAPACK_LIBS)
 libsphinspiralskymap_la_LIBADD = libsphradiometer.la
 
 libsphradiometer_la_CFLAGS = $(AM_CFLAGS) $(OPENMP_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS) $(LAPACK_CFLAGS)
