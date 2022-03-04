@@ -122,6 +122,97 @@ COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *series)
 
 
 /*
+ * make the time series span the same intervals
+ * FIXME:  this leaves the final GPS times slightly different.  why?
+ */
+
+
+int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, int n_series)
+{
+	int i;
+	LIGOTimeGPS start;
+	LIGOTimeGPS end;
+
+	start = end = series[0]->epoch;
+	XLALGPSAdd(&end, series[0]->deltaT * series[0]->data->length);
+	for(i = 1; i < n_series; i++) {
+		LIGOTimeGPS this_end = series[i]->epoch;
+		XLALGPSAdd(&this_end, series[i]->deltaT * series[i]->data->length);
+		if(XLALGPSCmp(&start, &series[i]->epoch) > 0)
+			start = series[i]->epoch;
+		if(XLALGPSCmp(&end, &this_end) < 0)
+			end = this_end;
+	}
+
+	long data_length = (long) (round(2 * LAL_REARTH_SI / LAL_C_SI / series[0]->deltaT) + series[0]->data->length);
+	for(i = 0; i < n_series; i++) {
+		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / series[i]->deltaT), round(XLALGPSDiff(&end, &start) / series[i]->deltaT));
+		XLALResizeCOMPLEX16TimeSeries(series[i], round((series[i]->data->length - data_length) / 2.), data_length);
+		XLALResizeCOMPLEX16Sequence(nseries[i], -((int) series[i]->data->length - (int) nseries[i]->length) / 2, series[i]->data->length);
+	}
+
+#if 0
+	for(i = 0; i < n_series; i++) {
+		char *s = XLALGPSToStr(NULL, &series[i]->epoch);
+		fprintf(stderr, "zero-padded interval for \"%s\": %s s, duration=%g s (%d samples)\n", series[i]->name, s, series[i]->data->length * series[i]->deltaT, series[i]->data->length);
+		LALFree(s);
+		{
+		unsigned j;
+		for(j = 0; j < series[i]->data->length; j++) {
+			LIGOTimeGPS t = series[i]->epoch;
+			XLALGPSAdd(&t, j * series[i]->deltaT);
+			s = XLALGPSToStr(NULL, &t);
+			fprintf(stderr, "%s: %g+I*%g\n", s, creal(series[i]->data->data[j]), cimag(series[i]->data->data[j]));
+			LALFree(s);
+		}
+		fprintf(stderr, "\n");
+		}
+	}
+#endif
+
+	return 0;
+}
+
+
+void scale_COMPLEX16Sequence(COMPLEX16Sequence *series, double factor)
+{
+	unsigned int i;
+	for(i = 0; i < series->length; i++)
+		series->data[i] *= factor;
+}
+
+
+void preprocess_SNRTimeSeries(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, int n_series)
+{
+	int k;
+
+	/* Tukey Window */
+	for(k = 0; k < n_series; k++){
+		int j;
+		REAL8Window *window = XLALCreateTukeyREAL8Window(series[k]->data->length, 0.1);
+		for(j = 0; j < (int) window->data->length; j++){
+			series[k]->data->data[j] *= window->data->data[j];
+			nseries[k]->data[j] *= window->data->data[j];
+		}
+		XLALDestroyREAL8Window(window);
+	}
+
+	/* bring to a common interval with zero-padding */
+	/* To set epochs of SNR time series, original time series are padded,
+	 * that is, the lengths become longer.  Then the d.o.f. of data are
+	 * diluted.  The dilution happens in the normalization 1 / (data
+	 * length) in correlator_network_integrate_power_fd().  To correct the
+	 * normalization factor, the padded SNR time series have to be scaled
+	 * by \sqrt{(padded data length) / (original data length)}. */
+	for(k = 0; k < n_series; k++)
+		scale_COMPLEX16Sequence(series[k]->data, sqrt(1. / series[k]->data->length));
+	time_series_pad(series, nseries, n_series);
+	for(k = 0; k < n_series; k++)
+		scale_COMPLEX16Sequence(series[k]->data, sqrt(series[k]->data->length));
+}
+
+
+/*
  * ============================================================================
  *
  *                              Time Conversion

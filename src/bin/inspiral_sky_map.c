@@ -666,38 +666,7 @@ int main(int argc, char *argv[])
 #endif
 
 
-	/*
-	 * Tukey Window
-	 */
-
-
-	for(k = 0; k < instrument_array_len(options->instruments); k++){
-		int j;
-		REAL8Window *window = XLALCreateTukeyREAL8Window(series[k]->data->length, 0.1);
-		for(j = 0; j < (int) window->data->length; j++){
-			series[k]->data->data[j] *= window->data->data[j];
-			nseries[k]->data[j] *= window->data->data[j];
-		}
-		XLALDestroyREAL8Window(window);
-	}
-
-
-	/*
-	 * bring to a common interval with zero-padding
-	 */
-
-
-	/* To set epochs of SNR time series, original time series are padded,
-	 * that is, the lengths become longer.  Then the d.o.f. of data are
-	 * diluted.  The dilution happens in the normalization 1 / (data
-	 * length) in correlator_network_integrate_power_fd().  To correct the
-	 * normalization factor, the padded SNR time series have to be scaled
-	 * by \sqrt{(padded data length) / (original data length)}. */
-	for(k = 0; k < instrument_array_len(options->instruments); k++)
-		scale_COMPLEX16Sequence(series[k]->data, sqrt(1. / series[k]->data->length));
-	time_series_pad(series, nseries, instrument_array_len(options->instruments));
-	for(k = 0; k < instrument_array_len(options->instruments); k++)
-		scale_COMPLEX16Sequence(series[k]->data, sqrt(series[k]->data->length));
+	preprocess_SNRTimeSeries(series, nseries, instrument_array_len(options->instruments));
 
 
 	/*
