@@ -51,7 +51,7 @@
 
 static complex double cexpi(double x)
 {
-	/* about 1% faster than cexp(I * x) */
+	/* about 1% faster than cexp(I * x) for real x */
 	return cos(x) + I * sin(x);
 }
 
