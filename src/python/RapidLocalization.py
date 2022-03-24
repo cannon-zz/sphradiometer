@@ -138,7 +138,7 @@ class RapidLocalization(object):
 			sph.write_precalc_logprior(self.logprior, precalc_path)
 
 	@classmethod
-	def read(cls, precalc_path, instruments, length):
+	def read(cls, precalc_path, instruments):
 		"""
 		Parameter
 		---------
@@ -163,15 +163,18 @@ class RapidLocalization(object):
 
 		if sph.instrument_array_len(self.inst_array) > 1:
 			# (n > 1) detector case
+			length = sph.new_uintp()
+			sph.read_precalc_time_series_length(length, precalc_path)
 			self.logprior = sph.read_precalc_logprior(precalc_path)
 
 			self.fdplansp = sph.new_correlator_network_plan_fdp()
 			self.fdplansn = sph.new_correlator_network_plan_fdp()
-			sph.read_precalc_correlator_network_plan_fd(self.fdplansp, self.fdplansn, self.inst_array, length, precalc_path)
+			sph.read_precalc_correlator_network_plan_fd(self.fdplansp, self.fdplansn, self.inst_array, sph.uintp_value(length), precalc_path)
 
 			self.fdautoplanp = sph.new_autocorrelator_network_plan_fdp()
 			self.fdautoplann = sph.new_autocorrelator_network_plan_fdp()
-			sph.read_precalc_autocorrelator_network_plan_fd(self.fdautoplanp, self.fdautoplann, self.inst_array, length, precalc_path)
+			sph.read_precalc_autocorrelator_network_plan_fd(self.fdautoplanp, self.fdautoplann, self.inst_array, sph.uintp_value(length), precalc_path)
+			sph.delete_uintp(length)
 		else:
 			# 1 detector case
 			self.logprior = sph.read_precalc_logprior(precalc_path)
@@ -233,8 +236,7 @@ if __name__ == "__main__":
 	if exists(precalc_path):
 		print("read objects")
 		rapidloc = RapidLocalization.read(precalc_path, \
-		                                  instruments, \
-						  sph.pick_length_from_COMPLEX16TimeSeries(sph.COMPLEX16TimeSeries_array_getitem(seriesp, 0)))
+		                                  instruments)
 	else:
 		print("make objects")
 		rapidloc = RapidLocalization(instruments, \
