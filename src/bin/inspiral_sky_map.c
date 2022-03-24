@@ -752,6 +752,10 @@ int main(int argc, char *argv[])
 
 			/* save pre-calculated objects */
 			fprintf(stderr, "make precalculated objects\n");
+			if(write_precalc_time_series_length(series[0]->data->length, options->precalc_path)) {
+				fprintf(stderr, "can't save time series length\n");
+				exit(1);
+			}
 			if(write_precalc_logprior(logprior, options->precalc_path)) {
 				fprintf(stderr, "false write_precalc_logprior()\n");
 				exit(1);
@@ -766,9 +770,19 @@ int main(int argc, char *argv[])
 			}
 #endif
 		} else {
-			/* NOTE: series[0]->data->length in precalculated objects must be
-			 * equivalnt to series[0]->data->length in this code */
 			fprintf(stderr, "read precalculated objects\n");
+			unsigned int precalc_length;
+			if(read_precalc_time_series_length(&precalc_length, options->precalc_path)) {
+				fprintf(stderr, "can't read time series length\n");
+				exit(1);
+			}
+			if(series[0]->data->length != precalc_length) {
+				/* NOTE: series[0]->data->length in
+				 * precalculated objects must be equivalnt to
+				 * series[0]->data->length in this code */
+				fprintf(stderr, "time series length is inconsistent with that in precalculated objects.\n");
+				exit(1);
+			}
 			logprior = read_precalc_logprior(options->precalc_path);
 			fdplansp = malloc(sizeof(*fdplansp));
 			fdplansn = malloc(sizeof(*fdplansn));
@@ -800,15 +814,29 @@ int main(int argc, char *argv[])
 
 			/* save pre-calculated objects */
 			fprintf(stderr, "make precalculated objects\n");
+			if(write_precalc_time_series_length(series[0]->data->length, options->precalc_path)) {
+				fprintf(stderr, "can't save time series length\n");
+				exit(1);
+			}
 			if(write_precalc_logprior(logprior, options->precalc_path)) {
 				fprintf(stderr, "false write_precalc_logprior()\n");
 				exit(1);
 			}
 #endif
 		} else {
-			/* NOTE: series[0]->data->length in precalculated objects must be
-			 * equivalnt to series[0]->data->length in this code */
 			fprintf(stderr, "read precalculated objects\n");
+			unsigned int precalc_length;
+			if(read_precalc_time_series_length(&precalc_length, options->precalc_path)) {
+				fprintf(stderr, "can't read time series length\n");
+				exit(1);
+			}
+			if(series[0]->data->length != precalc_length) {
+				/* NOTE: series[0]->data->length in
+				 * precalculated objects must be equivalnt to
+				 * series[0]->data->length in this code */
+				fprintf(stderr, "time series length is inconsistent with that in precalculated objects.\n");
+				exit(1);
+			}
 			logprior = read_precalc_logprior(options->precalc_path);
 		}
 
