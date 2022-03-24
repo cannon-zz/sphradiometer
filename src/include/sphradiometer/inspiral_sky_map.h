@@ -53,11 +53,13 @@ void autocorrelator_network_plan_fd_free(struct autocorrelator_network_plan_fd *
 
 int generate_alm_skys(struct sh_series **, struct sh_series **, struct correlator_network_plan_fd *, struct correlator_network_plan_fd *, struct autocorrelator_network_plan_fd *, struct autocorrelator_network_plan_fd *, COMPLEX16TimeSeries **, COMPLEX16Sequence **, struct sh_series *);
 
+int read_precalc_time_series_length(unsigned int *, char *);
 struct sh_series *read_precalc_logprior(char *);
 int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *, struct correlator_network_plan_fd *, const struct instrument_array *, int, char *);
 int read_precalc_autocorrelator_network_plan_fd(struct autocorrelator_network_plan_fd *, struct autocorrelator_network_plan_fd *, const struct instrument_array *, int, char *);
 
 int make_precalc_directories(char *, int);
+int write_precalc_time_series_length(unsigned int, char *);
 int write_precalc_logprior(const struct sh_series *, char *);
 int write_precalc_correlator_network_plan_fd(const struct correlator_network_plan_fd *, const struct correlator_network_plan_fd *, char *);
 int write_precalc_autocorrelator_network_plan_fd(const struct autocorrelator_network_plan_fd *, const struct autocorrelator_network_plan_fd *, char *);

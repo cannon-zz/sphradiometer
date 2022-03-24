@@ -1349,6 +1349,24 @@ struct sh_series *read_precalc_logprior(char *parent_dir)
 }
 
 
+int read_precalc_time_series_length(unsigned int *length, char *parent_dir)
+{
+	char filename[strlen(parent_dir) + FILE_LEN];
+	FILE *fp;
+
+	/* read time series length */
+	sprintf(filename, "%s/time_series_length.dat", parent_dir);
+	fp = fopen(filename, "rb");
+	if(!fp) {
+		fprintf(stderr, "no time_series_length.dat\n");
+		return -1;
+	}
+	fread(length, sizeof(*length), 1, fp);
+	fclose(fp);
+	return 0;
+}
+
+
 /*
  * ============================================================================
  *
@@ -1692,4 +1710,23 @@ int write_precalc_logprior(const struct sh_series *series, char *parent_dir)
 	char filename[strlen(parent_dir) + FILE_LEN];
 	sprintf(filename, "%s/sh_series/logprior.fits", parent_dir);
 	return sh_series_write_healpix_alm(series, filename);
+}
+
+
+int write_precalc_time_series_length(unsigned int length, char *parent_dir)
+{
+	char filename[strlen(parent_dir) + FILE_LEN];
+	FILE *fp;
+
+	/* write time series length */
+	sprintf(filename, "%s/time_series_length.dat", parent_dir);
+	fp = fopen(filename, "wb");
+	if(!fp) {
+		fprintf(stderr, "can't open time_series_length.dat\n");
+		return -1;
+	}
+	fwrite(&length, sizeof(length), 1, fp);
+	fclose(fp);
+
+	return 0;
 }
