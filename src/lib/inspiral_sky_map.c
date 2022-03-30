@@ -218,6 +218,32 @@ void preprocess_SNRTimeSeries(COMPLEX16TimeSeries **series, COMPLEX16Sequence **
 }
 
 
+double **transpose_matrix(double **mat, int n_det, int length)
+{
+	/* mat is a (n_det * length)-matrix */
+	int i, j;
+	double **tmat = malloc(length * sizeof(*tmat));
+
+	if(!tmat)
+		return NULL;
+
+	for(i = 0; i < length; i++) {
+		tmat[i] = malloc(n_det * sizeof(*tmat[i]));
+		if(!tmat[i]) {
+			free(tmat);
+			return NULL;
+		}
+	}
+
+	/* tmat is a (length * n_det)-matrix */
+	for(i = 0; i < length; i++)
+		for(j = 0; j < n_det; j++)
+			tmat[i][j] = mat[j][i];
+
+	return tmat;
+}
+
+
 /*
  * ============================================================================
  *

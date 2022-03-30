@@ -45,6 +45,7 @@ COMPLEX16TimeSeries *get_complex16series_from_cache(const char *, const char *);
 COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *);
 void preprocess_SNRTimeSeries(COMPLEX16TimeSeries **, COMPLEX16Sequence **, int);
 long precalculated_TimeSeries_length(long, double);
+double **transpose_matrix(double **, int, int);
 
 struct sh_series *sh_series_log_uniformsky_prior(int);
 
