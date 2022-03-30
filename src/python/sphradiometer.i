@@ -42,38 +42,6 @@
 %}
 
 %inline %{
-        double **flat_psd_array(int n_ifo, int size) {
-                int i, j;
-                double **res = malloc(size * sizeof(*res));
-
-                if(!res) {
-                        fprintf(stderr, "out of memory\n");
-                        return NULL;
-                }
-
-                for(i = 0; i < size; i++) {
-                        res[i] = malloc(n_ifo * sizeof(*res[i]));
-                        if(!res[i]) {
-                                fprintf(stderr, "out of memory\n");
-                                free(res);
-                                return NULL;
-                        }
-                        for(j = 0; j < n_ifo; j++)
-                                res[i][j] = 1;
-                }
-
-                return res;
-        }
-
-
-        void free_psd_array(double **array, int size) {
-                int i;
-                for(i = 0; i < size; i++)
-                        free(array[i]);
-                free(array);
-        }
-
-
         struct correlator_plan_fd *pick_ith_correlator_plan_fd(struct correlator_plan_fd **array, int i) {
                 return array[i];
         }
@@ -89,13 +57,38 @@
         }
 
 
-        void free_SNRTimeSeries(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, int ndet) {
-                int k;
-                for(k = 0; k < ndet; k++) {
-                        XLALDestroyCOMPLEX16TimeSeries(series[k]);
-                        XLALDestroyCOMPLEX16Sequence(nseries[k]);
-                }
+        void free_SNRTimeSeries(COMPLEX16TimeSeries *series) {
+                XLALDestroyCOMPLEX16TimeSeries(series);
+        }
 
+
+        void free_SNRSequence(COMPLEX16Sequence *series) {
+                XLALDestroyCOMPLEX16Sequence(series);
+        }
+
+
+        int create_sph_COMPLEX16TimeSeries(COMPLEX16TimeSeries *result, char *name, double epoch_Seconds, double epoch_NanoSeconds, double f0, double deltaT, LALUnit *sampleUnits, size_t length, double complex *data) {
+                int i;
+                if(!result || !data) {
+                        fprintf(stderr, "memory error\n");
+                        return -1;
+                }
+                result->data = XLALCreateCOMPLEX16Sequence(length);
+
+                result->epoch.gpsSeconds = epoch_Seconds;
+                result->epoch.gpsNanoSeconds = epoch_NanoSeconds;
+
+                strncpy(result->name, name, LALNameLength - 1);
+                result->name[LALNameLength - 1] = '\0';
+                result->f0 = f0;
+                result->deltaT = deltaT;
+                for(i = 0; i < (int) result->data->length; i++) {
+                        result->data->data[i] = data[i];
+                }
+                if(sampleUnits)
+                        result->sampleUnits = *sampleUnits;
+
+                return 0;
         }
 %}
 
