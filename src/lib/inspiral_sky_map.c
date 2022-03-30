@@ -121,6 +121,12 @@ COMPLEX16Sequence *convert_TimeSeries2Sequence(COMPLEX16TimeSeries *series)
 }
 
 
+long precalculated_TimeSeries_length(long length, double deltaT)
+{
+	return (long) (round(2 * LAL_REARTH_SI / LAL_C_SI / deltaT) + length);
+}
+
+
 /*
  * make the time series span the same intervals
  * FIXME:  this leaves the final GPS times slightly different.  why?
@@ -144,7 +150,7 @@ int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, i
 			end = this_end;
 	}
 
-	long data_length = (long) (round(2 * LAL_REARTH_SI / LAL_C_SI / series[0]->deltaT) + series[0]->data->length);
+	long data_length = precalculated_TimeSeries_length(series[0]->data->length, series[0]->deltaT);
 	for(i = 0; i < n_series; i++) {
 		XLALResizeCOMPLEX16TimeSeries(series[i], round(XLALGPSDiff(&start, &series[i]->epoch) / series[i]->deltaT), round(XLALGPSDiff(&end, &start) / series[i]->deltaT));
 		XLALResizeCOMPLEX16TimeSeries(series[i], round((series[i]->data->length - data_length) / 2.), data_length);
