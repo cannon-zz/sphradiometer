@@ -32,13 +32,29 @@ from . import sphradiometer
 #
 # =============================================================================
 #
-#                                    Input
+#                          In-House Diagnostic Format
 #
 # =============================================================================
 #
 
 
 def read_sh_series(f):
+	"""
+	This is the inverse of the sh_series_print() function in the C
+	library.  That function is typically used to dump diagnostic
+	information in a mostly human-readable foramt.  This function is
+	the inverse.  It parses a text file containing the output of
+	sh_series_print() and constructs an sh_series object from the
+	contents.  A typical use for this is to generate a plot or
+	otherwise evaluate an sh_series dump for diagnostic purposes.
+
+	Niether function is suitable for use in production I/O
+	applications.  There is inadequate error checking, no ability to
+	compose the data with other objects into a single file, and the
+	performance is terrible.
+
+	See also:  sh_series_print()
+	"""
 	pattern = re.compile(r"\((?P<l>\S+),(?P<m>\S+)\) = (?P<re>\S+) \+ I (?P<im>\S+)")
 	lines = []
 	for n, line in enumerate(f, 1):

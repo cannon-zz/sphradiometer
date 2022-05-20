@@ -48,6 +48,10 @@
 
 /*
  * Print the non-zero coefficients in an sh_series object.
+ *
+ * This function is for diagnostic purposes.  It is not intended to be used
+ * for production I/O applications.  The inverse, a parsing function, is
+ * avaiable in the Python library.
  */
 
 
