@@ -28,10 +28,13 @@
 
 #include <complex>
 #include <errno.h>
+#include <math.h>
 #include <stdexcept>
+#include <stdlib.h>
 #include <unistd.h>
 #include <alm.h>
 #include <alm_fitsio.h>
+#include <chealpix.h>	/* needed for nside2npix(), where is it in C++? */
 #include <fitshandle.h>
 #include <sphradiometer/sh_series.h>
 
@@ -179,4 +182,68 @@ struct sh_series *sh_series_read_healpix_alm(const char *filename)
 	}
 
 	return sh_series_from_healpix_Alm(alms);
+}
+
+
+/*
+ * return the smallest power of 2 not smaller than x
+ */
+
+
+static int ceilpow2(int x)
+{
+	int i;
+	for(i = 1; i > 0; i <<= 1)
+		if(i >= x)
+			return i;
+	return -1;	/* overflow */
+}
+
+
+/*
+ * Write an sh_series to a real-valued healpix map FITS file.
+ */
+
+
+extern "C"
+int sh_series_write_healpix_map(const struct sh_series *series, const char *filename)
+{
+	struct sh_series_eval_interp *interp = sh_series_eval_interp_new(series);
+	int nside = ceilpow2(ceil(series->l_max / 2.));
+	int npix = nside2npix(nside);
+	float *map = (float *) malloc(npix * sizeof(*map));
+	int ipring;
+
+	if(!interp || !map) {
+		sh_series_eval_interp_free(interp);
+		free(map);
+		return -1;
+	}
+
+	for(ipring = 0; ipring < npix; ipring++) {
+		double theta, phi;
+		pix2ang_ring(nside, ipring, &theta, &phi);
+		map[ipring] = creal(sh_series_eval_interp(interp, theta, phi));
+	}
+
+	sh_series_eval_interp_free(interp);
+
+	/* FITS barfs if the file exists, which is annoying, so delete it
+	 * first because people expect functions like this to overwrite the
+	 * target file if it exists.  ignore errors from unlink() because
+	 * the file might not exist, and if the delete fails then
+	 * write_healpfix() will fail and we'll let it produce the error
+	 * message */
+
+	{
+	int errsv = errno;
+	unlink(filename);
+	errno = errsv;
+	}
+
+	write_healpix_map(map, nside, filename, 0, "C");
+
+	free(map);
+
+	return 0;
 }
