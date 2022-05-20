@@ -98,12 +98,11 @@ unsigned int projection_matrix_l_max(double r, double delta_t)
 
 double projection_delay_element(double theta, double phi, void *data)
 {
-	const double r_dot_s = vector_r_dot_s(((struct projection_delay_element_data *) data)->r, theta, phi);
-	const double delta_t = ((struct projection_delay_element_data *) data)->delta_t;
-	const int j = ((struct projection_delay_element_data *) data)->j;
-	const int k = ((struct projection_delay_element_data *) data)->k;
-	const double pi_x = M_PI * (j - k - r_dot_s / delta_t);
-
+	/* typecast */
+	struct projection_delay_element_data *delay_element_data = data;
+	/* compute pi * x = pi * (j - k - (r \cdot s) / \Delta t) */
+	double pi_x = M_PI * (delay_element_data->j - delay_element_data->k - vector_r_dot_s(delay_element_data->r, theta, phi) / delay_element_data->delta_t);
+	/* return sinc(x) */
 	return (pi_x == 0.0) ? 1.0 : sin(pi_x) / pi_x;
 }
 
