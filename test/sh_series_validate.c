@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <sphradiometer/diagnostics.h>
 #include <sphradiometer/sh_series.h>
@@ -81,6 +82,49 @@ static int sh_series_array_cmp(const struct sh_series_array *a, const struct sh_
 			return 1;
 
 	return 0;
+}
+
+
+/*
+ * ============================================================================
+ *
+ *                                Command Line
+ *
+ * ============================================================================
+ */
+
+
+struct options {
+	int benchmark;
+};
+
+
+static struct options parse_command_line(int argc, char * const argv[])
+{
+	struct options options = {
+		.benchmark = 0,
+	};
+	char opt;
+
+	while((opt = getopt(argc, argv, "bh")) != -1) {
+		switch(opt) {
+		case 'b':
+			options.benchmark = 1;
+			break;
+
+		case 'h':
+			fprintf(stderr, "usage:\n\t%s [options]\n\nOptions:\n\t-b\tRun in benchmark mode (default = run in test suite mode).\n\t-h\tDisplay this message.\n\n", argv[0]);
+			exit(0);
+
+		case '?':
+		case ':':
+		default:
+			fprintf(stderr, "command line error\n");
+			exit(1);
+		}
+	}
+
+	return options;
 }
 
 
@@ -501,7 +545,17 @@ static int test_interpolation(void)
 
 int main(int argc, char *argv[])
 {
+	struct options options = parse_command_line(argc, argv);
+
 	srandom(time(NULL));
+
+	if(options.benchmark) {
+		for(int i = 0; i < 1000; i++) {
+			assert(test_projection1() == 0);
+			assert(test_projection2() == 0);
+		}
+		exit(0);
+	}
 
 	/*
 	 * confirm that sh_series_resize() preserves the value (of
