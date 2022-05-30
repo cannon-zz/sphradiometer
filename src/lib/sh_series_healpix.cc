@@ -34,7 +34,10 @@
 #include <unistd.h>
 #include <alm.h>
 #include <alm_fitsio.h>
-#include <chealpix.h>	/* needed for nside2npix(), where is it in C++? */
+#include <alm_healpix_tools.h>
+#include <healpix_base.h>
+#include <healpix_map.h>
+#include <healpix_map_fitsio.h>
 #include <fitshandle.h>
 #include <sphradiometer/sh_series.h>
 
@@ -137,9 +140,10 @@ int sh_series_write_healpix_alm(const struct sh_series *series, const char *file
 	/* FITS barfs if the file exists, which is annoying, so delete it
 	 * first because people expect functions like this to overwrite the
 	 * target file if it exists.  ignore errors from unlink() because
-	 * the file might not exist, and if the delete fails then
-	 * write_healpfix() will fail and we'll let it produce the error
-	 * message */
+	 * it will complain if the file doesn't exist (it shouldn't exist,
+	 * that is expected), and if the delete fails because of some
+	 * filesystem malfunction then write_healpfix() will also fail and
+	 * we'll let it produce the error message */
 
 	{
 	int errsv = errno;
@@ -200,40 +204,53 @@ static int ceilpow2(int x)
 }
 
 
+static int lmax2nside(int l_max)
+{
+	/* healpix map has (4 * nside - 1) rings of isolatitude
+	 *
+	 * from the harmonic transform equations, there must be 2 * (l_max
+	 * + 1) rings of isolatitude
+	 *
+	 * therefore
+	 *
+	 * 	nside = (2 * l_max + 3) / 4
+	 *
+	 * but healpix wants nside to be a power of 2, so we round up to
+	 * one.
+	 */
+
+	return ceilpow2(ceil(l_max / 2. + 0.75));
+}
+
+
 /*
- * Write an sh_series to a real-valued healpix map FITS file.
+ * Write an sh_series to a real-valued healpix map FITS file.  NOTE:  this
+ * is expensive because it includes the cost of a frequency domain -to-
+ * pixel domain conversion.
  */
 
 
 extern "C"
 int sh_series_write_healpix_map(const struct sh_series *series, const char *filename)
 {
-	struct sh_series_eval_interp *interp = sh_series_eval_interp_new(series);
-	int nside = ceilpow2(ceil(series->l_max / 2.));
-	int npix = nside2npix(nside);
-	float *map = (float *) malloc(npix * sizeof(*map));
-	int ipring;
+	Healpix_Map< double > map(Healpix_Base::nside2order(lmax2nside(series->l_max)), RING);
+	fitshandle f;
 
-	if(!interp || !map) {
-		sh_series_eval_interp_free(interp);
-		free(map);
+	try {
+		Alm< xcomplex<double> > *alms = sh_series_to_healpix_Alm(series);
+		alm2map(*alms, map);
+		delete alms;
+	} catch (std::exception &e) {
 		return -1;
 	}
-
-	for(ipring = 0; ipring < npix; ipring++) {
-		double theta, phi;
-		pix2ang_ring(nside, ipring, &theta, &phi);
-		map[ipring] = creal(sh_series_eval_interp(interp, theta, phi));
-	}
-
-	sh_series_eval_interp_free(interp);
 
 	/* FITS barfs if the file exists, which is annoying, so delete it
 	 * first because people expect functions like this to overwrite the
 	 * target file if it exists.  ignore errors from unlink() because
-	 * the file might not exist, and if the delete fails then
-	 * write_healpfix() will fail and we'll let it produce the error
-	 * message */
+	 * it will complain if the file doesn't exist (it shouldn't exist,
+	 * that is expected), and if the delete fails because of some
+	 * filesystem malfunction then write_healpfix() will also fail and
+	 * we'll let it produce the error message */
 
 	{
 	int errsv = errno;
@@ -241,9 +258,13 @@ int sh_series_write_healpix_map(const struct sh_series *series, const char *file
 	errno = errsv;
 	}
 
-	write_healpix_map(map, nside, filename, 0, "C");
-
-	free(map);
+	try {
+		f.create(filename);
+		write_Healpix_map_to_fits(f, map, planckType<double>());
+	} catch (std::exception &e) {
+		perror(e.what());
+		return -1;
+	}
 
 	return 0;
 }
