@@ -188,9 +188,9 @@ class RapidLocalization_(object):
 		psd_array = transpose_psd_array(psds, self.precalc_length)
 
 		# prepare precalculated objects
-		self.baselines = sph.correlator_network_baselines_new(self.inst_array)
 		if len(self.instruments) > 1:
 			# multi detector case
+			self.baselines = sph.correlator_network_baselines_new(self.inst_array)
 			self.logprior = sph.sh_series_log_uniformsky_prior(sph.correlator_network_l_max(self.baselines, deltaT))
 
 			self.fdplansp = sph.correlator_network_plan_fd_new(self.baselines, self.precalc_length, deltaT)
@@ -289,7 +289,6 @@ class RapidLocalization_(object):
 		self.inst_array = sph.instrument_array_new(0)
 		for ifo in self.instruments:
 			sph.instrument_array_append(self.inst_array, sph.instrument_new_from_name(ifo))
-		self.baselines = sph.correlator_network_baselines_new(self.inst_array)
 
 		self.logprior = sph.read_precalc_logprior(precalc_path)
 		if sph.instrument_array_len(self.inst_array) > 1:
@@ -299,9 +298,10 @@ class RapidLocalization_(object):
 			self.precalc_length = sph.uintp_value(length)
 			sph.delete_uintp(length)
 
+			self.baselines = sph.read_precalc_correlator_network_baselines(self.inst_array, precalc_path)
 			self.fdplansp = sph.new_correlator_network_plan_fdp()
 			self.fdplansn = sph.new_correlator_network_plan_fdp()
-			sph.read_precalc_correlator_network_plan_fd(self.fdplansp, self.fdplansn, self.inst_array, self.precalc_length, precalc_path)
+			sph.read_precalc_correlator_network_plan_fd(self.fdplansp, self.fdplansn, self.baselines, self.precalc_length, precalc_path)
 
 			self.fdautoplanp = sph.new_autocorrelator_network_plan_fdp()
 			self.fdautoplann = sph.new_autocorrelator_network_plan_fdp()
@@ -316,8 +316,8 @@ class RapidLocalization_(object):
 			sph.correlator_network_plan_fd_free(self.fdplansn)
 			sph.autocorrelator_network_plan_fd_free(self.fdautoplanp)
 			sph.autocorrelator_network_plan_fd_free(self.fdautoplann)
+			sph.correlator_network_baselines_free(self.baselines)
 		sph.instrument_array_free(self.inst_array)
-		sph.correlator_network_baselines_free(self.baselines)
 
 
 class RapidLocalization(object):
