@@ -57,7 +57,8 @@ int generate_alm_skys(struct sh_series **, struct sh_series **, struct correlato
 
 int read_precalc_time_series_length(unsigned int *, char *);
 struct sh_series *read_precalc_logprior(char *);
-int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *, struct correlator_network_plan_fd *, const struct instrument_array *, int, char *);
+struct correlator_network_baselines *read_precalc_correlator_network_baselines(const struct instrument_array *, char *);
+int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *, struct correlator_network_plan_fd *, const struct correlator_network_baselines *, int, char *);
 int read_precalc_autocorrelator_network_plan_fd(struct autocorrelator_network_plan_fd *, struct autocorrelator_network_plan_fd *, const struct instrument_array *, int, char *);
 
 int make_precalc_directories(char *, int);

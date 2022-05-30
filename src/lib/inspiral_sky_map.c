@@ -1123,7 +1123,7 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 }
 
 
-static struct correlator_network_baselines *read_precalc_correlator_network_baselines(const struct instrument_array *instruments, char *parent_dir)
+struct correlator_network_baselines *read_precalc_correlator_network_baselines(const struct instrument_array *instruments, char *parent_dir)
 {
 	char filename[strlen(parent_dir) + FILE_LEN];
 	struct correlator_network_baselines *new = malloc(sizeof(*new));
@@ -1185,7 +1185,7 @@ static struct sh_series_rotation_plan *read_precalc_sh_series_rotation_plan(int 
 }
 
 
-static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, struct correlator_plan_fd *fdplann, const struct instrument_array *instruments, int tseries_length, int i, char *parent_dir)
+static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, struct correlator_plan_fd *fdplann, const struct correlator_network_baselines *baselines, int tseries_length, int i, char *parent_dir)
 {
 	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
@@ -1211,8 +1211,8 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 	fdplann->transient = fdplanp->transient;
 
 	/* read baseline */
-	fdplanp->baseline = read_precalc_correlator_baseline(instruments, i, parent_dir);
-	fdplann->baseline = correlator_baseline_copy(fdplanp->baseline);
+	fdplanp->baseline = baselines->baselines[i];
+	fdplann->baseline = baselines->baselines[i];
 
 	/* read rotation_plan */
 	fdplanp->rotation_plan = read_precalc_sh_series_rotation_plan(i, parent_dir);
@@ -1286,7 +1286,7 @@ static int read_precalc_correlator_plan_fd(struct correlator_plan_fd *fdplanp, s
 }
 
 
-int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *fdplansp, struct correlator_network_plan_fd *fdplansn, const struct instrument_array *instruments, int tseries_length, char *parent_dir)
+int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *fdplansp, struct correlator_network_plan_fd *fdplansn, const struct correlator_network_baselines *baselines, int tseries_length, char *parent_dir)
 {
 	if(!fdplansp || !fdplansn) {
 		fprintf(stderr, "memory of correlator_network_plan_fd must be allocated\n");
@@ -1294,8 +1294,8 @@ int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *f
 	}
 
 	/* read baselines */
-	fdplansp->baselines = read_precalc_correlator_network_baselines(instruments, parent_dir);
-	fdplansn->baselines = correlator_network_baselines_copy(fdplansp->baselines);
+	fdplansp->baselines = baselines;
+	fdplansn->baselines = baselines;
 
 	/* read plans */
 	fdplansp->plans = malloc(fdplansp->baselines->n_baselines * sizeof(*fdplansp->plans));
@@ -1304,7 +1304,7 @@ int read_precalc_correlator_network_plan_fd(struct correlator_network_plan_fd *f
 	for(i = 0; i < fdplansp->baselines->n_baselines; i++) {
 		fdplansp->plans[i] = malloc(sizeof(*fdplansp->plans[i]));
 		fdplansn->plans[i] = malloc(sizeof(*fdplansn->plans[i]));
-		if(read_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], instruments, tseries_length, i, parent_dir)) {
+		if(read_precalc_correlator_plan_fd(fdplansp->plans[i], fdplansn->plans[i], baselines, tseries_length, i, parent_dir)) {
 			fprintf(stderr, "can't read %dth correlator_plan_fd\n", i);
 			return -1;
 		}

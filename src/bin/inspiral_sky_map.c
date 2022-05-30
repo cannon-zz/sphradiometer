@@ -758,9 +758,10 @@ int main(int argc, char *argv[])
 				exit(1);
 			}
 			logprior = read_precalc_logprior(options->precalc_path);
+			baselines = read_precalc_correlator_network_baselines(options->instruments, options->precalc_path);
 			fdplansp = malloc(sizeof(*fdplansp));
 			fdplansn = malloc(sizeof(*fdplansn));
-			read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, options->instruments, series[0]->data->length, options->precalc_path);
+			read_precalc_correlator_network_plan_fd(fdplansp, fdplansn, baselines, series[0]->data->length, options->precalc_path);
 			fdautoplanp = malloc(sizeof(*fdautoplanp));
 			fdautoplann = malloc(sizeof(*fdautoplann));
 			read_precalc_autocorrelator_network_plan_fd(fdautoplanp, fdautoplann, options->instruments, series[0]->data->length, options->precalc_path);
