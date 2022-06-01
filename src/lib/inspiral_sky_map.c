@@ -924,7 +924,7 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 	fclose(fp);
 
 	/* substitute instruments */
-	new->instruments = instrument_array_copy(instruments);
+	new->instruments = instruments;
 
 	return new;
 }
@@ -1173,8 +1173,8 @@ int read_precalc_autocorrelator_network_plan_fd(struct autocorrelator_network_pl
 	}
 
 	/* substitute instruments */
-	fdplansp->instruments = instrument_array_copy(instruments);
-	fdplansn->instruments = instrument_array_copy(instruments);
+	fdplansp->instruments = instruments;
+	fdplansn->instruments = instruments;
 
 	return 0;
 }
