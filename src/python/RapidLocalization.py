@@ -251,11 +251,13 @@ class RapidLocalization_(object):
 			object to store a localization result for \\beta = +/-1
 		"""
 		# construct **COMPLEX16_array
+		sph_snr = {ifo: create_sph_COMPLEX16TimeSeries_wrap(snr[ifo]) for ifo in snr}
+		sph_aut = {ifo: create_sph_COMPLEX16Sequence_wrap(aut[ifo]) for ifo in aut}
 		seriesp = sph.new_COMPLEX16TimeSeries_array(len(snr))
 		nseriesp = sph.new_COMPLEX16Sequence_array(len(aut))
 		for i, ifo in enumerate(self.instruments):
-			sph.COMPLEX16TimeSeries_array_setitem(seriesp, i, snr[ifo].series)
-			sph.COMPLEX16Sequence_array_setitem(nseriesp, i, aut[ifo].series)
+			sph.COMPLEX16TimeSeries_array_setitem(seriesp, i, sph_snr[ifo].series)
+			sph.COMPLEX16Sequence_array_setitem(nseriesp, i, sph_aut[ifo].series)
 		sph.preprocess_SNRTimeSeries(seriesp, nseriesp, len(self.instruments))
 
 		# consistency check
@@ -274,7 +276,8 @@ class RapidLocalization_(object):
 			sph.sh_seriesp_assign(skyp.coeff, self.logprior)
 			sph.sh_seriesp_assign(skyn.coeff, self.logprior)
 
-		# free **COMPLEX16_array
+		# free
+		del sph_snr, sph_aut
 		sph.delete_COMPLEX16TimeSeries_array(seriesp)
 		sph.delete_COMPLEX16Sequence_array(nseriesp)
 
@@ -448,15 +451,15 @@ if __name__ == "__main__":
 	for elem in xmldoc.getElementsByTagName(ligolw.LIGO_LW.tagName):
 		if elem.hasAttribute("Name") and elem.Name == "COMPLEX8TimeSeries":
 			sngl_inspiral = sngl_inspiral_index[int(ligolw_param.get_pyvalue(elem, "event_id"))]
-			snr[sngl_inspiral.ifo] = create_sph_COMPLEX16TimeSeries_wrap(lalseries.parse_COMPLEX8TimeSeries(elem))
+			snr[sngl_inspiral.ifo] = lalseries.parse_COMPLEX8TimeSeries(elem)
 			# Currently nseriesp is dummy information, so that seriesp is set
-			aut[sngl_inspiral.ifo] = convert_TimeSeries2Sequence_wrap(snr[sngl_inspiral.ifo])
+			aut[sngl_inspiral.ifo] = snr[sngl_inspiral.ifo].data
 	instruments = sorted(snr.keys())
 
 	# Currently psd is dummy information, so that it's set one
 	precalc_length = sph.precalculated_TimeSeries_length(
-		sph.pick_length_from_COMPLEX16TimeSeries(snr[instruments[0]].series),
-		sph.pick_deltaT_from_COMPLEX16TimeSeries(snr[instruments[0]].series)
+		snr[instruments[0]].data.length,
+		snr[instruments[0]].deltaT
 	)
 	psds = {}
 	for ifo in instruments:
@@ -477,7 +480,7 @@ if __name__ == "__main__":
 		rapidloc = RapidLocalization(
 			psds,
 			precalc_length,
-			sph.pick_deltaT_from_COMPLEX16TimeSeries(snr[instruments[0]].series)
+			snr[instruments[0]].deltaT
 		)
 		print("write objects")
 		rapidloc.write(precalc_path)
@@ -498,8 +501,6 @@ if __name__ == "__main__":
 
 
 	print("free")
-	del snr
-	del aut
 	del psds
 	del rapidloc
 	del skyp
