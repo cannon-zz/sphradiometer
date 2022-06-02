@@ -90,6 +90,28 @@
 
                 return 0;
         }
+
+
+        int create_sph_COMPLEX16Sequence(COMPLEX16Sequence *result, size_t length, double complex *data) {
+                int i;
+                if(!result || !data) {
+                        fprintf(stderr, "memory error\n");
+                        return -1;
+                }
+
+                result->data = malloc(length * sizeof(*result->data));
+                if(!result->data) {
+                        fprintf(stderr, "memory error\n");
+                        return -1;
+                }
+
+                result->length = length;
+                for(i = 0; i < (int) length; i++) {
+                        result->data[i] = data[i];
+                }
+
+                return 0;
+        }
 %}
 
 %include <sphradiometer/instrument.h>
@@ -107,6 +129,7 @@
 %pointer_functions(struct sh_series, sh_seriesp);
 %pointer_functions(struct sh_series *, sh_seriespp);
 %pointer_functions(COMPLEX16TimeSeries, COMPLEX16TimeSeriesp);
+%pointer_functions(COMPLEX16Sequence, COMPLEX16Sequencep);
 
 %array_functions(double, double_array);
 %array_functions(double *, doublep_array);
