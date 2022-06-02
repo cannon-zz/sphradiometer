@@ -139,6 +139,31 @@ class create_sph_COMPLEX16TimeSeries_wrap(object):
 		sph.free_SNRTimeSeries(self.series)
 
 
+class create_sph_COMPLEX16Sequence_wrap(object):
+	def __init__(self, tseries):
+		"""
+		Parameter
+		---------
+		tseries : <Swig Object of type 'COMPLEX8Vector *'>
+		"""
+		data = tseries.data
+		data_ = sph.new_double_complex_array(len(data))
+		for i, x in enumerate(data):
+			sph.double_complex_array_setitem(data_, i, complex(x))
+
+		self.series = sph.new_COMPLEX16Sequencep()
+		sph.create_sph_COMPLEX16Sequence(
+			self.series,
+			len(data),
+			data_
+		)
+
+		sph.delete_double_complex_array(data_)
+
+	def __del__(self):
+		sph.free_SNRSequence(self.series)
+
+
 class convert_TimeSeries2Sequence_wrap(object):
 	def __init__(self, series):
 		"""
