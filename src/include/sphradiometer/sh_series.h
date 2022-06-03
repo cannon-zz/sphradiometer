@@ -345,6 +345,8 @@ struct sh_series *sh_series_rotate_z(struct sh_series *, const struct sh_series 
  */
 
 
+struct sh_series *sh_series_d_by_dphi(struct sh_series *);
+struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *);
 struct sh_series *sh_series_laplacian(struct sh_series *);
 struct sh_series *sh_series_invlaplacian(struct sh_series *);
 

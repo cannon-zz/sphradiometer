@@ -36,6 +36,199 @@
 /*
  * ============================================================================
  *
+ *                          First Order Derivatives
+ *
+ * ============================================================================
+ */
+
+
+/*
+ * Compute the spherical harmonic expansion of the 1st derivative with
+ * respect to phi of the function on the sphere described by an sh_series
+ * object.  This is done in-place.
+
+ * Returns the sh_series object on success.  Does not fail.
+ */
+
+
+struct sh_series *sh_series_d_by_dphi(struct sh_series *series)
+{
+	int l_max = series->l_max;
+	int m_max = series->polar ? 0 : l_max;
+	complex double *c;
+	int l, m;
+
+	/* Y_lm(theta, phi) \propto exp(i m phi), so the 1st derivative
+	 * with respect to phi is obtained my multiplying each component by
+	 * (i m). */
+
+	c = series->coeff;
+	/* m = 0 */
+	for(l = 0; l <= l_max; l++)
+		*(c++) = 0.0;
+	/* m > 0 */
+	for(m = 1; m <= m_max; m++) {
+		complex double factor = I * m;
+		for(l = m; l <= l_max; l++)
+			*(c++) *= factor;
+	}
+	/* m < 0 */
+	for(m = -m_max; m < 0; m++) {
+		complex double factor = I * m;
+		for(l = -m; l <= l_max; l++)
+			*(c++) *= factor;
+	}
+
+	return series;
+}
+
+
+/*
+ * Compute the spherical harmonic expansion of sin theta times the 1st
+ * derivative with respect to theta of the function on the sphere described
+ * by an sh_series object.  Returns the result in a newly allocated
+ * sh_series object.  Returns NULL on failure.
+ *
+ * NOTE:  the result's l_max is increased by 1 from the input's l_max.
+ *
+ * NOTE:  the algorithm relies on GSL's Wigner 3-j function, which is
+ * numerically unstable above l of about 70, and so this function should
+ * not be relied upon to compute the derivatives of functions with higher
+ * bandwidths than that.
+ */
+
+
+struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *series)
+{
+	struct sh_series *result = sh_series_new_zero(series->l_max + 1, series->polar);
+	complex double *c;
+	int l, m;
+
+	if(!result)
+		return NULL;
+
+	/* d/dtheta Y_lm(theta, phi)
+	 *	= m cot(theta) Y_lm(theta, phi) +
+	 *	  \sqrt{(l - m) (l + m + 1)} exp(-i \phi) Y_(l m+1)(theta, phi)
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi)
+	 *	= m cos(theta) Y_lm(theta, phi) +
+	 *	  \sqrt{(l - m) (l + m + 1)} sin theta exp(-i \phi) Y_(l m+1)(theta, phi)
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi)
+	 *	= 2 m \sqrt{pi/3} Y_(1,0)(theta, phi) Y_lm(theta, phi) +
+	 *	  2 \sqrt{2pi/3} \sqrt{(l - m) (l + m + 1)} Y_(1,-1)(theta, phi) Y_(l m+1)(theta, phi)
+	 *
+	 * using
+	 *
+	 * Y_(j1 m1) Y_(j2 m2) =
+	 *	\sqrt{(2 j1 + 1) (2 j2 + 1) / (4 pi)} \sum_j3=0^\infty \sum_m3=-j3^+j3 (-1)^m3 \sqrt{2 j3 + 1} wigner3j(j1 j2 j3 m1 m2 -m3) wigner3j(j1 j2 j3 0 0 0) Y_(j3 m3)
+	 *
+	 * and the fact that wigner3j(j1 j2 j3 m1 m2 m3) = 0 unless all of
+	 * the following are true
+	 *	1: -ji <= mi <= ji
+	 *	2: m1 + m2 + m3 = 0
+	 *	3: |j1 - j2| <= j3 <= j1 + j2
+	 *	4: (j1 + j2 + j3) is an integer, and an even integer if (m1
+	 *	= m2 = m3 = 0)
+	 *
+	 * we find that
+	 *
+	 * Y_(1 0) Y_(l m) = \sqrt{3 (2 l + 1) / (4 pi)} (-1)^m [
+	 *		\sqrt{2 l - 1} wigner3j(1 l (l-1) 0 m -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *		\sqrt{2 l + 3} wigner3j(1 l (l+1) 0 m -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * and
+	 *
+	 * Y_(1 -1) Y_(l m+1) = \sqrt{3 (2 l + 1) / (4 pi)} (-1)^m [
+	 *		\sqrt{2 l - 1} wigner3j(1 l (l-1) -1 m+1 -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *		\sqrt{2 l + 3} wigner3j(1 l (l+1) -1 m+1 -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * so
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi) =
+	 *	2 m \sqrt{pi/3} \sqrt{3 (2 l + 1) / (4 pi)} (-1)^m [
+	 *		\sqrt{2 l - 1} wigner3j(1 l (l-1) 0 m -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *		\sqrt{2 l + 3} wigner3j(1 l (l+1) 0 m -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 *	] + 2 \sqrt{2pi/3} \sqrt{(l - m) (l + m + 1)} \sqrt{3 (2 l + 1) / (4 pi)} (-1)^m [
+	 *		\sqrt{2 l - 1} wigner3j(1 l (l-1) -1 m+1 -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *		\sqrt{2 l + 3} wigner3j(1 l (l+1) -1 m+1 -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * simplifying
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi) =
+	 *	m \sqrt{2 l + 1} (-1)^m [
+	 *		\sqrt{2 l - 1} wigner3j(1 l (l-1) 0 m -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *		\sqrt{2 l + 3} wigner3j(1 l (l+1) 0 m -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 *	] + \sqrt{2 (l - m) (l + m + 1)} \sqrt{2 l + 1} (-1)^m [
+	 *		\sqrt{2 l - 1} wigner3j(1 l (l-1) -1 m+1 -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *		\sqrt{2 l + 3} wigner3j(1 l (l+1) -1 m+1 -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi) = \sqrt{2 l + 1} (-1)^m [
+	 *	m \sqrt{2 l - 1} wigner3j(1 l (l-1) 0 m -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	m \sqrt{2 l + 3} wigner3j(1 l (l+1) 0 m -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m) +
+	 *	\sqrt{2 (l - m) (l + m + 1)} \sqrt{2 l - 1} wigner3j(1 l (l-1) -1 m+1 -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	\sqrt{2 (l - m) (l + m + 1)} \sqrt{2 l + 3} wigner3j(1 l (l+1) -1 m+1 -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi) = \sqrt{2 l + 1} (-1)^m [
+	 *	[ m wigner3j(1 l (l-1) 0 m -m) + \sqrt{2 (l - m) (l + m + 1)} wigner3j(1 l (l-1) -1 m+1 -m) ] \sqrt{2 l - 1} wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	[ m wigner3j(1 l (l+1) 0 m -m) + \sqrt{2 (l - m) (l + m + 1)} wigner3j(1 l (l+1) -1 m+1 -m) ] \sqrt{2 l + 3} wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi) = 2 \sqrt{l + 0.5} (-1)^m [
+	 *	[ m wigner3j(1 l (l-1) 0 m -m) + \sqrt{2 (l - m) (l + m + 1)} wigner3j(1 l (l-1) -1 m+1 -m) ] \sqrt{l - 0.5} wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	[ m wigner3j(1 l (l+1) 0 m -m) + \sqrt{2 (l - m) (l + m + 1)} wigner3j(1 l (l+1) -1 m+1 -m) ] \sqrt{l + 1.5} wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 */
+
+	/* FIXME:  GSL's Wigner 3-j functions are not stable for large l,
+	 * but the form we are using has a 1 in the first j position, so we
+	 * could potentially switch to an asymptotic approximation for
+	 * large l, assuming the asymptotic form is good enough by the time
+	 * we enter the regime where GSL's 3-j function isn't */
+
+	c = result->coeff;
+	/* l = 0 does not contribute to result.  NOTE:  the loop is over
+	 * the l index of the input series. */
+	for(l = 1; l <= (int) series->l_max; l++) {
+		/* m-independent parts */
+		double x = 2. * sqrt(l + 0.5);
+		/* for (l-1, m) term */
+		double g1 = x * sqrt(l - 0.5) * sh_series_wigner_3j(1, l, l - 1, 0, 0, 0);
+		/* for (l+1, m) term */
+		double g2 = x * sqrt(l + 1.5) * sh_series_wigner_3j(1, l, l + 1, 0, 0, 0);
+
+		int m_max = series->polar ? 0 : l;
+		for(m = -m_max; m <= m_max; m++) {
+			/* input a_lm * (-1)^m */
+			complex double alm = m & 1 ? -sh_series_get(series, l, m) : +sh_series_get(series, l, m);
+			/* m-dependent parts */
+			x = sqrt(2. * (l - m) * (l + m + 1.));
+			/* for (l-1, m) term */
+			double f1 = (m * sh_series_wigner_3j(1, l, l - 1, 0, m, -m) + x * sh_series_wigner_3j(1, l, l - 1, -1, m + 1, -m));
+			/* for (l+1, m) term */
+			double f2 = (m * sh_series_wigner_3j(1, l, l + 1, 0, m, -m) + x * sh_series_wigner_3j(1, l, l + 1, -1, m + 1, -m));
+
+			/* NOTE:  the (l, m) offset calculation is for the
+			 * output series.  the output series' l_max is 1
+			 * greater than the input series' */
+			c[sh_series_lmoffset(result, l - 1, m)] += alm * f1 * g1;
+			c[sh_series_lmoffset(result, l + 1, m)] += alm * f2 * g2;
+		}
+	}
+
+	return result;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                          Second Order Derivatives
  *
  * ============================================================================
