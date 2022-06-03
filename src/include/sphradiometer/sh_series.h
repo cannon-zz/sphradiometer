@@ -230,6 +230,19 @@ static size_t sh_series_length(unsigned int l_max, int polar)
 /*
  * ============================================================================
  *
+ *                               Misc Utilities
+ *
+ * ============================================================================
+ */
+
+
+/* wrapper of GSL's Wigner 3-j function */
+double sh_series_wigner_3j(int, int, int, int, int, int);
+
+
+/*
+ * ============================================================================
+ *
  *                   Spherical Harmonic Function Prototypes
  *
  * ============================================================================

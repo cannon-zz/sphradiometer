@@ -77,7 +77,7 @@
  */
 
 
-static double wigner_3j(int ja, int jb, int jc, int ma, int mb, int mc)
+double sh_series_wigner_3j(int ja, int jb, int jc, int ma, int mb, int mc)
 {
 	return gsl_sf_coupling_3j(2 * ja, 2 * jb, 2 * jc, 2 * ma, 2 * mb, 2 * mc);
 }
@@ -150,7 +150,7 @@ static int _product_plan(struct _sh_series_product_plan_op *microcode, int D_l_m
 							.dest_offset = sh_series_params_lmoffset(D_l_max, d_l, d_m),
 							.a_offset = sh_series_params_lmoffset(A_l_max, a_l, a_m),
 							.b_offset = sh_series_params_lmoffset(B_l_max, b_l, b_m),
-							.factor = (d_m & 1 ? -1.0 : +1.0) * sqrt((2 * d_l + 1) * (2 * a_l + 1) * (2 * b_l + 1) / (4 * M_PI)) * wigner_3j(a_l, b_l, d_l, 0, 0, 0) * wigner_3j(a_l, b_l, d_l, a_m, b_m, -d_m)
+							.factor = (d_m & 1 ? -1.0 : +1.0) * sqrt((2 * d_l + 1) * (2 * a_l + 1) * (2 * b_l + 1) / (4 * M_PI)) * sh_series_wigner_3j(a_l, b_l, d_l, 0, 0, 0) * sh_series_wigner_3j(a_l, b_l, d_l, a_m, b_m, -d_m)
 						};
 					}
 				}
