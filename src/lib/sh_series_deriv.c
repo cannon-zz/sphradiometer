@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2006--2009,2019  Kipp C. Cannon
+ * Copyright (C) 2006--2009,2019,2022  Kipp C. Cannon
  * Copyright (C) 2019  Takuya Tsutsui
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -223,6 +223,72 @@ struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *series)
 	}
 
 	return result;
+}
+
+
+/*
+ * Compute the spherical harmonic expansion of the theta and phi components
+ * of sin theta times the gradient of the function on the sphere described
+ * by an sh_series object.  The theta component is returned in u, and the
+ * phi component in v, both of which will be newly allocated.
+ *
+ * Returns the original sh_series object on success.  On failure, any
+ * memory that was allocated is freed, and u and v are reset to NULL, and
+ * NULL is returned.
+ *
+ * NOTES
+ *
+ * The gradient in spherical polar co-ordinates is
+ *
+ *             \partial                          1     \partial
+ * \hat{theta} --------------  +  \hat{phi} ---------- ------------
+ *             \partial theta               sin(theta) \partial phi
+ *
+ * This is poorly behaved at the poles, where sin(theta) = 0.  Any
+ * variation with respect to phi at the poles leads to a divergent result.
+ * Normal, physical, functions on the sphere will lose their phi dependence
+ * near the poles, but that leads to a 0/0 situation in the gradient where
+ * formally the limit might exist and be well behaved but numerically the
+ * result is likely unstable.  A similar issue exists in the theta
+ * derivative component, although it's hidden.  Interally, differentiating
+ * spherical harmonic basis functions with respect to theta results in two
+ * terms, one of which includes a cot(theta) factor.  This diverges at the
+ * poles for the same reason:  any theta dependence exactly at the pole is
+ * equivalent to a conical cusp, for which the derivative is undefined.
+ * Again, normal physical functions might be well behaved but numerically
+ * the evaluation of the derivative is unstable.
+ *
+ * In any case, even disregarding the issues with numerical stability,
+ * 1/sin(theta) cannot be written as a linear combination of a finite
+ * number of spherical harmonic basis functions, which introduces the need
+ * to choose some arbitrary cut-off to represent the gradient.
+ *
+ * For all of these reasons, it is more convenient to compute sin(theta) *
+ * grad.  This removes the 1/sin(theta) factor from the phi component and
+ * also from the cot(theta) factor inside the derivative of the spherical
+ * harmonic basis functions.  As a matrix operator acting on the vector of
+ * coefficients describing a function in the spherical harmonic basis,
+ * sin(theta) * grad is nearly diagonal whereas the grad operator alone has
+ * non-zero components everywhere.  Because the same sin(theta) factor is
+ * applied to both components, the direction of the gradient is not
+ * affected, only its magnitude, and so, for example, for the purpose of
+ * constructing contour fields or root or peak finding the inconvenience
+ * should be small.
+ */
+
+
+const struct sh_series *sh_series_sintheta_grad(const struct sh_series *series, struct sh_series **u, struct sh_series **v)
+{
+	*u = sh_series_sintheta_d_by_dtheta(series);
+	*v = sh_series_copy(series);
+	if(!*u || !*v) {
+		sh_series_free(*u);
+		sh_series_free(*v);
+		*u = *v = NULL;
+		return NULL;
+	}
+	sh_series_d_by_dphi(*v);
+	return series;
 }
 
 
