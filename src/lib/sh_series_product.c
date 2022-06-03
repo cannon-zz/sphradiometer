@@ -41,16 +41,13 @@
  * Nevertheless, they exhibit asymptotic complexity (operation counts) of
  * O(l_max^2 log^2 l_max), which means that for large l it is
  * computationally advantageous to transform to the spatial domain, compute
- * the product there, and transform back to the frequency domain.  This is
- * not done here.
+ * the product there, and transform back to the frequency domain.
  *
  * The product plans can require a large quantity of memory.  They require
  * 20 bytes for every multiplication that must be performed to compute the
  * product, which scales as O(l^5) for non-azimuthally symmetric
  * multiplicands.  For l = 50, the plan for non-azimuthally symmetric
- * multiplicands requires over 6 GB of RAM.  But multiplications of that
- * size are absurd to perform in the harmonic domain;  the time should be
- * spent on incorporating an FSHT for those problems.
+ * multiplicands requires over 6 GB of RAM.
  */
 
 
