@@ -251,13 +251,16 @@ static struct sh_series *frequency_domain_product(struct sh_series *dest, const 
 {
 	const struct _sh_series_product_plan_op *op = plan->microcode;
 	const struct _sh_series_product_plan_op *last_op = plan->microcode + plan->plan_length;
+	complex double *dst = dest->coeff;
+	const complex double *alm = a->coeff;
+	const complex double *blm = b->coeff;
 
 	/* zero the destination */
 	sh_series_zero(dest);
 
 	/* execute the microcode */
 	for(; op < last_op; op++)
-		dest->coeff[op->dest_offset] += a->coeff[op->a_offset] * b->coeff[op->b_offset] * op->factor;
+		dst[op->dest_offset] += alm[op->a_offset] * blm[op->b_offset] * op->factor;
 
 	return dest;
 }
