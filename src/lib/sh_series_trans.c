@@ -173,7 +173,7 @@ static int pixels_from_l_max(unsigned l_max, int *ntheta, int *nphi, double **co
 }
 
 
-static complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
+complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
 {
 	complex double *mesh;
 
@@ -192,7 +192,7 @@ static complex double *sh_series_mesh_new(unsigned int l_max, int *ntheta, int *
 }
 
 
-static double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
+double *sh_series_real_mesh_new(unsigned int l_max, int *ntheta, int *nphi, double **cos_theta_array, double **cos_theta_weights)
 {
 	double *mesh;
 

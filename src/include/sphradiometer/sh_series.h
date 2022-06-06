@@ -294,6 +294,8 @@ void sh_series_eval_interp_free(struct sh_series_eval_interp *);
 double complex sh_series_eval_interp(const struct sh_series_eval_interp *, double, double);
 
 
+complex double *sh_series_mesh_new(unsigned int, int *, int *, double **, double **);
+double *sh_series_real_mesh_new(unsigned int, int *, int *, double **, double **);
 struct sh_series *sh_series_from_mesh(struct sh_series *, double complex *);
 struct sh_series *sh_series_from_realmesh(struct sh_series *, double *);
 double complex *sh_series_to_mesh(const struct sh_series *);
