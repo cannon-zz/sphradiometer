@@ -43,13 +43,31 @@
 
 
 /*
- * Replace an sh_series object with its Laplacian.  Spherical harmonics are
- * eigenfunctions of the Laplacian,
+ * Replace an sh_series object with the Laplacian of the function it
+ * describes.  Spherical harmonics are eigenfunctions of the Laplacian,
  *
  * 	\grad^{2} Y_{lm}(\hat{s}) = -l (l + 1) Y_{lm}(\hat{s}).
  *
- * Each coefficient of the series is multiplyied by the corresponding
- * eigenvalue.
+ * The Laplacian is computed by multiplying each coefficient of the input
+ * by the corresponding integer eigenvalue.  This is a fast operation.
+ *
+ * The explicit form of the operator is
+ *
+ *     1     [ \partial       (           \partial       ) ]
+ * --------- [ -------------- ( sin theta -------------- ) ] +
+ * sin theta [ \partial theta (           \partial theta ) ]
+ *
+ *		     1      \partial^2
+ *		----------- ---------------
+ *		sin^2 theta \partial \phi^2
+ *
+ * NOTE that because the spherical harmonic basis functions are
+ * eigenfunctions of this operator, the 1/sin(theta) factors that appear in
+ * this expression do not cause difficulties the way they do when
+ * evaluating the divergence or gradient.  In effect, they are guaranteed
+ * to cancel terms in the numerator at the poles, and this cancellation
+ * occurs term-by-term for each spherical harmonic basis function
+ * individually.
  */
 
 
@@ -61,7 +79,9 @@ struct sh_series *sh_series_laplacian(struct sh_series *series)
 	while(1) {
 		*(c++) *= -l * (l + 1);
 		if(++l > (int) series->l_max) {
-			if(++m > (int) series->l_max)
+			if(series->polar)
+				break;
+			else if(++m > (int) series->l_max)
 				m = -(int) series->l_max;
 			else if(m == 0)
 				break;
@@ -86,7 +106,9 @@ struct sh_series *sh_series_invlaplacian(struct sh_series *series)
 	complex double *c = series->coeff;
 	int l = 1, m = 0;
 
+	/* l = 0 */
 	*(c++) = 0.0;
+
 	/* done? */
 	if(series->l_max == 0)
 		return series;
@@ -94,7 +116,9 @@ struct sh_series *sh_series_invlaplacian(struct sh_series *series)
 	while(1) {
 		*(c++) /= -l * (l + 1);
 		if(++l > (int) series->l_max) {
-			if(++m > (int) series->l_max)
+			if(series->polar)
+				break;
+			else if(++m > (int) series->l_max)
 				m = -(int) series->l_max;
 			else if(m == 0)
 				break;
@@ -104,4 +128,3 @@ struct sh_series *sh_series_invlaplacian(struct sh_series *series)
 
 	return series;
 }
-
