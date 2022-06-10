@@ -36,6 +36,75 @@
 /*
  * ============================================================================
  *
+ *                                  Helpers
+ *
+ * ============================================================================
+ */
+
+
+/*
+ * Compute the spherical harmonic expansion of cos(theta) * the function
+ * described the spherical harmonic expansion in series.  Returns the
+ * result in a newly allocated sh_series object.  Returns NULL on failure.
+ *
+ * NOTE:  the result's l_max is increased by 1 from input's l_max.
+ */
+
+
+struct sh_series *sh_series_times_costheta(const struct sh_series *series)
+{
+	/* cos theta = 2 \sqrt{pi/3} Y_(1, 0)(theta, phi)
+	 *
+	 * see below for the derivation showing that
+	 *
+	 * Y_(1 0) Y_(l m) = \sqrt{3 (2 l + 1) / (4 pi)} (-1)^m [
+	 *	\sqrt{2 l - 1} wigner3j(1 l (l-1) 0 m -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	\sqrt{2 l + 3} wigner3j(1 l (l+1) 0 m -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * using those, we have
+	 *
+	 * cos theta Y_(l m) = \sqrt{2 l + 1} (-1)^m [
+	 *	\sqrt{2 l - 1} wigner3j(1 l (l-1) 0 m -m) wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	\sqrt{2 l + 3} wigner3j(1 l (l+1) 0 m -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 */
+	struct sh_series *result = sh_series_new_zero(series->l_max + 1, series->polar);
+	complex double *c;
+	int l, m;
+
+	if(!result)
+		return NULL;
+
+	c = result->coeff;
+	/* (l m) = (0 0) is a special case */
+	c[sh_series_lmoffset(result, 1, 0)] += sh_series_get(series, 0, 0) / sqrt(3);
+	for(l = 1; l <= (int) series->l_max; l++) {
+		/* m-independent parts */
+		/* for (l-1, m) term */
+		double g1 = sqrt((2 * l + 1) * (2 * l - 1)) * sh_series_wigner_3j(1, l, l - 1, 0, 0, 0);
+		/* for (l+1, m) term */
+		double g2 = sqrt((2 * l + 1) * (2 * l + 3)) * sh_series_wigner_3j(1, l, l + 1, 0, 0, 0);
+
+		int m_max = series->polar ? 0 : l;
+		for(m = -m_max; m <= m_max; m++) {
+			/* input a_lm * (-1)^m */
+			complex double alm = m & 1 ? -sh_series_get(series, l, m) : +sh_series_get(series, l, m);
+			/* NOTE:  the (l, m) offset calculation is for the
+			 * output series.  the output series' l_max is 1
+			 * greater than the input series' */
+			c[sh_series_lmoffset(result, l - 1, m)] += alm * sh_series_wigner_3j(1, l, l - 1, 0, m, -m) * g1;
+			c[sh_series_lmoffset(result, l + 1, m)] += alm * sh_series_wigner_3j(1, l, l + 1, 0, m, -m) * g2;
+		}
+	}
+
+	return result;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                          First Order Derivatives
  *
  * ============================================================================
@@ -289,6 +358,75 @@ const struct sh_series *sh_series_sintheta_grad(const struct sh_series *series, 
 	}
 	sh_series_d_by_dphi(*v);
 	return series;
+}
+
+
+/*
+ * Compute sin theta * the divergence of the vector field whose theta
+ * component is in u and whose phi component is in v.
+ *
+ * The divergence in spherical polar co-ordinates is
+ *
+ *      1    \partial                            1     \partial
+ * --------- -------------- [sin(theta) u] + --------- ------------ v
+ * sin theta \partial theta                  sin theta \partial phi
+ *
+ * See sh_series_sintheta_grad() for discussion of the 1/sin(theta)
+ * factors, and why it is more convenient to compute sin(theta) times the
+ * divergence of the vector field.  The function returned is
+ *
+ * sin(theta) * div =
+ *	cos(theta) u + sin(theta) d/dtheta u + d/dphi v
+ */
+
+
+struct sh_series *sh_series_sintheta_div(const struct sh_series *u, const struct sh_series *v)
+{
+	/* compute cos(theta) u + sin(theta) d/dtheta u */
+	struct sh_series *result = sh_series_sintheta_d_by_dtheta(u);
+	struct sh_series *costheta_u = sh_series_times_costheta(u);
+	if(!(result && costheta_u && sh_series_add(result, 1.0, costheta_u))) {
+		sh_series_free(result);
+		sh_series_free(costheta_u);
+		return NULL;
+	}
+	sh_series_free(costheta_u);
+
+	/* if v has azimuthal symmetry, d/dphi v = 0 and we're done */
+	if(v->polar)
+		return result;
+
+	/* bring the result to the minimum required order to continue the
+	 * calculation */
+	if(result->l_max < v->l_max)
+		if(!sh_series_resize(result, v->l_max)) {
+			sh_series_free(result);
+			return NULL;
+		}
+	if(result->polar)
+		if(!sh_series_set_polar(result, 1)) {
+			sh_series_free(result);
+			return NULL;
+		}
+
+	/* add d/dphi v */
+	{
+	struct sh_series *d_by_dphi_v = sh_series_copy(v);
+	if(!d_by_dphi_v) {
+		sh_series_free(result);
+		return NULL;
+	}
+	sh_series_d_by_dphi(d_by_dphi_v);
+	if(!sh_series_add(result, 1.0, d_by_dphi_v)) {
+		sh_series_free(d_by_dphi_v);
+		sh_series_free(result);
+		return NULL;
+	}
+	sh_series_free(d_by_dphi_v);
+	}
+
+	/* done */
+	return result;
 }
 
 

@@ -313,6 +313,121 @@ static int laplacian_test_1(void)
 /*
  * ============================================================================
  *
+ *                         Check Auxiliary Functions
+ *
+ * ============================================================================
+ */
+
+
+/* confirm that the *cos(theta) function does what it says */
+
+static int times_costheta_test(void)
+{
+	struct sh_series *input = random_sh_series(13, 0);
+	struct sh_series *output;
+	int i;
+
+	if(!input || !(output = sh_series_times_costheta(input))) {
+		sh_series_free(input);
+		sh_series_free(output);
+		return -1;
+	}
+
+	for(i = 0; i < 100; i++) {
+		double theta = acos(randrange(-1., +1.));
+		double phi = randrange(-M_PI, M_PI);
+		complex double correct = cos(theta) * sh_series_eval(input, theta, phi);
+		complex double val = sh_series_eval(output, theta, phi);
+		double error = cabs(correct - val);
+		if(error > 1e-14) {
+			fprintf(stderr, "sh_series_times_costheta() failed at theta=%g phi=%g:\n\texpected %g+I*%g got %g+I*%g |error|=%g\n", theta, phi, creal(correct), cimag(correct), creal(val), cimag(val), error);
+			sh_series_free(input);
+			sh_series_free(output);
+			return -1;
+		}
+	}
+
+	sh_series_free(input);
+	sh_series_free(output);
+	return 0;
+}
+
+
+/*
+ * ============================================================================
+ *
+ *                              Divergence Tests
+ *
+ * ============================================================================
+ */
+
+
+/* the divergence of the gradient of a scalar field is its laplacian */
+
+static int div_test_1(void)
+{
+	struct sh_series *laplacian = random_sh_series(13, 0);
+	struct sh_series *series;
+	struct sh_series *u, *v;
+	int i;
+
+	/* start with a random function in laplacian and compute the
+	 * components of sin(theta) * grad */
+	if(!laplacian)
+		return -1;
+	if(!sh_series_sintheta_grad(laplacian, &u, &v)) {
+		sh_series_free(laplacian);
+		return -1;
+	}
+	/* now compute the laplacian */
+	sh_series_laplacian(laplacian);
+
+	/* laplacian contains grad^2 s.  u, v contain sin(theta) grad s.
+	 *
+	 * sin(theta) * the divergence of (u, v) is
+	 *
+	 * sin(theta) div sin(theta) grad s
+	 *	= sin(theta) [ (grad sin(theta)) dot grad s +
+	 *		sin(theta) div grad s ]
+	 *	= cos(theta) sin(theta) d/dtheta s + sin^2(theta) laplacian s
+	 *	= cos(theta) u + sin^2(theta) laplacian s
+	 */
+
+	series = sh_series_sintheta_div(u, v);
+	if(!series) {
+		sh_series_free(laplacian);
+		sh_series_free(u);
+		sh_series_free(v);
+		return -1;
+	}
+
+	for(i = 0; i < 10; i++) {
+		double theta = acos(randrange(-1., +1.));
+		double phi = randrange(-M_PI, M_PI);
+		complex double correct = cos(theta) * sh_series_eval(u, theta, phi) + pow(sin(theta), 2.) * sh_series_eval(laplacian, theta, phi);
+		complex double val = sh_series_eval(series, theta, phi);
+		double error = cabs(correct - val);
+		if(error > 1e-12) {
+			fprintf(stderr, "sh_series_sintheta_div() failed at theta=%g phi=%g:\n\texpected %g+I*%g got %g+I*%g |error|=%g\n", theta, phi, creal(correct), cimag(correct), creal(val), cimag(val), error);
+			sh_series_free(series);
+			sh_series_free(laplacian);
+			sh_series_free(u);
+			sh_series_free(v);
+			return -1;
+		}
+	}
+
+	sh_series_free(series);
+	sh_series_free(laplacian);
+	sh_series_free(u);
+	sh_series_free(v);
+	return 0;
+}
+
+
+/*
+ * ============================================================================
+ *
  *                                Entry Point
  *
  * ============================================================================
@@ -327,7 +442,12 @@ int main(int argc, char *argv[])
 		assert(grad_test_1(13) == 0);
 	assert(grad_test_2() == 0);
 
+	for(i = 0; i < 100; i++)
+		assert(times_costheta_test() == 0);
+
 	assert(laplacian_test_1() == 0);
+
+	assert(div_test_1() == 0);
 
 	exit(0);
 }
