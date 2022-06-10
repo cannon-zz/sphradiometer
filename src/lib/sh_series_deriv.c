@@ -431,6 +431,69 @@ struct sh_series *sh_series_sintheta_div(const struct sh_series *u, const struct
 
 
 /*
+ * Compute the return sin(theta) * the curl of the vector field whose theta
+ * and phi components are in u and v respectively.
+ *
+ * In 2 dimensions the curl is a scalar.  It consists of what would form
+ * the radial component of the result in 3 dimensions.  The curl is
+ *
+ *     1      [ \partial                          \partial       ]
+ * ---------- [ -------------- ( sin(theta) v ) - ------------ u ]
+ * sin(theta) [ \partial theta                    \partial phi   ]
+ */
+
+
+struct sh_series *sh_series_sintheta_curl(const struct sh_series *u, const struct sh_series *v)
+{
+	/* compute cos(theta) v + sin(theta) d/dtheta v */
+	struct sh_series *result = sh_series_sintheta_d_by_dtheta(v);
+	struct sh_series *costheta_v = sh_series_times_costheta(v);
+	if(!(result && costheta_v && sh_series_add(result, 1.0, costheta_v))) {
+		sh_series_free(result);
+		sh_series_free(costheta_v);
+		return NULL;
+	}
+	sh_series_free(costheta_v);
+
+	/* if u has azimuthal symmetry, d/dphi u = 0 and we're done */
+	if(u->polar)
+		return result;
+
+	/* bring the result to the minimum required order to continue the
+	 * calculation */
+	if(result->l_max < u->l_max)
+		if(!sh_series_resize(result, u->l_max)) {
+			sh_series_free(result);
+			return NULL;
+		}
+	if(result->polar)
+		if(!sh_series_set_polar(result, 1)) {
+			sh_series_free(result);
+			return NULL;
+		}
+
+	/* subtract d/dphi u */
+	{
+	struct sh_series *d_by_dphi_u = sh_series_copy(u);
+	if(!d_by_dphi_u) {
+		sh_series_free(result);
+		return NULL;
+	}
+	sh_series_d_by_dphi(d_by_dphi_u);
+	if(!sh_series_add(result, -1.0, d_by_dphi_u)) {
+		sh_series_free(d_by_dphi_u);
+		sh_series_free(result);
+		return NULL;
+	}
+	sh_series_free(d_by_dphi_u);
+	}
+
+	/* done */
+	return result;
+}
+
+
+/*
  * ============================================================================
  *
  *                          Second Order Derivatives
