@@ -401,13 +401,13 @@ static int div_test_1(void)
 		return -1;
 	}
 
-	for(i = 0; i < 10; i++) {
+	for(i = 0; i < 100; i++) {
 		double theta = acos(randrange(-1., +1.));
 		double phi = randrange(-M_PI, M_PI);
 		complex double correct = cos(theta) * sh_series_eval(u, theta, phi) + pow(sin(theta), 2.) * sh_series_eval(laplacian, theta, phi);
 		complex double val = sh_series_eval(series, theta, phi);
 		double error = cabs(correct - val);
-		if(error > 1e-12) {
+		if(error > 1e-11) {
 			fprintf(stderr, "sh_series_sintheta_div() failed at theta=%g phi=%g:\n\texpected %g+I*%g got %g+I*%g |error|=%g\n", theta, phi, creal(correct), cimag(correct), creal(val), cimag(val), error);
 			sh_series_free(series);
 			sh_series_free(laplacian);
@@ -442,12 +442,14 @@ int main(int argc, char *argv[])
 		assert(grad_test_1(13) == 0);
 	assert(grad_test_2() == 0);
 
-	for(i = 0; i < 100; i++)
+	for(i = 0; i < 1000; i++)
 		assert(times_costheta_test() == 0);
 
-	assert(laplacian_test_1() == 0);
+	for(i = 0; i < 1000; i++)
+		assert(laplacian_test_1() == 0);
 
-	assert(div_test_1() == 0);
+	for(i = 0; i < 1000; i++)
+		assert(div_test_1() == 0);
 
 	exit(0);
 }
