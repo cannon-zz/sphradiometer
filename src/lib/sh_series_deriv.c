@@ -253,6 +253,40 @@ struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *series)
 	 *	[ m wigner3j(1 l (l-1) 0 m -m) + \sqrt{2 (l - m) (l + m + 1)} wigner3j(1 l (l-1) -1 m+1 -m) ] \sqrt{l - 0.5} wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
 	 *	[ m wigner3j(1 l (l+1) 0 m -m) + \sqrt{2 (l - m) (l + m + 1)} wigner3j(1 l (l+1) -1 m+1 -m) ] \sqrt{l + 1.5} wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
 	 * ]
+	 *
+	 * from the recursion relation for Wigner 3-j functions,
+	 *
+	 * \sqrt{(l1 -/+ s1)(l1 +/- s1 + 1)} wigner3j(l1 l2 l3 s1+/-1 s2 s3) +
+	 * \sqrt{(l2 -/+ s2)(l2 +/- s2 + 1)} wigner3j(l1 l2 l3 s1 s2+/-1 s3) +
+	 * \sqrt{(l3 -/+ s3)(l3 +/- s3 + 1)} wigner3j(l1 l2 l3 s1 s2 s3+/-1) = 0,
+	 *
+	 * setting l1=1, l2=l, l3=l+/-1, s1=0, s2 = m+1, s3 = -m gives
+	 *
+	 * \sqrt{2} wigner3j(1 l l+/-1 -1 m+1 -m) =
+	 *	-\sqrt{(l + m + 1)(l - m)} wigner3j(1 l l+/-1 0 m -m) - \sqrt{(l+/-1 - m)(l+/-1 + m + 1)} wigner3j(1 l l+/-1 0 m+1 -(m+1))
+	 *
+	 * therefore,
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi) = 2 \sqrt{l + 0.5} (-1)^m [
+	 *	[ m wigner3j(1 l (l-1) 0 m -m) + \sqrt{(l - m) (l + m + 1)} [ -\sqrt{(l + m + 1)(l - m)} wigner3j(1 l l-1 0 m -m) - \sqrt{(l-1 - m)(l-1 + m + 1)} wigner3j(1 l l-1 0 m+1 -(m+1)) ] ] \sqrt{l - 0.5} wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	[ m wigner3j(1 l (l+1) 0 m -m) + \sqrt{(l - m) (l + m + 1)} [ -\sqrt{(l + m + 1)(l - m)} wigner3j(1 l l+1 0 m -m) - \sqrt{(l+1 - m)(l+1 + m + 1)} wigner3j(1 l l+1 0 m+1 -(m+1)) ] ] \sqrt{l + 1.5} wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * sin theta d/dtheta Y_lm(theta, phi) = 2 \sqrt{l + 0.5} (-1)^m [
+	 *	[ (m - (l - m) (l + m + 1)) wigner3j(1 l (l-1) 0 m -m) - \sqrt{(l - m) (l + m + 1)} \sqrt{(l - m - 1)(l + m)    } wigner3j(1 l (l-1) 0 (m+1) -(m+1)) ] \sqrt{l - 0.5} wigner3j(1 l (l-1) 0 0 0) Y_(l-1 m) +
+	 *	[ (m - (l - m) (l + m + 1)) wigner3j(1 l (l+1) 0 m -m) - \sqrt{(l - m) (l + m + 1)} \sqrt{(l - m + 1)(l + m + 2)} wigner3j(1 l (l+1) 0 (m+1) -(m+1)) ] \sqrt{l + 1.5} wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
+	 * ]
+	 *
+	 * this last form depends only on wigner3j(1 l (l+/-1) 0 m -m).  in
+	 * the inner loop over m, wigner3j(1 l (l+/-1) 0 (m+1) -(m+1)) can
+	 * be saved and used for wigner3j(1 l (l+/-1) 0 m -m) in the next
+	 * iteration (after m is incremented by 1).  this reduces the
+	 * number of evaluations of the Wigner 3-j function by
+	 * approximately a factor of 2.  more arithmetic is needed to
+	 * compute the coefficients, and without more information about the
+	 * efficiency of GSL's Wigner 3-j implementation, it's not clear if
+	 * the result is a win or not.  initial benchmarking shows very
+	 * little difference in speed between the two approaches.
 	 */
 
 	/* FIXME:  GSL's Wigner 3-j functions are not stable for large l,
@@ -273,15 +307,29 @@ struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *series)
 		double g2 = x * sqrt(l + 1.5) * sh_series_wigner_3j(1, l, l + 1, 0, 0, 0);
 
 		int m_max = series->polar ? 0 : l;
+		/* compute the "m" Wigner 3-j functions for the first loop
+		 * iteration */
+		double w3j_lm1_m = sh_series_wigner_3j(1, l, l - 1, 0, -m_max, m_max);
+		double w3j_lp1_m = sh_series_wigner_3j(1, l, l + 1, 0, -m_max, m_max);
 		for(m = -m_max; m <= m_max; m++) {
 			/* input a_lm * (-1)^m */
 			complex double alm = m & 1 ? -sh_series_get(series, l, m) : +sh_series_get(series, l, m);
 			/* m-dependent parts */
-			x = sqrt(2. * (l - m) * (l + m + 1.));
+			int A = l - m;
+			int B = l + m;
+			int C = A * (B + 1);
+			/* compute the "m+1" Wigner 3-j functions */
+			double w3j_lm1_mp1 = sh_series_wigner_3j(1, l, l - 1, 0, m + 1, -(m + 1));
+			double w3j_lp1_mp1 = sh_series_wigner_3j(1, l, l + 1, 0, m + 1, -(m + 1));
 			/* for (l-1, m) term */
-			double f1 = (m * sh_series_wigner_3j(1, l, l - 1, 0, m, -m) + x * sh_series_wigner_3j(1, l, l - 1, -1, m + 1, -m));
+			x = m - C;
+			double f1 = x * w3j_lm1_m - sqrt(C * (A - 1) * B) * w3j_lm1_mp1;
 			/* for (l+1, m) term */
-			double f2 = (m * sh_series_wigner_3j(1, l, l + 1, 0, m, -m) + x * sh_series_wigner_3j(1, l, l + 1, -1, m + 1, -m));
+			double f2 = x * w3j_lp1_m - sqrt(C * (A + 1) * (B + 2)) * w3j_lp1_mp1;
+			/* use the "m+1" Wigner 3-j functions as the "m"
+			 * functions in the next iteration */
+			w3j_lm1_m = w3j_lm1_mp1;
+			w3j_lp1_m = w3j_lp1_mp1;
 
 			/* NOTE:  the (l, m) offset calculation is for the
 			 * output series.  the output series' l_max is 1
