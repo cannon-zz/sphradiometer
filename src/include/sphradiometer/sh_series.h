@@ -387,7 +387,7 @@ struct sh_series_array *sh_series_array_new(int, unsigned int, int);
 void sh_series_array_free(struct sh_series_array *);
 struct sh_series_array *sh_series_array_set_len(struct sh_series_array *, int);
 struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *, int);
-struct sh_series_array *sh_series_array_resize(struct sh_series_array *, unsigned int);
+struct sh_series_array *sh_series_array_set_l(struct sh_series_array *, unsigned int);
 struct sh_series_array *sh_series_array_copy(const struct sh_series_array *);
 struct sh_series_array *sh_series_array_assign(struct sh_series_array *, const struct sh_series_array *);
 struct sh_series_array *sh_series_array_scale(struct sh_series_array *, double complex);

@@ -258,7 +258,7 @@ struct sh_series_array *sh_series_array_set_polar(struct sh_series_array *array,
  */
 
 
-struct sh_series_array *sh_series_array_resize(struct sh_series_array *array, unsigned int l_max)
+struct sh_series_array *sh_series_array_set_l(struct sh_series_array *array, unsigned int l_max)
 {
 	complex double *coeff;
 	int new_stride = sh_series_length(l_max, array->polar);
