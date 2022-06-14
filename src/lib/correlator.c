@@ -288,8 +288,15 @@ struct correlator_baseline *correlator_baseline_copy(const struct correlator_bas
 {
 	struct correlator_baseline *new = malloc(sizeof(*new));
 
+	if(!new)
+		return NULL;
+
 	*new = *baseline;
 	new->d = gsl_vector_alloc(3);
+	if(!new->d) {
+		free(new);
+		return NULL;
+	}
 	/* do not make a copy of the instrument array:  we don't own it,
 	 * share the original pointer */
 	gsl_vector_memcpy(new->d, baseline->d);
@@ -524,15 +531,26 @@ void correlator_plan_fd_free(struct correlator_plan_fd *plan)
 struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_fd *plan)
 {
 	struct correlator_plan_fd *new = malloc(sizeof(*new));
+	if(!new)
+		return NULL;
 
 	*new = *plan;
 
 	/* share baseline pointer, we don't own it */
 	new->fseries_product = malloc(plan->delay_product->n * sizeof(*new->fseries_product));
+	if(!new->fseries_product) {
+		free(new);
+		return NULL;
+	}
 	memcpy(new->fseries_product, plan->fseries_product, plan->delay_product->n * sizeof(*plan->fseries_product));
 	new->delay_product = sh_series_array_copy(plan->delay_product);
 	new->power_1d = sh_series_copy(plan->power_1d);
 	new->rotation_plan = sh_series_rotation_plan_copy(plan->rotation_plan);
+	if(!new->delay_product || !new->power_1d || !new->rotation_plan) {
+		/* we have enough of it we can use this to clean up */
+		correlator_plan_fd_free(new);
+		return NULL;
+	}
 
 	return new;
 }
@@ -722,10 +740,23 @@ struct correlator_network_baselines *correlator_network_baselines_copy(const str
 	struct correlator_network_baselines *new = malloc(sizeof(*new));
 	int i;
 
+	if(!new)
+		return NULL;
+
 	*new = *network;
-	new->baselines = malloc(network->n_baselines * sizeof(*new->baselines));
-	for(i = 0; i < network->n_baselines; i++)
+	new->baselines = calloc(network->n_baselines, sizeof(*new->baselines));
+	if(!new->baselines) {
+		free(new);
+		return NULL;
+	}
+	for(i = 0; i < network->n_baselines; i++) {
 		new->baselines[i] = correlator_baseline_copy(network->baselines[i]);
+		if(!new->baselines[i]) {
+			/* have enough of it we can use this to clean up */
+			correlator_network_baselines_free(new);
+			return NULL;
+		}
+	}
 
 	return new;
 }
@@ -844,11 +875,26 @@ struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct 
 	struct correlator_network_plan_fd *new = malloc(sizeof(*new));
 	int i;
 
+	if(!new)
+		return NULL;
+
+	/* do not duplicate baselines, share the pointer, we don't own it */
 	*new = *plan;
-	/* do not copy baselines, share the pointer, we don't own it */
-	new->plans = malloc(plan->baselines->n_baselines * sizeof(*plan->plans));
-	for(i = 0; i < plan->baselines->n_baselines; i++)
+	/* allocate a new set of plans for the baselines */
+	new->plans = calloc(plan->baselines->n_baselines, sizeof(*plan->plans));
+	if(!new->plans) {
+		free(new);
+		return NULL;
+	}
+
+	for(i = 0; i < plan->baselines->n_baselines; i++) {
 		new->plans[i] = correlator_plan_fd_copy(plan->plans[i]);
+		if(!new->plans[i]) {
+			/* have enough of it we can use this for clean up */
+			correlator_network_plan_fd_free(new);
+			return NULL;
+		}
+	}
 
 	return new;
 }
