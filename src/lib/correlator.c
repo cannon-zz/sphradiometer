@@ -557,6 +557,38 @@ struct correlator_plan_fd *correlator_plan_fd_copy(const struct correlator_plan_
 
 
 /*
+ * Reduce the l_max of the output of a frequency-domain correlator.  The
+ * reduction is performed in-place.  Combine with correlator_plan_fd_copy()
+ * to perserve the original.  Returns NULL on failure, or the plan object
+ * on success.  On failure, the state of the correlator plan is
+ * undefined (although it can be freed).
+ */
+
+
+struct correlator_plan_fd *correlator_plan_fd_set_l(struct correlator_plan_fd *plan, unsigned l_max)
+{
+	/* sanity check current state of the plan */
+	if(plan->delay_product->l_max != plan->power_1d->l_max || plan->rotation_plan->l_max != plan->power_1d->l_max)
+		return NULL;
+	/* check for invalid request */
+	if(l_max > plan->power_1d->l_max)
+		return NULL;
+	/* check for no-op */
+	if(l_max == plan->power_1d->l_max)
+		return plan;
+
+	/* resize the components.  these conversions are done in-place.  if
+	 * they fail, some leave their inputs undefined and some leave
+	 * their inputs unchanged.  overall, our contents become undefined
+	 * on failure. */
+	if(!sh_series_array_set_l(plan->delay_product, l_max) || !sh_series_resize(plan->power_1d, l_max) || !sh_series_rotation_plan_set_l(plan->rotation_plan, l_max))
+		return NULL;
+
+	return plan;
+}
+
+
+/*
  * ============================================================================
  *
  *                                Correlation
@@ -897,6 +929,30 @@ struct correlator_network_plan_fd *correlator_network_plan_fd_copy(const struct 
 	}
 
 	return new;
+}
+
+
+/*
+ * Reduce the l_max of a correlator network.  Any baselines whose l_max are
+ * already below the requested value are unchanged (their l_max is not
+ * increased to match the requested value).  The conversion is done
+ * in-place.  Combine with correlator_network_plan_fd_copy() for an
+ * out-of-place conversion.  Returns the network plan object on success, or
+ * NULL on failure.  On failure, the network plan's contents are undefined,
+ * and it should be disposed of.  It cannot be used.
+ */
+
+
+struct correlator_network_plan_fd *correlator_network_plan_fd_set_l(struct correlator_network_plan_fd *plan, unsigned l_max)
+{
+	int i;
+	for(i = 0; i < plan->baselines->n_baselines; i++) {
+		if(plan->plans[i]->power_1d->l_max <= l_max)
+			continue;
+		if(!correlator_plan_fd_set_l(plan->plans[i], l_max))
+			return NULL;
+	}
+	return plan;
 }
 
 
