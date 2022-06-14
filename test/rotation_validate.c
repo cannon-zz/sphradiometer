@@ -331,10 +331,11 @@ static int wigner_D_test1(void)
  * angles, compare to correct answer by generating another impulse at the
  * new co-ordinates.  testing with l_max = 1 validates the D1 function in
  * the Wigner D matrix code, testing with l_max > 1 validates the recursion
- * relation in the Wigner D matrix code.
+ * relation in the Wigner D matrix code.  the Delta_l parameter is used to
+ * test resizing of rotation plans.
  */
 
-static int wigner_D_test2(unsigned int l_max)
+static int wigner_D_test2(unsigned int l_max, int Delta_l)
 {
 	int i;
 
@@ -348,6 +349,13 @@ static int wigner_D_test2(unsigned int l_max)
 		struct sh_series *correct = sh_series_impulse(series->l_max, theta + dtheta, phi + dphi);
 		double *R = euler_rotation_matrix(-phi, dtheta, phi + dphi);
 		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
+
+		if(Delta_l) {
+			sh_series_resize(series, l_max + Delta_l);
+			sh_series_resize(result, l_max + Delta_l);
+			sh_series_resize(correct, l_max + Delta_l);
+			sh_series_rotation_plan_set_l(plan, l_max + Delta_l);
+		}
 
 		free(R);
 		sh_series_rotate(result, series, plan);
@@ -424,8 +432,9 @@ int main(int argc, char *argv[])
 	assert(test_euler_rotation_matrix() == 0);
 	assert(test_galactic_rotation_matrix() == 0);
 	assert(wigner_D_test1() == 0);
-	assert(wigner_D_test2(1) == 0);
-	assert(wigner_D_test2(6) == 0);
+	assert(wigner_D_test2(1, 0) == 0);
+	assert(wigner_D_test2(13, 0) == 0);
+	assert(wigner_D_test2(13, -5) == 0);
 
 	exit(0);
 }

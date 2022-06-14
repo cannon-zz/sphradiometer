@@ -377,6 +377,58 @@ struct sh_series_rotation_plan *sh_series_rotation_plan_copy(const struct sh_ser
 
 
 /*
+ * Change the l_max of a rotation plan.  The conversion is done in-place.
+ * The return value is NULL on failure, or the input plan on success.  On
+ * failure, the input plan is left unchanged.
+ *
+ * NOTE:  for now only reduction of l_max is supported.
+ */
+
+
+struct sh_series_rotation_plan *sh_series_rotation_plan_set_l(struct sh_series_rotation_plan *plan, unsigned l_max)
+{
+	unsigned l;
+	complex double **D, **Dorig;
+
+	/* error? */
+	/* FIXME:  generalize to allow l_max to increase */
+	if(l_max > plan->l_max)
+		return NULL;
+	/* no-op? */
+	if(l_max == plan->l_max)
+		return plan;
+
+	/* save the contents of the array of D matrix addresses so we can
+	 * free the matrices if the realloc() succeeds.  we've promised to
+	 * leave the plan unchanged if the realloc() fails so we can't free
+	 * the matrices until we see that it succeeds */
+	Dorig = malloc((plan->l_max - l_max) * sizeof(*Dorig));
+	if(!Dorig)
+		return NULL;
+	memcpy(Dorig, &plan->D[l_max + 1], (plan->l_max - l_max) * sizeof(*Dorig));
+
+	/* shorten the array of D matrix adddresses.  note that plan->D
+	 * points to the memory address immediate preceding the actual
+	 * allocated address because we don't need D[0] and don't want to
+	 * have to screw with adding an offset all the time */
+	D = realloc(plan->D + 1, l_max * sizeof(*D));
+	if(!D) {
+		free(Dorig);
+		return NULL;
+	}
+	plan->D = D - 1;
+
+	/* free the unused matrices */
+	for(l = l_max + 1; l <= plan->l_max; l++)
+		D_matrix_free(Dorig[l - l_max - 1], l);
+	free(Dorig);
+
+	plan->l_max = l_max;
+	return plan;
+}
+
+
+/*
  * Access a Wigner D matrix element in an sh_series_rotation_plan.  Returns
  * the matrix element or complex NaN if the indexes do not correspond to a
  * valid element.
