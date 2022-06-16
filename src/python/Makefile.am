@@ -15,6 +15,7 @@ pkgpython_PYTHON = \
 	healpix.py \
 	ioutils.py \
 	plotutils.py \
+	RapidLocalization.py \
 	sphradiometer.py
 pkgpyexec_LTLIBRARIES = _sphradiometer.la
 
