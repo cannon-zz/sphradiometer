@@ -187,3 +187,83 @@ class RapidLocalization(object):
 			sph.autocorrelator_network_plan_fd_free(self.fdautoplanp)
 			sph.autocorrelator_network_plan_fd_free(self.fdautoplann)
 		sph.instrument_array_free(self.inst_array)
+
+
+#
+# ==============================================================================
+#
+#                                    Main
+#
+# ==============================================================================
+#
+
+
+if __name__ == "__main__":
+	#
+	# prepare data
+	#
+
+	print("preamble")
+	snr_cache = "snr.cache"
+	instruments = sorted(["H1", "L1", "V1"])
+	precalc_path = "precalc" + "".join(instruments)
+	print("assigned precalculated object is", precalc_path)
+
+	seriesp = sph.new_COMPLEX16TimeSeries_array(len(instruments))
+	nseriesp = sph.new_COMPLEX16Sequence_array(len(instruments))
+	for i in range(len(instruments)):
+		sph.COMPLEX16TimeSeries_array_setitem(seriesp, i, sph.get_complex16series_from_cache(snr_cache, instruments[i] + ":SNR"))
+		# Currently nseriesp is dummy information, so that seriesp is set
+		sph.COMPLEX16Sequence_array_setitem(nseriesp, i, sph.convert_TimeSeries2Sequence(sph.get_complex16series_from_cache(snr_cache, instruments[i] + ":SNR")))
+
+	# Don't change an order of the following two processes
+	# (preprocess_SNRTimeSeries() & flat_psd_array()) because the length of
+	# psds must be equal to that of SNR time series.
+	sph.preprocess_SNRTimeSeries(seriesp, nseriesp, len(instruments))
+	# Currently psd is dummy information, so that it's set one
+	psds = sph.flat_psd_array(len(instruments), sph.pick_length_from_COMPLEX16TimeSeries(sph.COMPLEX16TimeSeries_array_getitem(seriesp, 0)))
+
+
+	#
+	# Localize
+	#
+
+
+	print("prepare precalculated objects")
+	if exists(precalc_path):
+		print("read objects")
+		rapidloc = RapidLocalization.read(precalc_path, \
+		                                  instruments, \
+						  sph.pick_length_from_COMPLEX16TimeSeries(sph.COMPLEX16TimeSeries_array_getitem(seriesp, 0)))
+	else:
+		print("make objects")
+		rapidloc = RapidLocalization(instruments, \
+					     psds, \
+					     sph.pick_length_from_COMPLEX16TimeSeries(sph.COMPLEX16TimeSeries_array_getitem(seriesp, 0)), \
+					     sph.pick_deltaT_from_COMPLEX16TimeSeries(sph.COMPLEX16TimeSeries_array_getitem(seriesp, 0)))
+		print("write objects")
+		rapidloc.write(precalc_path)
+
+	# sph coeff series for \beta = +1 & -1
+	print("calc")
+	skyp = coeff_series(len(instruments))
+	skyn = coeff_series(len(instruments))
+	rapidloc.sphcoeff(skyp, skyn, seriesp, nseriesp)
+
+	# save coeff series
+	print("save")
+	sph.sh_series_write_healpix_alm(skyp.get(), "coeffp.fits")
+	sph.sh_series_write_healpix_alm(skyn.get(), "coeffn.fits")
+
+
+	#
+	# free
+	#
+
+
+	print("free")
+	sph.free_psd_array(psds, sph.pick_length_from_COMPLEX16TimeSeries(sph.COMPLEX16TimeSeries_array_getitem(seriesp, 0)))
+	sph.free_SNRTimeSeries(seriesp, nseriesp, len(instruments))
+	del rapidloc
+	del skyp
+	del skyn
