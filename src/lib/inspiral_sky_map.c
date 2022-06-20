@@ -650,6 +650,21 @@ struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_new(const 
 }
 
 
+struct autocorrelator_network_plan_fd *autocorrelator_network_plan_fd_set_l(struct autocorrelator_network_plan_fd *plan, unsigned l_max)
+{
+	int i, j;
+
+	for(i = 0; i < instrument_array_len(plan->instruments); i++) {
+		for(j = 0; j < plan->length; j++) {
+			if(!sh_series_resize(plan->projections[i][j], l_max))
+				return NULL;
+		}
+	}
+
+	return plan;
+}
+
+
 void autocorrelator_network_plan_fd_free(struct autocorrelator_network_plan_fd *plan)
 {
 	int i, j;
