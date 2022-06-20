@@ -337,6 +337,24 @@ class RapidLocalization_(object):
 
 		return self
 
+	def reduce_l_max(self, deltaT):
+		"""
+		Parameter
+		---------
+		deltaT : double
+			effective down-sampled time bin width.  The maximum of
+			l is determined from the effective sample frequency.
+		"""
+		if len(self.instruments) > 1:
+			l_max = sph.correlator_network_l_max(self.baselines, deltaT)
+			self.logprior = sph.sh_series_resize(self.logprior, l_max)
+			self.fdplansp = sph.correlator_network_plan_fd_set_l(self.fdplansp, l_max)
+			self.fdplansn = sph.correlator_network_plan_fd_set_l(self.fdplansn, l_max)
+			self.fdautoplanp = sph.autocorrelator_network_plan_fd_set_l(self.fdautoplanp, l_max)
+			self.fdautoplann = sph.autocorrelator_network_plan_fd_set_l(self.fdautoplann, l_max)
+		else:
+			self.logprior = sph.sh_series_resize(self.logprior, 4)
+
 	def __del__(self):
 		sph.sh_series_free(self.logprior)
 		if sph.instrument_array_len(self.inst_array) > 1:
@@ -424,6 +442,18 @@ class RapidLocalization(object):
 			self.precalcs[prei] = RapidLocalization_.read(os.path.join(precalc_path, prei))
 		return self
 
+	def reduce_l_max(self, deltaT):
+		"""
+		Parameter
+		---------
+		deltaT : double
+			effective down-sampled time bin width.  The maximum of
+			l is determined from the effective sample frequency.
+		"""
+		for name in self.precalcs:
+			print("reduce l_max of", name)
+			self.precalcs[name].reduce_l_max(deltaT)
+
 
 #
 # ==============================================================================
@@ -482,6 +512,8 @@ if __name__ == "__main__":
 			precalc_length,
 			snr[instruments[0]].deltaT
 		)
+		print("reduce l_max")
+		rapidloc.reduce_l_max(1 / 512.)
 		print("write objects")
 		rapidloc.write(precalc_path)
 
