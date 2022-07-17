@@ -190,7 +190,8 @@ struct sh_series *sh_series_read_healpix_alm(const char *filename)
 
 
 /*
- * return the smallest power of 2 not smaller than x
+ * return the smallest power of 2 not smaller than x.  returns -1 on
+ * overflow.
  */
 
 
@@ -202,6 +203,15 @@ static int ceilpow2(int x)
 			return i;
 	return -1;	/* overflow */
 }
+
+
+/*
+ * compute the healpix nside parameter corresponding to an l_max.  the
+ * conversion begins by imposing that the healpix map have the correct
+ * number of rings of isolatitude for the given l_max, and then rounds up
+ * the result to a power 2 because it seems healpix prefers that.  returns
+ * -1 on overflow.
+ */
 
 
 static int lmax2nside(int l_max)
@@ -216,7 +226,17 @@ static int lmax2nside(int l_max)
 	 * 	nside = (2 * l_max + 3) / 4
 	 *
 	 * but healpix wants nside to be a power of 2, so we round up to
-	 * one.
+	 * one.  NOTE:  recalling that 2 * l_max is often called the
+	 * bandwidth in the literature on analysis on the sphere, if using
+	 * truncated integer arithmetic the relationship between l_max and
+	 * nside given above is equivalent to nside = ceil(bandwidth / 4),
+	 * which makes nside appear a little less contrived a quantity.
+	 * I don't know if that's the origin of the "nside" parameter, and
+	 * that expression is only equivalent if one is restricted to
+	 * truncated integer arithmetic, but if it is the origin of the
+	 * "nside" parameter, then the +0.75 should not be included in the
+	 * expression below;  since we round up to a power of 2 anyway, it
+	 * probably doesn't matter.
 	 */
 
 	return ceilpow2(ceil(l_max / 2. + 0.75));
@@ -247,10 +267,11 @@ int sh_series_write_healpix_map(const struct sh_series *series, const char *file
 	/* FITS barfs if the file exists, which is annoying, so delete it
 	 * first because people expect functions like this to overwrite the
 	 * target file if it exists.  ignore errors from unlink() because
-	 * it will complain if the file doesn't exist (it shouldn't exist,
-	 * that is expected), and if the delete fails because of some
-	 * filesystem malfunction then write_healpfix() will also fail and
-	 * we'll let it produce the error message */
+	 * it will complain if the file doesn't exist, which we don't care
+	 * about (it shouldn't exist, that is expected), and if the file
+	 * does exist and the delete fails because of some filesystem
+	 * malfunction then write_healpfix() will also fail and we'll let
+	 * it produce some kind of error message */
 
 	{
 	int errsv = errno;
