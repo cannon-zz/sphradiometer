@@ -263,7 +263,17 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
 
 
 /*
- * sh_series_eval_interp
+ * sh_series_eval_interp.  Uses a bi-cubic spline interpolation of a
+ * Nyquist-sampled pixel mesh to quickly approximate the value of an
+ * sh_series object at arbitrary co-ordinates on the sphere.  In
+ * applications where many evaluations are required and full precision is
+ * not needed, for example plotting applications, the performance
+ * improvements are substantial.  However, because a full resolution
+ * frequency-to-pixel domain conversion is required, followed by the
+ * initialization of the 2D real- and imaginary-component interpolators,
+ * there is a significant initialization cost, and the benefits will not be
+ * realized in applications where only a small number of evaluations is
+ * required.
  */
 
 
@@ -411,6 +421,12 @@ void sh_series_eval_interp_free(struct sh_series_eval_interp *interp)
 
 double complex sh_series_eval_interp(const struct sh_series_eval_interp *interp, double theta, double phi)
 {
+	/* the interpolator was constructed for 0 <= phi < 2 pi, so that's
+	 * the domain we require phi to be in, but it's reasonable for
+	 * calling code to expect -pi <= phi < pi, or other similar domains
+	 * to be acceptable, so we allow it and do the wrap-around
+	 * ourselves.  theta, however, is required to be in the domain 0 <=
+	 * theta <= pi. */
 	if(phi < 0.)
 		phi += 2. * M_PI * (floor(phi / (2. * M_PI)) + 1.);
 	else if(phi >= 2. * M_PI)

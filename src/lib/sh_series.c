@@ -188,8 +188,12 @@ struct sh_series *sh_series_assign(struct sh_series *dst, const struct sh_series
  * Resize an sh_series object to the new maximum l, preserving the function
  * represented by the coefficients (up to the smaller of the new and old
  * harmonic orders).  Returns NULL if the resize failed.  The resize is
- * done in place.  If the resize fails, then if the series was being shrunk
- * in size then the contents are undefined, otherwise they are unchanged.
+ * done in place, and on failure the contents are left undefined but the
+ * object is not deallocated.  If the series is being shrunk in size and
+ * the memory reallocation, itself, fails then the resize operation overall
+ * is successful, but the object continues to occupy as much memory as it
+ * did before (there is unused space).  If the series is being expanded in
+ * size and the memory reallocation fails, the resize operation fails.
  */
 
 
@@ -543,7 +547,7 @@ struct sh_series *sh_series_imag(struct sh_series *a)
 
 /*
  * Set to zero any coefficients whose magnitude as a fraction of the
- * largest magnitude coefficient is less than epsilon.
+ * largest magnitude coefficient is less than |epsilon|.
  */
 
 
