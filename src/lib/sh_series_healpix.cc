@@ -101,11 +101,14 @@ static struct sh_series *sh_series_from_healpix_Alm(Alm< xcomplex<double> > &alm
 	if(!series)
 		return NULL;
 
-	/* m < 0 is not available in Alm objects */
+	/* NOTE:  loop is only over non-negative m because m < 0 is not
+	 * available in Alm objects. */
 	for(m = 0; m <= +m_max; m++)
 		for(l = abs(m); l <= (int) series->l_max; l++) {
 			std::complex<double> x = alm(l, m);
 			sh_series_set(series, l, m, *(double _Complex *) &x);
+			/* fill in the missing coefficients by assuming a
+			 * real-valued function on sphere. */
 			if(m) {
 				x = (m & 1) ? -conj(x) : conj(x);
 				sh_series_set(series, l, -m, *(double _Complex *) &x);
@@ -226,17 +229,9 @@ static int lmax2nside(int l_max)
 	 * 	nside = (2 * l_max + 3) / 4
 	 *
 	 * but healpix wants nside to be a power of 2, so we round up to
-	 * one.  NOTE:  recalling that 2 * l_max is often called the
-	 * bandwidth in the literature on analysis on the sphere, if using
-	 * truncated integer arithmetic the relationship between l_max and
-	 * nside given above is equivalent to nside = ceil(bandwidth / 4),
-	 * which makes nside appear a little less contrived a quantity.
-	 * I don't know if that's the origin of the "nside" parameter, and
-	 * that expression is only equivalent if one is restricted to
-	 * truncated integer arithmetic, but if it is the origin of the
-	 * "nside" parameter, then the +0.75 should not be included in the
-	 * expression below;  since we round up to a power of 2 anyway, it
-	 * probably doesn't matter.
+	 * one.  NOTE:  recalling that l_max + 1 is often called the
+	 * bandwidth, the relationship between l_max and nside given above
+	 * is equivalent to nside = (2 * bandwidth + 1) / 4.
 	 */
 
 	return ceilpow2(ceil(l_max / 2. + 0.75));
