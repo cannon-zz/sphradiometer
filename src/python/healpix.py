@@ -26,6 +26,118 @@
 
 import healpy
 import math
+import numpy
+
+
+from . import sphradiometer
+
+
+#
+# =============================================================================
+#
+#                                 Converstion
+#
+# =============================================================================
+#
+
+
+def healpy_alm_l_max(alm, m_max):
+	"""
+	Compute l_max from the length of the healpy alm array, given the
+	value of m_max.  Raises ValueError if the (l_max, m_max)
+	combination is not compatible with the requiremetns of the
+	sphradiometer library (even if healpix allows it).
+
+	NOTE:  healpix does not support complex-valued functions on the
+	sphere, so the negative m-coefficients are not present in the alm
+	array.  The relationship between the length of the array and the
+	maximum spherical harmonic order it contains is not, in general,
+	the same as the relationship between these things for the
+	sphradiometer library.
+	"""
+	n, = alm.shape	# confirm 1-D
+	l_max = healpy.Alm.getlmax(n, m_max)
+	if m_max not in (0, l_max):
+		raise ValueError("unsupported (l_max, m_max) = (%d, %d)" % (l_max, m_max))
+	return l_max
+
+
+def healpy_alm_length(l_max, m_max):
+	"""
+	Compute the length of the healpy alm array for the given l_max and
+	m_max parameters.  Raises ValueError if the (l_max, m_max)
+	combination is not compatible with the requirements of the
+	sphradiometer library (even if healpix allows it).
+
+	NOTE:  healpix does not support complex-valued functions on the
+	sphere, so the negative m-coefficients are not present in the alm
+	array.  The relationship between the length of the array and the
+	maximum spherical harmonic order it contains is not, in general,
+	the same as the relationship between these things for the
+	sphradiometer library.
+	"""
+	if m_max not in (0, l_max):
+		raise ValueError("unsupported (l_max, m_max) = (%d, %d)" % (l_max, m_max))
+	return healpy.Alm.getsize(l_max, m_max)
+
+
+def sh_series_to_healpy_alm(series):
+	"""
+	Convert an sh_series object to a healpy-compatible alm array.  The
+	return value is a 3-element tuple (alm, l_max, m_max).
+
+	NOTE:  healpix does not support complex-valued functions on the
+	sphere, so the negative-m coefficients are not present in the alm
+	array.  There is no check performed to confirm that series
+	describes a real-valued function.  It is the obligation of the
+	calling code to ensure this.  The negative-m coefficients will be
+	silently discarded by this function.
+	"""
+	l_max = series.l_max
+	m_max = 0 if series.polar else l_max
+	alms = numpy.ndarray(shape = (healpy_alm_length(l_max, m_max),), dtype = "complex128")
+	# the coefficient order for healpix and sphradiometer is identical.
+	# this can be confirmed by running the library's test suite, which
+	# contains a test to confirm this, index-by-index, for each
+	# coefficient.  healpix stores only the non-negative m
+	# coefficientes, which are at the start of the array, so after
+	# determining the length of the healpix array, we copy one-to-one
+	# the first that-many coefficients from the sh_series object.
+	for i in range(len(alms)):
+		alms[i] = sphradiometer.double_complex_array_getitem(series.coeff, i)
+	return alms, l_max, m_max
+
+
+def healpy_alm_to_map(alms, l_max, m_max):
+	"""
+	Convert an a_{l,m} array and m_max integer to a pixel map.  Returns
+	a 3-tuple containing three arrays (theta, phi, m).
+
+	The combination
+
+	>>> healpy_alm_to_map(*sh_series_to_healpy_alm(series))
+
+	converts an sh_series object to a healpy pixel map.  The
+	combination
+
+	>>> healpy_alm_to_map(*read_fits_healpy_alm(filename))
+
+	returns three arrays compatible with the return value of
+	read_fits_healpy_map() but from a file containing a_{l,m}
+	coefficients instead of the map itself.
+
+	NOTE:  Raises ValueError if the (l_max, m_max) combination is not
+	compatible with the requirements of the sphradiometer library (even
+	if healpix allows it).
+	"""
+	if m_max not in (0, l_max):
+		raise ValueError("unsupported (l_max, m_max) = (%d, %d)" % (l_max, m_max))
+
+	m = healpy.alm2map(alms, int(2**math.ceil(math.log(l_max / 2., 2))), l_max, m_max)
+	npix, = m.shape
+	nside = healpy.npix2nside(npix)
+	theta, phi = healpy.pixelfunc.pix2ang(nside, range(npix))
+	return theta, phi, m
 
 
 #
@@ -61,35 +173,4 @@ def read_fits_healpy_alm(filename):
 	this function into a pixel map.
 	"""
 	alms, m_max = healpy.fitsfunc.read_alm(filename, return_mmax = True)
-	if m_max == 0:
-		l_max, = alms.shape
-	elif alms.shape != (((m_max + 1) * (m_max + 2)) // 2,):
-		# for mmax == lmax, when no negative m coefficients are
-		# present, the total number of coefficients must be related
-		# to m_max as above.  if they aren't, then this is a kind
-		# of healpix alm set that we don't support
-		raise ValueError("unsupported size")
-	else:
-		l_max = m_max
-	return alms, l_max, m_max
-
-
-def healpy_alm_to_map(alms, l_max, m_max):
-	"""
-	Convert an a_{l,m} array and m_max integer to a pixel map.  The
-	combination
-
-	>>> healpy_alm_to_map(*read_fits_healpy_alm(filename))
-
-	returns three arrays compatible with the return value of
-	read_fits_healpy_map() but from a file containing a_{l,m}
-	coefficients instead of the map itself.
-	"""
-	if m_max not in (0, l_max):
-		raise ValueError("bad m_max")
-
-	m = healpy.alm2map(alms, int(2**math.ceil(math.log(l_max / 2., 2))), l_max, m_max)
-	npix, = m.shape
-	nside = healpy.npix2nside(npix)
-	theta, phi = healpy.pixelfunc.pix2ang(nside, range(npix))
-	return theta, phi, m
+	return alms, healpix_alm_l_max(alms, m_max), m_max
