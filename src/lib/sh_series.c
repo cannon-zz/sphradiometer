@@ -578,6 +578,30 @@ struct sh_series *sh_series_clip(struct sh_series *series, double epsilon)
 
 
 /*
+ * Multiply the coefficients in the sh_series object a by overall_factor * (l /
+ * l_max)^power, returning a pointer to a or NULL on failure.
+ */
+
+
+struct sh_series *sh_series_scale_power_l(struct sh_series *a, double power, double overall_factor)
+{
+	unsigned int l;
+	int m;
+	double factor;
+
+	for(l = 0; l <= a->l_max; l++) {
+		factor = overall_factor * pow((double) l / a->l_max, power);
+
+		for(m = -(int) l; m <= (int) l; m++) {
+			sh_series_set(a, l, m, factor * sh_series_get(a, l, m));
+		}
+	}
+
+	return a;
+}
+
+
+/*
  * Compute the inner product of two functions on the sphere.
  *
  * \int a(\Omega) \conj{b}(\Omega) d^{2} \Omega

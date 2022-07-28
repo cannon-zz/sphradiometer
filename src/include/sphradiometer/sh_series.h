@@ -318,6 +318,7 @@ struct sh_series *sh_series_conj(struct sh_series *);
 struct sh_series *sh_series_real(struct sh_series *);
 struct sh_series *sh_series_imag(struct sh_series *);
 struct sh_series *sh_series_clip(struct sh_series *, double);
+struct sh_series *sh_series_scale_power_l(struct sh_series *, double, double);
 double complex sh_series_dot(const struct sh_series *, const struct sh_series *);
 
 struct sh_series_product_plan *sh_series_product_plan_new(const struct sh_series *, const struct sh_series *, const struct sh_series *);
