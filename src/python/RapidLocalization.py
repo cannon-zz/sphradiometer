@@ -242,7 +242,8 @@ class RapidLocalization_(object):
 		# Up to 512 Hz, SNR of the CBC waveforms are > 99% accumulated.
 		self.reduce_l_max(1. / effective_sample_rate)
 
-	def sphcoeff(self, snr, aut):
+
+	def sphcoeff(self, snr, aut, power=0.6, overall=2.7):
 		"""
 		Parameter
 		---------
@@ -277,6 +278,13 @@ class RapidLocalization_(object):
 		if sph.instrument_array_len(self.inst_array) > 1:
 			# multi detector case
 			sph.generate_alm_skys(skyp.coeff, skyn.coeff, self.fdplansp, self.fdplansn, self.fdautoplanp, self.fdautoplann, seriesp, nseriesp, self.logprior)
+
+			# weight sph coefficient series with overall * (l /
+			# l_max)^power
+			# For (power, overall) = (0.6, 2.7), the p-p plot is
+			# consistent for 512 Hz of the upper frequency cutoff
+			sph.sh_seriespp_assign(skyp.coeff, sph.sh_series_scale_power_l(skyp.get(), power, overall))
+			sph.sh_seriespp_assign(skyn.coeff, sph.sh_series_scale_power_l(skyn.get(), power, overall))
 		else:
 			# single detector case
 			sph.sh_seriesp_assign(skyp.coeff, self.logprior)
@@ -406,7 +414,7 @@ class RapidLocalization(object):
 					effective_sample_rate
 				)
 
-	def sphcoeff(self, snr, aut):
+	def sphcoeff(self, snr, aut, power=0.6, overall=2.7):
 		"""
 		Parameter
 		---------
@@ -420,7 +428,7 @@ class RapidLocalization(object):
 		output : tuple of coeff_series instances
 			object to store a localization result for \\beta = +/-1
 		"""
-		return self.precalcs["".join(sorted(snr))].sphcoeff(snr, aut)
+		return self.precalcs["".join(sorted(snr))].sphcoeff(snr, aut, power=power, overall=overall)
 
 	def write(self, precalc_path):
 		"""
