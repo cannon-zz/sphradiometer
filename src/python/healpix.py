@@ -108,6 +108,34 @@ def sh_series_to_healpy_alm(series):
 	return alms, l_max, m_max
 
 
+def healpy_alm_to_sh_series(alm, l_max, m_max):
+	"""
+	Convert a healpy-compatible alm array to an sh_series object.
+
+	NOTE:  healpix does not support complex-valued functions on the
+	sphere, so the negative-m coefficients are not present in the alm
+	array.
+	"""
+	# we could simply compute l_max from m_max and the length of alm,
+	# and since we want to safety check the input we have to recompute
+	# l_max anyway, so it might make more sense to not require it be
+	# part of the input.  I think it provides better API consistency if
+	# we always deal with the (alm, l_max, m_max) triple.
+	assert l_max == healpy_alm_l_max(alm, m_max), "invalid l_max=%d" % l_max
+
+	series = sh_series_new(l_max, m_max == 0)
+
+	alms = numpy.ndarray(shape = (healpy_alm_length(l_max, m_max),), dtype = "complex128")
+	for m in range(0, m_max + 1):
+		for l in range(m, l_max + 1):
+			x = alms[healpy.Alm.getidx(l_max, l, m)]
+			sh_series_set(series, l, m, x)
+			# reconstruct the missing negative-m coefficients
+			if m > 0:
+				sh_series_set(series, l, -m, -x.conjugate() if (m & 1) else x.conjugate())
+	return series
+
+
 def healpy_alm_to_map(alms, l_max, m_max):
 	"""
 	Convert an a_{l,m} array and m_max integer to a pixel map.  Returns
