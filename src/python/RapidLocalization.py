@@ -2,14 +2,21 @@ from glob import glob
 from itertools import combinations
 import numpy as np
 import os
+import tempfile
+import warnings
 
 from lal import series as lalseries
 from ligo.lw import ligolw
 from ligo.lw import lsctables
 from ligo.lw import param as ligolw_param
 from ligo.lw import utils as ligolw_utils
+try:
+	from ligo.skymap import io as skymap_io
+except ImportError:
+	warnings.warn("ligo.skymap.io import failed (not installed?).  writing to BAYESTAR compatible FITS files feature will be disabled.")
 
 from . import sphradiometer as sph
+from . import healpix as sph_healpix
 
 
 @lsctables.use_in
@@ -471,6 +478,157 @@ class RapidLocalization(object):
 		for name in self.precalcs:
 			print("reduce l_max of", name)
 			self.precalcs[name].reduce_l_max(deltaT)
+
+
+#
+# ==============================================================================
+#
+#                              Skymap I/O Helper
+#
+# ==============================================================================
+#
+
+
+class rapidskyloc_io(object):
+	def __init__(self, series, coinc_event_id = None):
+		# an integer
+		self.coinc_event_id = coinc_event_id
+		# an sh_series object
+		self.series = series
+
+	def to_xml(self, name):
+		"""
+		Serialize the rapidskyloc_io object to LIGO Light-Weight
+		XML format.  The return value is the root element of the
+		XML tree containing the serialization.  The name is
+		recorded with the object, and can be used at a later time
+		to search for and retrieve the object from a document.
+
+		NOTE:  unlike the healpix FITS encodings, complex-valued
+		functions on the sphere are fully supported by this
+		encoding.
+		"""
+		elem = ligolw.LIGO_LW()
+		elem.Name = "%s:rapidskyloc_alm" % name
+		elem.appendChild(ligolw.Comment()).pcdata = "log P(ra, dec) = sum_{l,m} a_{l,m} Y_{l,m}(pi/2-dec, ra).  see sphradiometer library for a_lm coefficient order (https://git.ligo.org/kipp.cannon/sphradiometer)."
+		elem.appendChild(ligolw.Param.build("coinc_event:event_id", "int_8s", self.coinc_event_id)).appendChild(ligolw.Comment()).pcdata = "corresponding coinc_event Table entry"
+		elem.appendChild(ligolw.Param.build("l_max", "int_4u", self.series.l_max)).appendChild(ligolw.Comment()).pcdata = "all 0 <= l <= l_max spherical harmonic orders are included"
+		elem.appendChild(ligolw.Param.build("polar", "int_4s", self.series.polar)).appendChild(ligolw.Comment()).pcdata = "0 = for all l, all m are included;  1 = for all l, only m=0 is included"
+		# this is ugly, but until we write a smarter swig interface
+		# for the library, this is what we're left having to do
+		n = sph.sh_series_length(self.series.l_max, self.series.polar)
+		alm = np.ndarray(shape = (n,), dtype = "complex128")
+		for i in range(n):
+			alm[i] = sph.double_complex_array_getitem(self.series.coeff, i)
+		elem.appendChild(ligolw.Array.build("a_lm", alm))
+		return elem
+
+	@classmethod
+	def get_xml_root(cls, xml, name):
+		return ligolw.LIGO_LW.get_ligo_lw(xml, "%s:rapidskyloc_alm" % name)
+
+	@classmethod
+	def from_xml(cls, xml, name):
+		"""
+		Search for the serialization of a rapidskyloc_io object
+		whose name is name, within the LIGO Light-Weight XML tree
+		rooted at xml.  Raises ValueError if not exactly 1 such
+		serialized object exists.  Returns the newly reconstructed
+		rapidskyloc_io object.
+		"""
+		xml = cls.get_xml_root(xml, name)
+		coinc_event_id = ligolw.Param.get_param(xml, "coinc_event:event_id").value
+		l_max = ligolw.Param.get_param(xml, "l_max").value
+		polar = ligolw.Param.get_param(xml, "polar").value
+		series = sph.sh_series_new(l_max, polar)
+		# this is ugly, but until we write a smarter swig interface
+		# for the library, this is what we're left having to do
+		alm = ligolw.Array.get_array(xml, "a_lm").array
+		assert alm.shape == (sph.sh_series_length(l_max, polar),)
+		for i, x in enumerate(alm):
+			sph.double_complex_array_setitem(series.coeff, i, x)
+		return cls(series = series, coinc_event_id = coinc_event_id)
+
+	def to_fits_buffer(self, fmt = "alm"):
+		"""
+		Return a buffer of the bytes of a FITS file containing an
+		encoding of the internal sh_series object.
+
+		fmt is one of:
+		"map":
+			Write un-normalized log probability density in
+			healpix map (pixel domain) format to FITS file.
+			This requires a frequency domain to pixel domain
+			conversion, so this can be substantially slower.
+		"alm" (the default):
+			Write un-normalized log probability density in
+			healpix alm (frequency domain) format to FITS file.
+		"bayestar":
+			Write BAYESTAR compatible normalized pixel
+			probability mass in healpix map (pixel domain)
+			format to FITS file.  This requires a frequency
+			domain to pixel domain conversion, so this can be
+			substantially slower.  This feature requires
+			ligo-skymap to be installed.
+
+		NOTE:  healpix can only represent real-valued functions on
+		the sphere.  If the internal sh_series object does not
+		describe a real-valued function, information loss will
+		occur using this format.
+		"""
+		# this is stupid.  there doesn't seem to be a way to create
+		# a fits file in ram.  the only way to get a buffer
+		# containing the bytes of a fits file is to write it to a
+		# named file on disk, then read it back in and delete the
+		# file.  sigh.  oh, and fits barfs if the file exists.  it
+		# won't overwrite a file, so you can't create a standing
+		# temporary file that you write to repeatedly if you need
+		# to do this more than once.  you have to delete it and
+		# make a fresh one each time.  omg.
+		with tempfile.TemporaryDirectory() as tmpdir:
+			filename = os.path.join(tmpdir, "deleteme.fits")
+			if fmt == "bayestar":
+		# compute healpix pixel basis representation of the
+		# posterior probability density.  the LVK convention is to
+		# store pixel probability mass.  the rapidskyloc code
+		# computes the spherical harmonic basis representation of
+		# the log of the probability density up to an unknown
+		# constant offset (the result is not normalized).  the
+		# conversion sequence is: (i) convert to pixel domain to
+		# obtain un-normalized log probability density in pixel
+		# basis; (ii) make the approximation that the probability
+		# density within each pixel is constant and equal to the
+		# value at the pixel centre and proceed with normalizing;
+		# (iii) healpix pixel maps have equal-area pixels, the area
+		# of each pixel is 4 pi / (# pixels) rad^2, but because
+		# this is a constant we can absorb it into the
+		# yet-to-be-computed overall normalization required to make
+		# the total probability = 1;  (iv) we want to normalize the
+		# logarithms directly because until the map is normalized
+		# exponentiating it is a numerically risky procedure but we
+		# cannot use logsumexp() thanks to the comically ancient
+		# scipy version on CalTech's LIGO Laboratory cluster,
+		# therefore instead we adjust the logarithms so that the
+		# mode is 1, which should be sufficient to prevent
+		# numerical problems in the next step;  (v) exponentiate to
+		# obtain the not-yet-normalized probability mass for each
+		# pixel;  (vi) apply a final normalization to make the sum
+		# of the probabilities 1.
+				_, _, prob = sph_healpix.healpy_alm_to_map(*sph_healpix.sh_series_to_healpy_alm(self.series))
+				prob = np.exp(prob - prob.max())
+				prob /= sum(prob)
+				# write to FITS file
+				skymap_io.write_sky_map(
+					filename,
+					prob
+				)
+			elif fmt == "map":
+				sph.sh_series_write_healpix_map(self.series, filename)
+			elif fmt == "alm":
+				sph.sh_series_write_healpix_alm(self.series, filename)
+			else:
+				raise ValueError("fmt must be one of \"map\", \"alm\", \"bayestar\"")
+			return open(filename, mode = "rb").read()
 
 
 #
