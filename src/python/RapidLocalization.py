@@ -187,7 +187,7 @@ class convert_TimeSeries2Sequence_wrap(object):
 
 
 class RapidLocalization_(object):
-	def __init__(self, psds, precalc_length, deltaT):
+	def __init__(self, psds, precalc_length, deltaT, effective_sample_rate=512):
 		"""
 		Parameter
 		---------
@@ -197,6 +197,9 @@ class RapidLocalization_(object):
 			legth of SNR time series used for localization.
 		deltaT : float
 			bin width of SNR time series used for localization.
+		effective_sample_rate : int
+			effective frquency to calculate spherical index of the
+			precalculated objects
 
 		NOTE
 		----
@@ -235,6 +238,9 @@ class RapidLocalization_(object):
 			sph.delete_double_array(sph.doublep_array_getitem(psd_array, i))
 		sph.delete_doublep_array(psd_array)
 
+		# reduce the upper cutoff of spheical index l
+		# Up to 512 Hz, SNR of the CBC waveforms are > 99% accumulated.
+		self.reduce_l_max(1. / effective_sample_rate)
 
 	def sphcoeff(self, snr, aut):
 		"""
@@ -367,7 +373,7 @@ class RapidLocalization_(object):
 
 
 class RapidLocalization(object):
-	def __init__(self, psds, precalc_length, deltaT):
+	def __init__(self, psds, precalc_length, deltaT, effective_sample_rate=512):
 		"""
 		Parameter
 		---------
@@ -377,6 +383,9 @@ class RapidLocalization(object):
 			legth of SNR time series used for localization.
 		deltaT : float
 			bin width of SNR time series used for localization.
+		effective_sample_rate : int
+			effective frquency to calculate spherical index of the
+			precalculated objects
 
 		NOTE
 		----
@@ -393,7 +402,8 @@ class RapidLocalization(object):
 				self.precalcs["".join(c)] = RapidLocalization_(
 					psds_,
 					precalc_length,
-					deltaT
+					deltaT,
+					effective_sample_rate
 				)
 
 	def sphcoeff(self, snr, aut):
@@ -512,8 +522,6 @@ if __name__ == "__main__":
 			precalc_length,
 			snr[instruments[0]].deltaT
 		)
-		print("reduce l_max")
-		rapidloc.reduce_l_max(1 / 512.)
 		print("write objects")
 		rapidloc.write(precalc_path)
 
