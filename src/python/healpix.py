@@ -35,7 +35,7 @@ from . import sphradiometer
 #
 # =============================================================================
 #
-#                                 Converstion
+#                                  Conversion
 #
 # =============================================================================
 #
@@ -45,7 +45,7 @@ def healpy_alm_l_max(alm, m_max):
 	"""
 	Compute l_max from the length of the healpy alm array, given the
 	value of m_max.  Raises ValueError if the (l_max, m_max)
-	combination is not compatible with the requiremetns of the
+	combination is not compatible with the requirements of the
 	sphradiometer library (even if healpix allows it).
 
 	NOTE:  healpix does not support complex-valued functions on the
@@ -125,13 +125,12 @@ def healpy_alm_to_sh_series(alm, l_max, m_max):
 
 	series = sh_series_new(l_max, m_max == 0)
 
-	alms = numpy.ndarray(shape = (healpy_alm_length(l_max, m_max),), dtype = "complex128")
 	for m in range(0, m_max + 1):
 		for l in range(m, l_max + 1):
-			x = alms[healpy.Alm.getidx(l_max, l, m)]
+			x = alm[healpy.Alm.getidx(l_max, l, m)]
 			sh_series_set(series, l, m, x)
 			# reconstruct the missing negative-m coefficients
-			if m > 0:
+			if m:
 				sh_series_set(series, l, -m, -x.conjugate() if (m & 1) else x.conjugate())
 	return series
 
