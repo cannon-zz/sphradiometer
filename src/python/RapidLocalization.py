@@ -697,8 +697,8 @@ if __name__ == "__main__":
 
 	# save coeff series
 	print("save")
-	sph.sh_series_write_healpix_alm(skyp.get(), "coeffp.fits")
-	sph.sh_series_write_healpix_alm(skyn.get(), "coeffn.fits")
+	open("coeffp.fits").write(rapidskyloc_io(skyp).to_fits_buffer(fmt = "alm"))
+	open("coeffn.fits").write(rapidskyloc_io(skyn).to_fits_buffer(fmt = "alm"))
 
 
 	#
