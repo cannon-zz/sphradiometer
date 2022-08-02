@@ -295,14 +295,16 @@ int SVD_to_sh_series_file(const struct SVD *svd, int l_max, int polar, double th
 
 /*
  * Starting from an sh_series_array object containing n
- * linearly-independant functions on the sphere, use the Gram-Schmidt
- * process to construct a set of orthonormal basis functions complete to
- * order l_max of the array.  The first n basis functions span the space
- * spanned by the n original functions.  The basis functions are returned
- * in the sh_series_array, whose size may be increased to accomodate them,
- * and the function's return value is the vector of coefficients defining
- * the sum of the original n functions in terms of the new orthonormal
- * basis functions.
+ * linearly-independant, though not necessarily mutually orthogonal,
+ * functions on the sphere, use a singular-value decomposition to construct
+ * a complete set of orthonormal basis functions up to l_max of the
+ * original array.  The first n basis functions span the space spanned by
+ * the original n functions, and the remaining functions, if any, span the
+ * null space of the original n functions.  The basis functions are
+ * returned in the sh_series_array, whose size may be increased to
+ * accomodate them, and the function's return value is the vector of
+ * coefficients defining the sum of the original n functions in terms of
+ * the new orthonormal basis functions.
  */
 
 
