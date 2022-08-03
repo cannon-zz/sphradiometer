@@ -71,7 +71,7 @@ AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 
 # Check for HDF5
-AC_SUBST([MIN_HDF5_VERSION], [1.10])
+AC_SUBST([MIN_HDF5_VERSION], [1.8])
 AX_LIB_HDF5([serial])
 
 # Check for healpix

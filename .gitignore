@@ -32,9 +32,9 @@ Makefile.in
 src/bin/fastX
 src/bin/inspiral_sky_map
 src/bin/radiometer
-src/include/sphradiometer/config.h
-src/include/sphradiometer/config.h.in
-src/include/sphradiometer/config.h.in~
+src/include/sphradiometer/sphradiometer_config.h
+src/include/sphradiometer/sphradiometer_config.h.in
+src/include/sphradiometer/sphradiometer_config.h.in~
 src/lib/sphradiometer.pc
 src/python/sphradiometer.py
 src/python/sphradiometer_wrap.c

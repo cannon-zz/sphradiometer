@@ -5,6 +5,7 @@ Summary:	Omni-directional aperture synthesis library
 Version:	@VERSION@
 Release:	1%{?dist}
 License:	GPL-2.0-or-later
+Source:		%{shortname}-%{version}.tar.gz
 Url:		https://git.ligo.org/kipp.cannon/sphradiometer
 Prefix:		%{_prefix}
 
@@ -48,7 +49,7 @@ Requires:	lib%{shortname} = %{version}
 Requires:	liblal-devel >= @MIN_LAL_VERSION@
 Requires:	fftw-devel
 Requires:	gsl-devel >= @MIN_GSL_VERSION@
-%description -n python%{python3_pkgversion}-%{shortname}
+%description -n lib%{shortname}-devel
 Files required to develop new applications and libraries that use
 sphradiometer.
 
@@ -71,23 +72,54 @@ if you use this code.
 
 
 %prep
-%configure
+%setup -q -n %{shortname}-%{version}
+
 
 %build
-%make
+%configure
+%{__make}
+
 
 %install
-%makeinstall
+DESTDIR=${RPM_BUILD_ROOT} %{__make} install
+# remove .so symlinks from libdir.  these are not included in the .rpm,
+# they will be installed by ldconfig in the post-install script, except for
+# the .so symlink which isn't created by ldconfig and gets shipped in the
+# devel package
+[ ${RPM_BUILD_ROOT} != "/" ] && find ${RPM_BUILD_ROOT}/%{_libdir} -name "*.so.*" -type l -delete
+# don't distribute *.la files
+[ ${RPM_BUILD_ROOT} != "/" ] && find ${RPM_BUILD_ROOT} -name "*.la" -type f -delete
+
+
+%post
+if test -d /usr/lib64 ; then
+	ldconfig /usr/lib64
+else
+	ldconfig
+fi
+
+
+%postun
+if test -d /usr/lib64 ; then
+	ldconfig /usr/lib64
+else
+	ldconfig
+fi
+
 
 %clean
-rm -rf %{buildroot}
+[ ${RPM_BUILD_ROOT} != "/" ] && rm -Rf ${RPM_BUILD_ROOT}
+rm -Rf ${RPM_BUILD_DIR}/%{shortname}-%{version}
+
 
 %files
+%defattr(-,root,root)
 %license LICENSE
 %{_bindir}/*
 %{_libdir}/*.so.*
 
 %files -n lib%{shortname}-devel
+%defattr(-,root,root)
 %license LICENSE
 %{_includedir}/*
 %{_libdir}/*.a
@@ -95,5 +127,6 @@ rm -rf %{buildroot}
 %{_libdir}/pkgconfig/*.pc
 
 %files -n python%{python3_pkgversion}-%{shortname}
+%defattr(-,root,root)
 %license LICENSE
 %{python3_sitearch}/sphradiometer
