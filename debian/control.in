@@ -18,7 +18,7 @@ Build-Depends:
  libhealpix-cxx-dev (>= @MIN_HEALPIXCXX_VERSION@),
  libopenblas-dev,
  pkg-config,
- python3-all-dev (>= @MIN_PYTHON_VERSION@)
+ python3-all-dev (>= @MIN_PYTHON_VERSION@),
  python3-lal (>= @MIN_LAL_VERSION@),
  swig,
 
@@ -58,7 +58,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libsphradiometer (= ${binary:Version}),
  libc6-dev,
  libfftw3-dev,
- libgsl-dev (>= @MIN_GSL_VERSION@)
+ libgsl-dev (>= @MIN_GSL_VERSION@),
  liblal-dev (>= @MIN_LAL_VERSION@)
 Description: Files and documentation needed for compiling sphradiometer based software.
  This package contains the files needed to compile sphradiometer based
