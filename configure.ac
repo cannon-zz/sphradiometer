@@ -1,6 +1,6 @@
 AC_INIT([sphradiometer],[0.4.0],[kipp@resceu.s.u-tokyo.ac.jp])
 AC_COPYRIGHT([Copyright (C) 2009 Kipp C. Cannon])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([src/include/sphradiometer/sphradiometer_config.h])
 AC_CONFIG_AUX_DIR([gnuscripts])
 AC_CONFIG_MACRO_DIR([gnuscripts])
 AM_INIT_AUTOMAKE([1.9 tar-ustar foreign])
@@ -48,8 +48,23 @@ AC_SUBST([FFTW_CFLAGS])
 AC_SUBST([FFTW_LIBS])
 
 # Check for GSL
-AC_SUBST([MIN_GSL_VERSION], [1.9])
+# minimum required version is 2.0 (the version that added gsl_spline2d.h),
+# but redhat systems are hopelessly out of date, so, instead, we test for
+# the minimum version that's available on redhat-based LDG clusters (1.15
+# at the time of writing) to at least prevent back-sliding.  we introduce a
+# conditional to indicate if 2.0 is available on the system, and the
+# sh_series_eval_interp code is disabled on systems that don't have at
+# least 2.0.  for the record:  as I write this it is 2022, and LDG clusters
+# have version 1.15 installed which was released in May of 2011
+# (https://www.gnu.org/software/gsl/#development).  I mean, wow.  to be
+# fair, debian *testing* systems are only at 2.3 which was released in
+# December of 2016, also embarassingly old, but at least debian has
+# transitioned to the 2.x series.  oh well, at least redhat provides a .pc
+# file for the package ...  sigh.
+AC_SUBST([MIN_GSL_VERSION], [1.15])
 PKG_CHECK_MODULES([GSL], [gsl >= ${MIN_GSL_VERSION}], , [AC_MSG_ERROR([Not Found!])])
+AM_CONDITIONAL([HAVE_GSL_2_0], [${PKG_CONFIG} --atleast-version=2.0 gsl])
+AM_COND_IF([HAVE_GSL_2_0], [AC_DEFINE([HAVE_GSL_2_0], [1], [defined if you have GSL >= 2.0])])
 AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
 

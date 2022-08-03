@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fftw3.h>
-#include <sphradiometer/math.h>
+#include <sphradiometer/sphradiometer_math.h>
 #include <sphradiometer/sh_series.h>
 
 

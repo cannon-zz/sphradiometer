@@ -34,7 +34,10 @@
 #include <string.h>
 #include <fftw3.h>
 #include <gsl/gsl_integration.h>
+#include <sphradiometer/sphradiometer_config.h>	/* needed for HAVE_GSL_2_0 */
+#ifdef HAVE_GSL_2_0
 #include <gsl/gsl_spline2d.h>
+#endif
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_legendre.h>
 #include <sphradiometer/sh_series.h>
@@ -277,6 +280,7 @@ complex double sh_series_eval(const struct sh_series *series, double theta, doub
  */
 
 
+#ifdef HAVE_GSL_2_0
 struct sh_series_eval_interp {
 	int ntheta, nphi;
 	double *theta;
@@ -434,6 +438,7 @@ double complex sh_series_eval_interp(const struct sh_series_eval_interp *interp,
 	assert(0. <= theta && theta <= M_PI);
 	return gsl_spline2d_eval(interp->re, phi, theta, interp->phi_acc, interp->theta_acc) + I * gsl_spline2d_eval(interp->im, phi, theta, interp->phi_acc, interp->theta_acc);
 }
+#endif
 
 
 /*
