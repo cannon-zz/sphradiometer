@@ -7,6 +7,7 @@ AM_INIT_AUTOMAKE([1.9 tar-ustar foreign])
 AUTOMAKE_OPTIONS="${AUTOMAKE_OPTIONS} --add-missing --copy"
 AC_CONFIG_FILES([ \
 	Makefile \
+	sphradiometer.spec \
 	debian/control \
 	debian/Makefile \
 	src/Makefile \

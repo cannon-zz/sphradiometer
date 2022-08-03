@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../include
+AM_CPPFLAGS = -I${srcdir}/../include
 
 pkgconfig_DATA = sphradiometer.pc
 

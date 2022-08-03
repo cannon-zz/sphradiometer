@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../include
+AM_CPPFLAGS = -I${srcdir}/../include
 
 # This is a trick taken from the gst-python automake setup.
 # All of the Python scripts will be installed under the exec dir,
@@ -25,5 +25,5 @@ _sphradiometer_la_CFLAGS = $(AM_CFLAGS) $(PYTHON_CFLAGS) $(AX_SWIG_PYTHON_CFLAGS
 _sphradiometer_la_LDFLAGS = -module $(GSL_LIBS) $(FFTW_LIBS) $(TCL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 _sphradiometer_la_LIBADD = ../lib/libsphinspiralskymap.la ../lib/libsphradiometer.la
 
-sphradiometer.py sphradiometer_wrap.c : sphradiometer.i ../include/sphradiometer/*.h
+sphradiometer.py sphradiometer_wrap.c : sphradiometer.i ${srcdir}/../include/sphradiometer/*.h
 	$(SWIG) $(AX_SWIG_PYTHON_OPT) -I$(SWIG_LIB)/python $(AM_CPPFLAGS) $(shell pkg-config --cflags-only-I lal) $<

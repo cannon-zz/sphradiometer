@@ -4,7 +4,7 @@ EXTRA_DIST = \
 	control \
 	control.in \
 	copyright \
-	sphradiometer-dev.install \
-	sphradiometer.install \
+	libsphradiometer-dev.install \
+	libsphradiometer.install \
 	rules \
 	source/format

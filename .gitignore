@@ -13,6 +13,7 @@ configure
 debian/control
 gnuscripts
 libtool
+sphradiometer.spec
 Makefile
 Makefile.in
 src/bin/fastX

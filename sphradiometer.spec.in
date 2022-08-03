@@ -1,0 +1,99 @@
+%define shortname sphradiometer
+
+Name: 		lib%{shortname}
+Summary:	Omni-directional aperture synthesis library
+Version:	@VERSION@
+Release:	1%{?dist}
+License:	GPL-2.0-or-later
+Url:		https://git.ligo.org/kipp.cannon/sphradiometer
+Prefix:		%{_prefix}
+
+BuildRequires:	liblal-devel >= @MIN_LAL_VERSION@
+BuildRequires:	liblalframe-devel >= @MIN_LALFRAME_VERSION@
+BuildRequires:	liblalsimulation-devel >= @MIN_LALSIMULATION_VERSION@
+BuildRequires:	libgomp
+BuildRequires:	fftw-devel
+BuildRequires:	gsl-devel >= @MIN_GSL_VERSION@
+BuildRequires:	hdf5-devel >= @MIN_HDF5_VERSION@
+BuildRequires:	healpix-c++-devel >= @MIN_HEALPIXCXX_VERSION@
+BuildRequires:	openblas-devel
+BuildRequires:	pkgconfig
+BuildRequires:	python3-devel >= @MIN_PYTHON_VERSION@
+BuildRequires:	python%{python3_pkgversion}-lal >= @MIN_LAL_VERSION@
+BuildRequires:	swig
+
+Requires:	liblal >= @MIN_LAL_VERSION@
+Requires:	liblalframe >= @MIN_LALFRAME_VERSION@
+Requires:	liblalsimulation >= @MIN_LALSIMULATION_VERSION@
+Requires:	libgomp
+Requires:	fftw
+Requires:	gsl >= @MIN_GSL_VERSION@
+Requires:	hdf5 >= @MIN_HDF5_VERSION@
+Requires:	healpix-c++ >= @MIN_HEALPIXCXX_VERSION@
+Requires:	openblas-openmp
+
+%description
+This package provides a C library, along with its associated wrappers and
+tools, that implements an omni-directional broadband aperture synthesis
+imaging algorithm.  The core algorithm is a generalization of the Van
+Cittert-Zernike theorem and is described in Phys. Rev. D, 75(12), 123003
+(doi://10.1103/PhysRevD.75.123003).  Additional algorithms based on that
+core and tailored specifically for the problem of ground-based
+gravitational-wave source localization are also included.
+
+
+%package -n lib%{shortname}-devel
+Summary:	Omni-directional aperture synthesis library
+Requires:	lib%{shortname} = %{version}
+Requires:	liblal-devel >= @MIN_LAL_VERSION@
+Requires:	fftw-devel
+Requires:	gsl-devel >= @MIN_GSL_VERSION@
+%description -n python%{python3_pkgversion}-%{shortname}
+Files required to develop new applications and libraries that use
+sphradiometer.
+
+
+%package -n python%{python3_pkgversion}-%{shortname}
+Summary:	Omni-directional aperture synthesis library
+Requires:	lib%{shortname} = %{version}
+Requires:	python3 >= @MIN_PYTHON_VERSION@
+Requires:	python%{python3_pkgversion}-healpy >= @MIN_HEALPY_VERSION@
+Requires:	python%{python3_pkgversion}-lal >= @MIN_LAL_VERSION@
+Requires:	python%{python3_pkgversion}-matplotlib >= @MIN_MATPLOTLIB_VERSION@
+Requires:	python%{python3_pkgversion}-numpy >= @MIN_NUMPY_VERSION@
+Requires:	python%{python3_pkgversion}-scipy >= @MIN_SCIPY_VERSION@
+# FIXME:  this package does not provide native packages for the reference OSes.
+#Requires:	python%{python3_pkgversion}-ligo-skymap
+%description -n python%{python3_pkgversion}-%{shortname}
+Python interface to the sphradiometer library.  This is constructed using
+swig and is a work-in-progress.  Please expect to have to track API changes
+if you use this code.
+
+
+%prep
+%configure
+
+%build
+%make
+
+%install
+%makeinstall
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%license LICENSE
+%{_bindir}/*
+%{_libdir}/*.so.*
+
+%files -n lib%{shortname}-devel
+%license LICENSE
+%{_includedir}/*
+%{_libdir}/*.a
+%{_libdir}/*.so
+%{_libdir}/pkgconfig/*.pc
+
+%files -n python%{python3_pkgversion}-%{shortname}
+%license LICENSE
+%{python3_sitearch}/sphradiometer

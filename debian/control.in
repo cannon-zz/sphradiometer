@@ -9,23 +9,23 @@ Build-Depends:
  dh-python,
  fakeroot,
  lal-dev (>= @MIN_LAL_VERSION@),
- lal-python (>= @MIN_LAL_VERSION@),
  lalframe-dev (>= @MIN_LALFRAME_VERSION@),
  lalsimulation-dev (>= @MIN_LALSIMULATION_VERSION@),
  libfftw3-dev,
  libgomp1,
+ libgsl-dev (>= @MIN_GSL_VERSION@),
  libhdf5-dev (>= @MIN_HDF5_VERSION@),
  libhealpix-cxx-dev (>= @MIN_HEALPIXCXX_VERSION@),
- libgsl-dev (>= @MIN_GSL_VERSION@),
  libopenblas-dev,
  pkg-config,
- python-all-dev (>= @MIN_PYTHON_VERSION@)
+ python3-all-dev (>= @MIN_PYTHON_VERSION@)
+ python3-lal (>= @MIN_LAL_VERSION@),
+ swig,
 
-Package: sphradiometer
+Package: libsphradiometer
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
  lal (>= @MIN_LAL_VERSION@),
- lal-python (>= @MIN_LAL_VERSION@),
  lalframe (>= @MIN_LALFRAME_VERSION@),
  lalsimulation (>= @MIN_LALSIMULATION_VERSION@),
  libfftw3-3,
@@ -36,10 +36,13 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
  libopenblas0,
  python (>= @MIN_PYTHON_VERSION@),
  python3-healpy (>= @MIN_HEALPY_VERSION@),
- python3-numpy (>= @MIN_NUMPY_VERSION@),
+ python3-lal (>= @MIN_LAL_VERSION@),
  python3-matplotlib (>= @MIN_MATPLOTLIB_VERSION@),
  python3-mpltoolkits.basemap (>= @MIN_BASEMAP_VERSION@),
+ python3-numpy (>= @MIN_NUMPY_VERSION@),
  python3-scipy (>= @MIN_SCIPY_VERSION@)
+Recommends:
+ python3-ligo-skymap
 Description: Omni-directional broadband aperture synthesis imaging library.
  This package provides a C library, along with its associated wrappers and
  tools, that implements an omni-directional broadband aperture synthesis
@@ -49,13 +52,14 @@ Description: Omni-directional broadband aperture synthesis imaging library.
  core and tailored specifically for the problem of ground-based
  gravitational-wave source localization are also included.
 
-Package: sphradiometer-dev
+Package: libsphradiometer-dev
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
- sphradiometer (= ${binary:Version}),
+ libsphradiometer (= ${binary:Version}),
  libc6-dev,
  libfftw3-dev,
  libgsl-dev (>= @MIN_GSL_VERSION@)
+ liblal-dev (>= @MIN_LAL_VERSION@)
 Description: Files and documentation needed for compiling sphradiometer based software.
  This package contains the files needed to compile sphradiometer based
  software.

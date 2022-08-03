@@ -1,3 +1,6 @@
+EXTRA_DIST = \
+	diagnostics.h
+
 pkginclude_HEADERS = \
 	correlator.h \
 	deconvolution.h \

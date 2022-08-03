@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I../include -I.
+AM_CPPFLAGS = -I${srcdir}/../include -I.
 
 bin_PROGRAMS = inspiral_sky_map fastX
 

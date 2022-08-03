@@ -1,4 +1,7 @@
-AM_CPPFLAGS = -I../src/include
+AM_CPPFLAGS = -I${srcdir}/../src/include
+
+EXTRA_DIST = \
+	healpy_validate.py
 
 TESTS = \
 	correlator_validate \
