@@ -63,15 +63,24 @@ PKG_CHECK_MODULES([HEALPIXCXX], [healpix_cxx], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([HEALPIXCXX_CFLAGS])
 AC_SUBST([HEALPIXCXX_LIBS])
 
-# Check for LAPACK
-AC_SUBST([MIN_LAPACK_VERSION], [3.0])
-PKG_CHECK_MODULES([LAPACK], [lapack-atlas >= ${MIN_LAPACK_VERSION}], , [AC_MSG_ERROR([Not Found!])])
+# Check for LAPACK.  the following has been tested to work with OpenBLAS on
+# Debian. (and also on ldas-pcdev1.ligo.caltech.edu as of 2022-08-02).
+# YMMV.
+AS_IF([test -f /etc/redhat-release], [
+	# redhat packages frequently fail to provide pkg-config metadata.
+	# I don't have the time needed to fix redhat's problems, so I'm
+	# just going to hard code this.  if this doesn't work for you, feel
+	# free to fight with this yourself.
+	LAPACK_CFLAGS=-"I/usr/include/openblas"
+	LAPACK_LIBS="-lopenblaso"
+], [
+	PKG_CHECK_MODULES([LAPACK], [lapack], , [AC_MSG_ERROR([Not Found!])])
+])
+PKG_CHECK_MODULES([LAPACK], [lapack], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
-old_CFLAGS="$CFLAGS" CFLAGS="$CFLAGS $LAPACK_CFLAGS"
-AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find liblapack])])
-CFLAGS="$old_CFLAGS"
-AC_CHECK_LIB([lapacke], [LAPACKE_zgesdd], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_CHECK_HEADER([cblas.h], , [AC_MSG_ERROR([cannot find liblapack])])
+AC_CHECK_LIB([lapack], [zgesdd_], , [AC_MSG_ERROR([cannot find liblapack])])
 
 # Check for LAL
 AC_SUBST([MIN_LAL_VERSION], [6.19.0])

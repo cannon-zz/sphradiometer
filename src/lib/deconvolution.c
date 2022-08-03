@@ -27,11 +27,11 @@
  */
 
 
+#include <cblas.h>
 #include <complex.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <lapacke.h>
 #include <sphradiometer/sh_series.h>
 #include <sphradiometer/deconvolution.h>
 
@@ -125,7 +125,7 @@ static struct SVD *SVD_new(int m, int n, const complex double *A)
 	memcpy(new->A_new, A, m * n * sizeof(*new->A_new));
 	transpose(m, n, &new->A_new);
 
-	LAPACK_zgesdd(&job, &m, &n, new->A_new, &lda, new->S, new->U, &ldu, new->VT, &ldvt, work, &lwork, rwork, iwork, &info);
+	zgesdd_(&job, &m, &n, new->A_new, &lda, new->S, new->U, &ldu, new->VT, &ldvt, work, &lwork, rwork, iwork, &info);
 
 	lwork = work[0];
 	free(work);
@@ -136,7 +136,7 @@ static struct SVD *SVD_new(int m, int n, const complex double *A)
 		goto done;
 	}
 
-	LAPACK_zgesdd(&job, &m, &n, new->A_new, &lda, new->S, new->U, &ldu, new->VT, &ldvt, work, &lwork, rwork, iwork, &info);
+	zgesdd_(&job, &m, &n, new->A_new, &lda, new->S, new->U, &ldu, new->VT, &ldvt, work, &lwork, rwork, iwork, &info);
 
 	transpose(n, m, &new->A_new);
 	transpose(n, m, &new->U);
