@@ -41,6 +41,7 @@
 #include <lal/DetResponse.h>
 #include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
+#include <lal/LALMalloc.h>
 #include <lal/LALSimulation.h>
 #include <lal/Sequence.h>
 #include <lal/TimeSeries.h>
@@ -109,7 +110,7 @@ COMPLEX16TimeSeries *get_complex16series_from_cache(const char *cache_name, cons
 	{
 	char *s = XLALGPSToStr(NULL, &result->epoch);
 	fprintf(stderr, "%s: loaded \"%s\" at %s s, duration=%g s (%d samples)\n", instrument, result->name, s, result->data->length * result->deltaT, result->data->length);
-	LALFree(s);
+	XLALFree(s);
 	}
 	return result;
 }
@@ -161,7 +162,7 @@ int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, i
 	for(i = 0; i < n_series; i++) {
 		char *s = XLALGPSToStr(NULL, &series[i]->epoch);
 		fprintf(stderr, "zero-padded interval for \"%s\": %s s, duration=%g s (%d samples)\n", series[i]->name, s, series[i]->data->length * series[i]->deltaT, series[i]->data->length);
-		LALFree(s);
+		XLALFree(s);
 		{
 		unsigned j;
 		for(j = 0; j < series[i]->data->length; j++) {
@@ -169,7 +170,7 @@ int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, i
 			XLALGPSAdd(&t, j * series[i]->deltaT);
 			s = XLALGPSToStr(NULL, &t);
 			fprintf(stderr, "%s: %g+I*%g\n", s, creal(series[i]->data->data[j]), cimag(series[i]->data->data[j]));
-			LALFree(s);
+			XLALFree(s);
 		}
 		fprintf(stderr, "\n");
 		}

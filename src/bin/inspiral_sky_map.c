@@ -52,6 +52,7 @@
 #include <lal/LALFrameIO.h>
 #include <lal/LALFrStream.h>
 #include <lal/LALDatatypes.h>
+#include <lal/LALMalloc.h>
 #include <lal/LALSimulation.h>
 #include <lal/Sequence.h>
 #include <lal/TimeSeries.h>
@@ -290,7 +291,7 @@ static COMPLEX16Sequence *get_complex16sequence_from_cache(
 	{
 	char *s = XLALGPSToStr(NULL, &data->epoch);
 	fprintf(stderr, "%s: loaded \"%s\" at %s s, duration=%g s (%d samples)\n", instrument, data->name, s, data->data->length * data->deltaT, data->data->length);
-	LALFree(s);
+	XLALFree(s);
 	}
 	result = data->data;
 	data->data = NULL;
