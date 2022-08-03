@@ -23,7 +23,8 @@ AC_CONFIG_FILES([ \
 AC_SUBST([pkgconfigdir],[${libdir}/pkgconfig])
 
 # Checks for programs
-AC_PROG_CC()
+# FIXME:  settle on AC_PROG_CC when LDG cluters have autoconf >= 2.70
+m4_version_prereq([2.70], [AC_PROG_CC()], [AC_PROG_CC_C99])
 AC_PROG_CXX
 AC_OPENMP
 AC_PROG_INSTALL
