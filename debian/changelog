@@ -1,5 +1,11 @@
+sphradiometer (0.4.0-1) unstable; urgency=low
+
+  * initial O4 sky-mapping release
+
+ -- Kipp Cannon <kipp.cannon@ligo.org>  Wed, 03 Aug 2022 17:00:00 +0900
+
 sphradiometer (0.3.0-1) unstable; urgency=low
 
   * first Debian package
 
- -- Kipp Cannon <kipp.cannon@ligo.org>  ???, ?? ??? 2019 ??:??:?? +0900
+ -- Kipp Cannon <kipp.cannon@ligo.org>  Fri, 30 Oct 2020 00:25:00 +0900
