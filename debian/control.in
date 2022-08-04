@@ -24,7 +24,7 @@ Build-Depends:
 
 Package: libsphradiometer
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
+Depends: ${shlibs:Depends}, ${misc:Depends},
  liblal20 (>= @MIN_LAL_VERSION@),
  lalframe13 (>= @MIN_LALFRAME_VERSION@),
  lalsimulation29 (>= @MIN_LALSIMULATION_VERSION@),
@@ -33,18 +33,9 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
  libgsl23 (>= @MIN_GSL_VERSION@),
  libhdf5-103 (>= @MIN_HDF5_VERSION@),
  libhealpix-cxx (>= @MIN_HEALPIXCXX_VERSION@),
- libopenblas0,
- python (>= @MIN_PYTHON_VERSION@),
- python3-healpy (>= @MIN_HEALPY_VERSION@),
- python3-lal (>= @MIN_LAL_VERSION@),
- python3-matplotlib (>= @MIN_MATPLOTLIB_VERSION@),
- python3-mpltoolkits.basemap (>= @MIN_BASEMAP_VERSION@),
- python3-numpy (>= @MIN_NUMPY_VERSION@),
- python3-scipy (>= @MIN_SCIPY_VERSION@)
-Recommends:
- python3-ligo-skymap
+ libopenblas0
 Description: Omni-directional broadband aperture synthesis imaging library.
- This package provides a C library, along with its associated wrappers and
+ This package provides a C library, along with its associated command line
  tools, that implements an omni-directional broadband aperture synthesis
  imaging algorithm.  The core algorithm is a generalization of the Van
  Cittert-Zernike theorem and is described in Phys. Rev. D, 75(12), 123003
@@ -52,9 +43,29 @@ Description: Omni-directional broadband aperture synthesis imaging library.
  core and tailored specifically for the problem of ground-based
  gravitational-wave source localization are also included.
 
+Package: python3-sphradiometer
+Architecture: any
+Depends: ${python3:Depends},
+ libsphradiometer (= ${binary:Version}),
+ python (>= @MIN_PYTHON_VERSION@),
+ python3-healpy (>= @MIN_HEALPY_VERSION@),
+ python3-lal (>= @MIN_LAL_VERSION@),
+ python3-ligo-lw,
+ python3-matplotlib (>= @MIN_MATPLOTLIB_VERSION@),
+ python3-mpltoolkits.basemap (>= @MIN_BASEMAP_VERSION@),
+ python3-numpy (>= @MIN_NUMPY_VERSION@),
+ python3-scipy (>= @MIN_SCIPY_VERSION@)
+Recommends:
+ python3-ligo-skymap
+Description: Omni-directional broadband aperture synthesis imaging library.
+ This package provides a python interface to the sphradiometer
+ omni-directional broadband aperture synthesis imaging library.  This is
+ constructed using swig and is a work-in-progress.  Please expect to have
+ to track API changes if you use this code.
+
 Package: libsphradiometer-dev
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
+Depends: ${misc:Depends},
  libsphradiometer (= ${binary:Version}),
  libc6-dev,
  libfftw3-dev,
