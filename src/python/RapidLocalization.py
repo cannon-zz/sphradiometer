@@ -491,10 +491,15 @@ class RapidLocalization(object):
 
 class rapidskyloc_io(object):
 	def __init__(self, series, coinc_event_id = None):
+		"""
+		Parameter
+		---------
+		series : coeff_series instances
+		"""
 		# an integer
 		self.coinc_event_id = coinc_event_id
 		# an sh_series object
-		self.series = series
+		self.series = series.get()
 
 	def to_xml(self, name):
 		"""
@@ -697,8 +702,8 @@ if __name__ == "__main__":
 
 	# save coeff series
 	print("save")
-	open("coeffp.fits").write(rapidskyloc_io(skyp).to_fits_buffer(fmt = "alm"))
-	open("coeffn.fits").write(rapidskyloc_io(skyn).to_fits_buffer(fmt = "alm"))
+	open("coeffp.fits", "wb").write(rapidskyloc_io(skyp).to_fits_buffer(fmt = "alm"))
+	open("coeffn.fits", "wb").write(rapidskyloc_io(skyn).to_fits_buffer(fmt = "alm"))
 
 
 	#
