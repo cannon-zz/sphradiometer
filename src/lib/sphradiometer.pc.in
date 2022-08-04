@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: libsphradiometer
 Description: Full-Sky Synthesis Imaging Library
 Version: @VERSION@
-Requires: chealpix fftw3 gsl lal lalsimulation
+Requires: lalsimulation lal healpix_cxx fftw3 gsl
 Libs: -L${libdir} -lsphradiometer
 Cflags: -I${includedir}
