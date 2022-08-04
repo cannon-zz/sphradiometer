@@ -2,6 +2,14 @@
 %:
 	dh $@ --with=python3
 
+# uncomment to make the auto-dependency phase ignore libraries whose origin
+# package cannot be deduced, e.g., stuff you've got installed in your home
+# directory.  this is helpful for debugging package building on a
+# non-production machine where other stuff might have been installed from
+# source.
+#override_dh_shlibdeps:
+#	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+
 override_dh_auto_install:
 	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
 	ls -lR $(CURDIR)/debian/tmp
