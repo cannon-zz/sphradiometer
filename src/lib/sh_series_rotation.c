@@ -461,13 +461,14 @@ complex double sh_series_rotation_plan_wigner_D(const struct sh_series_rotation_
 static struct sh_series *_sh_series_rotate(struct sh_series *result, const struct sh_series *series, const struct sh_series_rotation_plan *plan)
 {
 	unsigned int l;
-	int m, m_prime;
 
+	/* parallelizing the outer loop via omp results in a 50% slow down
+	 * of the test suite, with 4x CPU use. */
 	for(l = 1; l <= series->l_max; l++) {
 		complex double *D = plan->D[l];
-		for(m_prime = -(int) l; m_prime <= (int) l; m_prime++) {
+		for(int m_prime = -(int) l; m_prime <= (int) l; m_prime++) {
 			complex double c = 0.0;
-			for(m = -(int) l; m <= (int) l; m++)
+			for(int m = -(int) l; m <= (int) l; m++)
 				c += DElement(D, l, m, m_prime) * sh_series_get(series, l, m);
 			sh_series_set(result, l, m_prime, c);
 		}
@@ -480,11 +481,10 @@ static struct sh_series *_sh_series_rotate(struct sh_series *result, const struc
 static struct sh_series *_sh_series_rotate_polar(struct sh_series *result, const struct sh_series *series, const struct sh_series_rotation_plan *plan)
 {
 	unsigned int l;
-	int m_prime;
 
 	for(l = 1; l <= series->l_max; l++) {
 		complex double *D = plan->D[l];
-		for(m_prime = -(int) l; m_prime <= (int) l; m_prime++)
+		for(int m_prime = -(int) l; m_prime <= (int) l; m_prime++)
 			sh_series_set(result, l, m_prime, DElement(D, l, 0, m_prime) * sh_series_get(series, l, 0));
 	}
 
