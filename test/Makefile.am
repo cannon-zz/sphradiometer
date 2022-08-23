@@ -6,7 +6,6 @@ EXTRA_DIST = \
 TESTS = \
 	correlator_validate \
 	deriv_validate \
-	gsl_validate \
 	healpy_validate.py \
 	product_validate \
 	rotation_validate \
@@ -16,11 +15,17 @@ TESTS = \
 check_PROGRAMS = \
 	correlator_validate \
 	deriv_validate \
-	gsl_validate \
 	product_validate \
 	rotation_validate \
 	sh_series_validate \
 	sh_series_io_validate
+
+if HAVE_GSL_2_0
+TESTS += \
+	gsl_validate
+check_PROGRAMS += \
+	gsl_validate
+endif
 
 if S2KIT
 TESTS += \
