@@ -93,7 +93,6 @@ AS_IF([test -f /etc/redhat-release], [
 ], [
 	PKG_CHECK_MODULES([LAPACK], [lapack], , [AC_MSG_ERROR([Not Found!])])
 ])
-PKG_CHECK_MODULES([LAPACK], [lapack], , [AC_MSG_ERROR([Not Found!])])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
 AC_CHECK_HEADER([cblas.h], , [AC_MSG_ERROR([cannot find liblapack])])
