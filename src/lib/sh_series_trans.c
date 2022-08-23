@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <complex.h>
 #include <math.h>
+#include <omp.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fftw3.h>
@@ -567,6 +568,7 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	/* for each non-negative m, */
 	for(int m = 0; m <= m_max; m++) {
 		/* populate P[][] with (normalized) P_{l m}(cos theta) */
+#pragma omp parallel for shared(P, cos_theta_array, series)
 		for(int i = 0; i < ntheta; i++)
 			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * bw + m);
 		/* for each l s.t. m <= l <= l_max, */
@@ -654,6 +656,7 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	/* for each non-negative m, */
 	for(int m = 0; m <= m_max; m++) {
 		/* populate P[][] with (normalized) P_{lm}(cos theta) */
+#pragma omp parallel for shared(P, cos_theta_array, series)
 		for(int i = 0; i < ntheta; i++)
 			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * bw + m);
 		/* for each l s.t. m <= l <= l_max, */
@@ -726,7 +729,6 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 	int m_max = series->polar ? 0 : series->l_max;
 	complex double *mesh = sh_series_mesh_new(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights);
 	complex double *F = calloc(ntheta * nphi, sizeof(*F));
-	double P[series->l_max + 1];
 
 	/* not needed */
 	free(cos_theta_weights);
@@ -739,8 +741,10 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 	}
 
 	/* populate F[] */
+#pragma omp parallel for shared(series, ntheta, nphi, cos_theta_array, m_max, F)
 	for(int i = 0; i < ntheta; i++)
 		for(int m = -m_max; m <= m_max; m++) {
+			double P[series->l_max + 1];
 			complex double *coeff = series->coeff + sh_series_moffset(series->l_max, m);
 			complex double x = 0.;
 			/* compute (normalized) P_{lm}(cos theta) */
