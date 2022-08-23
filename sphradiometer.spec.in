@@ -60,8 +60,8 @@ Requires:	lib%{shortname} = %{version}
 Requires:	python3 >= @MIN_PYTHON_VERSION@
 # FIXME:  redhat is too old to ask it to provide useful minimum versions.
 # we have to just live with whatever there is and hope people don't run
-# code that needs something up-to-date.  most dependencies don't have a
-# version constraint.
+# code that needs something up-to-date.  therefore, most dependencies don't
+# have a version constraint.
 Requires:	python%{python3_pkgversion}-healpy
 Requires:	python%{python3_pkgversion}-lal >= @MIN_LAL_VERSION@
 Requires:	python%{python3_pkgversion}-matplotlib
