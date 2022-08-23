@@ -58,11 +58,15 @@ sphradiometer.
 Summary:	Omni-directional aperture synthesis library
 Requires:	lib%{shortname} = %{version}
 Requires:	python3 >= @MIN_PYTHON_VERSION@
-Requires:	python%{python3_pkgversion}-healpy >= @MIN_HEALPY_VERSION@
+# FIXME:  redhat is too old to ask it to provide useful minimum versions.
+# we have to just live with whatever there is and hope people don't run
+# code that needs something up-to-date.  most dependencies don't have a
+# version constraint.
+Requires:	python%{python3_pkgversion}-healpy
 Requires:	python%{python3_pkgversion}-lal >= @MIN_LAL_VERSION@
-Requires:	python%{python3_pkgversion}-matplotlib >= @MIN_MATPLOTLIB_VERSION@
-Requires:	python%{python3_pkgversion}-numpy >= @MIN_NUMPY_VERSION@
-Requires:	python%{python3_pkgversion}-scipy >= @MIN_SCIPY_VERSION@
+Requires:	python%{python3_pkgversion}-matplotlib
+Requires:	python%{python3_pkgversion}-numpy
+Requires:	python%{python3_pkgversion}-scipy
 # FIXME:  this package does not provide native packages for the reference OSes.
 #Requires:	python%{python3_pkgversion}-ligo-skymap
 %description -n python%{python3_pkgversion}-%{shortname}
