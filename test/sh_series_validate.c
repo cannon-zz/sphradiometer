@@ -36,6 +36,7 @@
 
 #include <sphradiometer/diagnostics.h>
 #include <sphradiometer/sh_series.h>
+#include <sphradiometer/sphradiometer_config.h> /* needed for HAVE_GSL_2_0 */
 
 
 /*
@@ -499,6 +500,7 @@ static int test_projection2(void)
 }
 
 
+#ifdef HAVE_GSL_2_0
 static complex double interp_wrapper(double theta, double phi, void *interp)
 {
 	return sh_series_eval_interp((struct sh_series_eval_interp *) interp, theta, phi);
@@ -532,6 +534,7 @@ static int test_interpolation(void)
 	}
 	return 0;
 }
+#endif
 
 
 /*
@@ -710,7 +713,9 @@ int main(int argc, char *argv[])
 	assert(test_add() == 0);
 	assert(test_projection1() == 0);
 	assert(test_projection2() == 0);
+#ifdef HAVE_GSL_2_0
 	assert(test_interpolation() == 0);
+#endif
 
 	exit(0);
 }
