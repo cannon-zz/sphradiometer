@@ -91,11 +91,25 @@ AS_IF([test -f /etc/redhat-release], [
 	LAPACK_CFLAGS=-"I/usr/include/openblas"
 	LAPACK_LIBS="-lopenblaso"
 ], [
+	# unlike on redhat, on Debian, for some reason I cannot figure out,
+	# openblas does not provide a lapacke.h header file.  testing seems
+	# to show that if lapacke-dev is installed, and we ask pkg-config
+	# for "lapack" we get CFLAGS and LIBS that pick up the lapacke.h
+	# from lapacke-dev and the openblas library from openblas, and they
+	# somehow work together OK.  at hate the HPC world, it's such a
+	# zoo.
 	PKG_CHECK_MODULES([LAPACK], [lapack], , [AC_MSG_ERROR([Not Found!])])
 ])
 AC_SUBST([LAPACK_CFLAGS])
 AC_SUBST([LAPACK_LIBS])
-AC_CHECK_HEADER([cblas.h], , [AC_MSG_ERROR([cannot find liblapack])])
+ac_save_CFLAGS=$CFLAGS
+CFLAGS=$LAPACK_CFLAGS
+AC_CHECK_HEADER([lapacke.h], , [AC_MSG_ERROR([cannot find lapacke.h])])
+CFLAGS=$ac_save_CFLAGS
+# NOTE: what's actually in openblas is zgesdd_() but the header files
+# somehow turn it into LAPACK_zgesdd().  I don't know how, and I don't
+# care, we just need to confirm that we're looking at a liblapack from
+# openblas.
 AC_CHECK_LIB([lapack], [zgesdd_], , [AC_MSG_ERROR([cannot find liblapack])])
 
 # Check for LAL

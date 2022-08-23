@@ -16,6 +16,7 @@ Build-Depends:
  libgsl-dev (>= @MIN_GSL_VERSION@),
  libhdf5-dev (>= @MIN_HDF5_VERSION@),
  libhealpix-cxx-dev (>= @MIN_HEALPIXCXX_VERSION@),
+ liblapacke-dev,
  libopenblas-dev,
  pkg-config,
  python3-all-dev (>= @MIN_PYTHON_VERSION@),
