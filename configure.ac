@@ -1,4 +1,4 @@
-AC_INIT([sphradiometer],[0.4.0],[kipp@resceu.s.u-tokyo.ac.jp])
+AC_INIT([sphradiometer],[0.5.0],[kipp@resceu.s.u-tokyo.ac.jp])
 AC_COPYRIGHT([Copyright (C) 2009 Kipp C. Cannon])
 AC_CONFIG_HEADERS([src/include/sphradiometer/sphradiometer_config.h])
 AC_CONFIG_AUX_DIR([gnuscripts])

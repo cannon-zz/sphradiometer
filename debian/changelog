@@ -1,3 +1,7 @@
+sphradiometer (0.5.0-1) unstable; urgency=low
+
+ -- Kipp Cannon <kipp.cannon@ligo.org>  ???, ?? ??? 202? ??:??:00 +0900
+
 sphradiometer (0.4.0-1) unstable; urgency=low
 
   * initial O4 sky-mapping release
