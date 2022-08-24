@@ -512,10 +512,31 @@ static int test_interpolation(void)
 	unsigned int lmax;
 
 	for(lmax = 1; lmax < 50; lmax++) {
+		/* construct a random sh_series and build an interpolator
+		 * for its pixel domain representation */
 		struct sh_series *orig = random_sh_series(lmax, 0);
 		struct sh_series_eval_interp *interp = sh_series_eval_interp_new(orig);
 		struct sh_series *final = sh_series_new(2 * lmax, 0);
 		double err;
+
+		/* check a few properties of the interpolator.  can we
+		 * evaluate it at the poles, is it periodic in phi, etc. */
+
+		double complex x, y;
+		(void) sh_series_eval_interp(interp, 0., 1.);
+		(void) sh_series_eval_interp(interp, M_PI, 1.);
+		x = sh_series_eval_interp(interp, M_PI / 2., 0.);
+		y = sh_series_eval_interp(interp, M_PI / 2., 2. * M_PI);
+		if(x != y) {
+			fprintf(stderr, "for lmax=%d theta=pi/2 @phi=0 x=%.16g+i*%.16g @phi=2pi x=%.16g+i*%.16g\n", lmax, creal(x), cimag(x), creal(y), cimag(y));
+			return -1;
+		}
+		y = sh_series_eval_interp(interp, M_PI / 2., -4. * M_PI);
+		if(x != y) {
+			fprintf(stderr, "for lmax=%d theta=pi/2 @phi=0 x=%.16g+i*%.16g @phi=-4pi x=%.16g+i*%.16g\n", lmax, creal(x), cimag(x), creal(y), cimag(y));
+			return -1;
+		}
+
 		sh_series_from_func(final, interp_wrapper, interp);
 		sh_series_eval_interp_free(interp);
 		err = diagnostics_rms_error(orig, final) / lmax;

@@ -427,15 +427,15 @@ void sh_series_eval_interp_free(struct sh_series_eval_interp *interp)
 double complex sh_series_eval_interp(const struct sh_series_eval_interp *interp, double theta, double phi)
 {
 	/* the interpolator was constructed for 0 <= phi < 2 pi, so that's
-	 * the domain we require phi to be in, but it's reasonable for
-	 * calling code to expect -pi <= phi < pi, or other similar domains
-	 * to be acceptable, so we allow it and do the wrap-around
-	 * ourselves.  theta, however, is required to be in the domain 0 <=
-	 * theta <= pi. */
+	 * the domain we require phi to be in, but that's a internal
+	 * implementation detail and it's reasonable for calling code to
+	 * expect -pi <= phi < pi, or other similar domains to be
+	 * acceptable, so we allow it and do the wrap-around ourselves.
+	 * theta, however, is required to be in the domain 0 <= theta <=
+	 * pi. */
+	phi = fmod(phi, 2. * M_PI);
 	if(phi < 0.)
-		phi += 2. * M_PI * (floor(phi / (2. * M_PI)) + 1.);
-	else if(phi >= 2. * M_PI)
-		phi -= 2. * M_PI * floor(phi / (2. * M_PI));
+		phi += 2. * M_PI;
 	assert(0. <= theta && theta <= M_PI);
 	return gsl_spline2d_eval(interp->re, phi, theta, interp->phi_acc, interp->theta_acc) + I * gsl_spline2d_eval(interp->im, phi, theta, interp->phi_acc, interp->theta_acc);
 }
