@@ -303,22 +303,33 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 	if(!interp)
 		return NULL;
 
+	/* compute the parameters of the mesh */
+
 	if(pixels_from_l_max(series->l_max, &interp->ntheta, &interp->nphi, &interp->theta, &tmp)) {
 		free(interp);
 		return NULL;
 	}
 	free(tmp);
 
+	/* compute the theta co-ordinates from the cos(theta) array */
+
 	for(j = 0; j < interp->ntheta; j++)
 		interp->theta[j] = acos(interp->theta[j]);
 
-	/* to ensure periodicity in phi, 4 extra columns are added and two
-	 * rows.  the real array of phi is the central nphi columns, with
-	 * two columns on the left and on the right providing duplicate
-	 * copies of the other end of the array thereby inducing the
-	 * interpolator to construct a periodic function.  the theta array
-	 * gets the north and south poles added to prevent "y value out of
-	 * range" errors in the GSL interpolator. */
+	/* to ensure periodicity in phi, and to ensure the interpolator is
+	 * defined at the poles, 4 extra columns are added and two rows.
+	 * the actual array of phi in [0, 2 pi) is the central nphi
+	 * columns, with two columns on the left and on the right providing
+	 * duplicate copies of the other end of the array thereby inducing
+	 * the cubic interpolator to construct an exactly periodic function
+	 * within [0, 2 pi).  the theta array gets the north and south
+	 * poles added to prevent "y value out of range" errors in the GSL
+	 * interpolator. */
+
+	/* start by allocating all the required memory and doing the
+	 * frequency-domain to pixel-doman transform.  if any of this fails
+	 * we have to clean up by hand. */
+
 	tmp = realloc(interp->theta, (interp->ntheta + 2) * sizeof(*interp->theta));
 	interp->phi = malloc((interp->nphi + 4) * sizeof(*interp->phi));
 	interp->re = gsl_spline2d_alloc(gsl_interp2d_bicubic, interp->nphi + 4, interp->ntheta + 2);
@@ -350,12 +361,16 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 	interp->theta[interp->ntheta + 1] = M_PI;
 
 	/* initialize the phi co-ordinate array */
+
 	for(i = -2; i < interp->nphi + 2; i++)
 		interp->phi[i + 2] = (2. * M_PI / interp->nphi) * i;
 
 	/* initialize the real part interpolator */
+
 	{
 	double x;
+	/* populate the rows for the north and south poles.  these aren't
+	 * in the pixel mesh, they need to be evaluated explicitly */
 	x = creal(sh_series_eval(series, 0., 0.));
 	for(i = 0; i < interp->nphi + 4; i++)
 		interp_mesh[(0) * (interp->nphi + 4) + i] = x;
@@ -363,14 +378,20 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 	for(i = 0; i < interp->nphi + 4; i++)
 		interp_mesh[(interp->ntheta + 1) * (interp->nphi + 4) + i] = x;
 	}
+	/* copy the real parts from the pixel mesh into the
+	 * interpolator input mesh */
 	for(j = 0; j < interp->ntheta; j++) {
+		/* two columns for phi < 0 */
 		interp_mesh[(j + 1) * (interp->nphi + 4) + 0] = creal(mesh[j * interp->nphi + interp->nphi - 2]);
 		interp_mesh[(j + 1) * (interp->nphi + 4) + 1] = creal(mesh[j * interp->nphi + interp->nphi - 1]);
+		/* 0 <= phi < 2 pi */
 		for(i = 0; i < interp->nphi; i++)
 			interp_mesh[(j + 1) * (interp->nphi + 4) + i + 2] = creal(mesh[j * interp->nphi + i]);
+		/* two columns for phi >= 2 pi */
 		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 2] = creal(mesh[j * interp->nphi + 0]);
 		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 3] = creal(mesh[j * interp->nphi + 1]);
 		}
+	/* initalize the interpolator */
 	if(gsl_spline2d_init(interp->re, interp->phi, interp->theta, interp_mesh, interp->nphi + 4, interp->ntheta + 2)) {
 		free(mesh);
 		free(interp_mesh);
@@ -379,8 +400,11 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 	}
 
 	/* initialize the imaginary part interpolator */
+
 	{
 	double x;
+	/* populate the rows for the north and south poles.  these aren't
+	 * in the pixel mesh, they need to be evaluated explicitly */
 	x = creal(sh_series_eval(series, 0., 0.));
 	for(i = 0; i < interp->nphi + 4; i++)
 		interp_mesh[(0) * (interp->nphi + 4) + i] = x;
@@ -388,20 +412,28 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 	for(i = 0; i < interp->nphi + 4; i++)
 		interp_mesh[(interp->ntheta + 1) * (interp->nphi + 4) + i] = x;
 	}
+	/* copy the imaginary parts from the pixel mesh into the
+	 * interpolator input mesh */
 	for(j = 0; j < interp->ntheta; j++) {
+		/* two columns for phi < 0 */
 		interp_mesh[(j + 1) * (interp->nphi + 4) + 0] = cimag(mesh[j * interp->nphi + interp->nphi - 2]);
 		interp_mesh[(j + 1) * (interp->nphi + 4) + 1] = cimag(mesh[j * interp->nphi + interp->nphi - 1]);
+		/* 0 <= phi < 2 pi */
 		for(i = 0; i < interp->nphi; i++)
 			interp_mesh[(j + 1) * (interp->nphi + 4) + i + 2] = cimag(mesh[j * interp->nphi + i]);
+		/* two columns for phi >= 2 pi */
 		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 2] = cimag(mesh[j * interp->nphi + 0]);
 		interp_mesh[(j + 1) * (interp->nphi + 4) + interp->nphi + 3] = cimag(mesh[j * interp->nphi + 1]);
 		}
+	/* initalize the interpolator */
 	if(gsl_spline2d_init(interp->im, interp->phi, interp->theta, interp_mesh, interp->nphi + 4, interp->ntheta + 2)) {
 		free(mesh);
 		free(interp_mesh);
 		sh_series_eval_interp_free(interp);
 		return NULL;
 	}
+
+	/* done.  the pixel meshes are no longer required */
 
 	free(mesh);
 	free(interp_mesh);
