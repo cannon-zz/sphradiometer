@@ -600,7 +600,7 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	/* for each non-negative m, */
 	for(int m = 0; m <= m_max; m++) {
 		/* populate P[][] with (normalized) P_{l m}(cos theta) */
-#pragma omp parallel for shared(P, cos_theta_array, series)
+#pragma omp parallel for shared(P, cos_theta_array, series) num_threads(4)
 		for(int i = 0; i < ntheta; i++)
 			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * bw + m);
 		/* for each l s.t. m <= l <= l_max, integrate H_{m}(theta)
@@ -687,7 +687,7 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	/* for each non-negative m, */
 	for(int m = 0; m <= m_max; m++) {
 		/* populate P[][] with (normalized) P_{lm}(cos theta) */
-#pragma omp parallel for shared(P, cos_theta_array, series)
+#pragma omp parallel for shared(P, cos_theta_array, series) num_threads(4)
 		for(int i = 0; i < ntheta; i++)
 			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + i * bw + m);
 		/* for each l s.t. m <= l <= l_max, integrate H_{m}(theta)
@@ -771,7 +771,7 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 	}
 
 	/* populate F[] */
-#pragma omp parallel for shared(series, ntheta, nphi, cos_theta_array, m_max, F)
+#pragma omp parallel for shared(series, ntheta, nphi, cos_theta_array, m_max, F) num_threads(4)
 	for(int i = 0; i < ntheta; i++)
 		for(int m = -m_max; m <= m_max; m++) {
 			double P[series->l_max + 1];
