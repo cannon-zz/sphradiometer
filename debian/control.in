@@ -3,7 +3,7 @@ Maintainer: Kipp Cannon <kipp.cannon@ligo.org>
 Section: contrib/science
 Priority: optional
 Standards-Version: 3.9.2
-X-Python-Version: >= @MIN_PYTHON_VERSION@
+X-Python3-Version: >= @MIN_PYTHON_VERSION@
 Build-Depends:
  debhelper (>= 9),
  dh-python,
@@ -48,7 +48,6 @@ Package: python3-sphradiometer
 Architecture: any
 Depends: ${python3:Depends},
  libsphradiometer (= ${binary:Version}),
- python (>= @MIN_PYTHON_VERSION@),
  python3-healpy (>= @MIN_HEALPY_VERSION@),
  python3-lal (>= @MIN_LAL_VERSION@),
  python3-ligo-lw,
