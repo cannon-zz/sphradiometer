@@ -62,13 +62,33 @@ AC_SUBST([FFTW_LIBS])
 # fair, debian *testing* systems are only at 2.3 which was released in
 # December of 2016, also embarassingly old, but at least debian has
 # transitioned to the 2.x series.  oh well, at least redhat provides a .pc
-# file for the package ...  sigh.
+# file for the package ... sigh.
 AC_SUBST([MIN_GSL_VERSION], [1.15])
 PKG_CHECK_MODULES([GSL], [gsl >= ${MIN_GSL_VERSION}], , [AC_MSG_ERROR([Not Found!])])
 AM_CONDITIONAL([HAVE_GSL_2_0], [${PKG_CONFIG} --atleast-version=2.0 gsl])
 AM_COND_IF([HAVE_GSL_2_0], [AC_DEFINE([HAVE_GSL_2_0], [1], [defined if you have GSL >= 2.0])])
 AC_SUBST([GSL_CFLAGS])
 AC_SUBST([GSL_LIBS])
+AC_MSG_CHECKING([GSL uses native C complex types])
+ac_save_CFLAGS=$CFLAGS
+CFLAGS=$GSL_CFLAGS
+AC_COMPILE_IFELSE([
+#include <complex.h>
+#include <stdlib.h>
+#include <gsl/gsl_matrix.h>
+int main(int argc, char *argv[])
+{
+	complex double x = gsl_matrix_complex_get(NULL, 0, 0);
+	return 0;
+}
+], [HAVE_GSL_NATIVE_COMPLEX=yes], [HAVE_GSL_NATIVE_COMPLEX=no])
+CFLAGS=$ac_save_CFLAGS
+AC_MSG_RESULT([$HAVE_GSL_NATIVE_COMPLEX])
+AC_SUBST([HAVE_GSL_NATIVE_COMPLEX])
+AS_IF([test $HAVE_GSL_NATIVE_COMPLEX == "yes"], [
+	AC_DEFINE([HAVE_GSL_NATIVE_COMPLEX], [1], [defined if GSL uses native C complex types])
+])
+
 
 # Check for HDF5
 AC_SUBST([MIN_HDF5_VERSION], [1.8])
