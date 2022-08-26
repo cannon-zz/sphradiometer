@@ -1,3 +1,9 @@
+sphradiometer (0.4.1-1) unstable; urgency=low
+
+  * try new approach to testing for GSL's use of native complex types
+
+ -- Kipp Cannon <kipp.cannon@ligo.org>  ???, ?? ??? 2022 ??:??:00 +0900
+
 sphradiometer (0.4.0-1) unstable; urgency=low
 
   * initial O4 sky-mapping release
