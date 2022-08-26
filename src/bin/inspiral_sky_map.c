@@ -441,12 +441,8 @@ complex double *gsl_matrix_complex_column_series(gsl_matrix_complex *mat, int i)
 /* FIXME:  remove support for GSL_COMPLEX_LEGACY when LDG redhat clusters
  * have a gcc newer than 4.8, or whatever is needed to convince GSL to
  * switch to native complex types, and have a new-enough GSL that that's
- * even possible.  unfortunately GSL's headers don't define a symbol that
- * can be checked easily to see what they decided to go with.  the test
- * below is a subset of the conditions used by GSL to decide whether or not
- * to use native types that have been confirmed to be sufficient on the CIT
- * cluster as of 2022-08-03 */
-#if !defined(HAVE_GSL_2_0) || !defined(__STDC_VERSION__) || (__STDC_VERSION__ < 201112L)
+ * even possible. */
+#ifndef HAVE_GSL_NATIVE_COMPLEX
 		column[j] = *(complex double *) gsl_matrix_complex_get(mat, j, i).dat;
 #else
 		column[j] = gsl_matrix_complex_get(mat, j, i);
