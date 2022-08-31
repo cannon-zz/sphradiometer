@@ -201,3 +201,7 @@ def read_fits_healpy_alm(filename):
 	"""
 	alms, m_max = healpy.fitsfunc.read_alm(filename, return_mmax = True)
 	return alms, healpix_alm_l_max(alms, m_max), m_max
+
+
+def write_fits_healpy_map(filename, m):
+	healpy.write_map(filename, m, nest=True, column_names=['PROB'])
