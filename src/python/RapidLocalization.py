@@ -2,6 +2,7 @@ from glob import glob
 from itertools import combinations
 import numpy as np
 import os
+import sys
 import tempfile
 import warnings
 
@@ -413,7 +414,7 @@ class RapidLocalization(object):
 		self.precalcs = {}
 		for n in range(1, len(self.instruments) + 1):
 			for c in combinations(self.instruments, n):
-				print("initialize for", "".join(c))
+				print("initialize for", "".join(c), file=sys.stderr)
 				psds_ = {ifo : psds[ifo] for ifo in c}
 				self.precalcs["".join(c)] = RapidLocalization_(
 					psds_,
@@ -449,7 +450,7 @@ class RapidLocalization(object):
 		for n in range(1, len(self.instruments) + 1):
 			for c in combinations(self.instruments, n):
 				name = "".join(c)
-				print("write for", name)
+				print("write for", name, file=sys.stderr)
 				self.precalcs[name].write(os.path.join(precalc_path, name))
 
 	@classmethod
@@ -464,7 +465,7 @@ class RapidLocalization(object):
 
 		self.precalcs = {}
 		for prei in [os.path.basename(d) for d in glob(os.path.join(precalc_path, "*"))]:
-			print("read for", prei)
+			print("read for", prei, file=sys.stderr)
 			self.precalcs[prei] = RapidLocalization_.read(os.path.join(precalc_path, prei))
 		return self
 
@@ -477,7 +478,7 @@ class RapidLocalization(object):
 			l is determined from the effective sample frequency.
 		"""
 		for name in self.precalcs:
-			print("reduce l_max of", name)
+			print("reduce l_max of", name, file=sys.stderr)
 			self.precalcs[name].reduce_l_max(deltaT)
 
 
