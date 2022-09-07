@@ -502,14 +502,8 @@ class rapidskyloc_io(object):
 		# an integer
 		self.coinc_event_id = coinc_event_id
 		# an sh_series object
-		# The outputs from RapidLocalization() has l_max == 512 for
-		# default.  However, for the l_max, the sky maps from this
-		# method has low accuracy.  Thus l_max becomes larger for the
-		# default of this method.
 		series_p = series_p.get()
 		series_n = series_n.get()
-		#series_p = sph.sh_series_resize(series_p.get(), effective_sample_rate)
-		#series_n = sph.sh_series_resize(series_n.get(), effective_sample_rate)
 		# marginalize in the pixel domain.  compute healpix pixel
 		# basis representation of the posterior probability
 		# density.  the LVK convention is to store pixel
