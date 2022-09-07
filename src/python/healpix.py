@@ -96,6 +96,8 @@ def sh_series_to_healpy_alm(series):
 	l_max = series.l_max
 	m_max = 0 if series.polar else l_max
 	alms = numpy.ndarray(shape = (healpy_alm_length(l_max, m_max),), dtype = "complex128")
+	# With the same reason in sh_series_to_healpix_Alm(), spherical
+	# coefficient is obtained from rseries as follow.
 	# the coefficient order for healpix and sphradiometer is identical.
 	# this can be confirmed by running the library's test suite, which
 	# contains a test to confirm this, index-by-index, for each
@@ -103,8 +105,10 @@ def sh_series_to_healpy_alm(series):
 	# coefficientes, which are at the start of the array, so after
 	# determining the length of the healpix array, we copy one-to-one
 	# the first that-many coefficients from the sh_series object.
+	rseries = sphradiometer.sh_series_real(sphradiometer.sh_series_copy(series))
 	for i in range(len(alms)):
-		alms[i] = sphradiometer.double_complex_array_getitem(series.coeff, i)
+		alms[i] = sphradiometer.double_complex_array_getitem(rseries.coeff, i)
+	sphradiometer.sh_series_free(rseries)
 	return alms, l_max, m_max
 
 
