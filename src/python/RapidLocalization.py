@@ -569,12 +569,14 @@ class rapidskyloc_io(object):
 		serialized object exists.  Returns the newly reconstructed
 		rapidskyloc_io object.
 		"""
-		xml = cls.get_xml_root(xml, name)
+		self = cls.__new__(cls)
+
+		xml = self.get_xml_root(xml, name)
 		coinc_event_id = ligolw_param.Param.get_param(xml, "coinc_event:event_id").value
 		prob = ligolw_array.Array.get_array(xml, "prob").array
-		cls.prob = prob
-		cls.coinc_event_id = coinc_event_id
-		return cls
+		self.prob = prob
+		self.coinc_event_id = coinc_event_id
+		return self
 
 	def to_fits_buffer(self, fmt = "map"):
 		"""
