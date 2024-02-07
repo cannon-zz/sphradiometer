@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2006--2009,2019,2022  Kipp C. Cannon
  * Copyright (C) 2019  Takuya Tsutsui
@@ -479,7 +478,7 @@ struct sh_series *sh_series_sintheta_div(const struct sh_series *u, const struct
 
 
 /*
- * Compute the return sin(theta) * the curl of the vector field whose theta
+ * Compute and return sin(theta) * the curl of the vector field whose theta
  * and phi components are in u and v respectively.
  *
  * In 2 dimensions the curl is a scalar.  It consists of what would form
