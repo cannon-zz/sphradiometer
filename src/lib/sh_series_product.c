@@ -268,11 +268,14 @@ static struct sh_series *frequency_domain_product(struct sh_series *dest, const 
 
 static struct sh_series *pixel_domain_product(struct sh_series *dest, const struct sh_series *a, const struct sh_series *b)
 {
-	unsigned l_max = a->l_max + b->l_max;
+	unsigned l_max = a->l_max + b->l_max;	/* l_max of product */
 	struct sh_series *wrkspc;
 	complex double *a_mesh;
 	complex double *b_mesh;
 	int i;
+
+	/* up-sample a and b inputs to l_max of product, and convert to
+	 * pixel domain */
 
 	wrkspc = sh_series_copy(a);
 	if(!wrkspc || !sh_series_resize(wrkspc, l_max)) {
@@ -297,10 +300,14 @@ static struct sh_series *pixel_domain_product(struct sh_series *dest, const stru
 		return NULL;
 	}
 
+	/* compute the product in the pixel domain */
+
 	/* FIXME:  don't assume we know the mesh size */
 	for(i = 0; i < (int) (2 * (l_max + 1) * 2 * (l_max + 1)); i++)
 		a_mesh[i] *= b_mesh[i];
 	free(b_mesh);
+
+	/* convert result to frequency domain */
 
 	wrkspc = sh_series_new(l_max, a->polar && b->polar);
 	if(!wrkspc || !sh_series_from_mesh(wrkspc, a_mesh)) {
@@ -309,6 +316,9 @@ static struct sh_series *pixel_domain_product(struct sh_series *dest, const stru
 		return NULL;
 	}
 	free(a_mesh);
+
+	/* copy into destination, possibly resizing to new l_max */
+
 	if(!sh_series_resize(wrkspc, dest->l_max) || !sh_series_assign(dest, wrkspc)) {
 		sh_series_free(wrkspc);
 		return NULL;
