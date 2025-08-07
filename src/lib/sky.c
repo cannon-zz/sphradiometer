@@ -84,6 +84,13 @@ double *euler_rotation_matrix(double gamma, double beta, double alpha)
 	 * Ry(w) := matrix([cos(w), 0, sin(w)], [0, 1, 0], [-sin(w), 0, cos(w)]);
 	 *
 	 * Rz(alpha).Ry(beta).Rz(gamma);
+	 *
+	 * The result is identical to wikipedia's right-handed, active
+	 * rotation Z_alpha Y_beta Z_gamma result for proper Euler angles,
+	 * and that is the convention adoped on wikipedia's page on the
+	 * Wigner D-matrix, described there as the "z-y-z convention,
+	 * right-handed frame, right-hand screw rule, active
+	 * interpretation)".
 	 */
 
 	R[3 * x + x] =  cos_alpha * cos_beta * cos_gamma - sin_alpha * sin_gamma;

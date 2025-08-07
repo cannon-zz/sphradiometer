@@ -35,6 +35,20 @@
  */
 
 /*
+ * FIXME:  with the conventions adopted here, the special case of rotations
+ * around the y axis produce real-valued D matrixes.  rotations around the
+ * z axis, meanwhile, are trivially implemented as multiplications by
+ * complex phase factors.  consider rewriting the general rotation case as
+ * a three step algorithm consisting of a rotation about the z axis
+ * (implemented as complex phase factors), followed by rotation about the y
+ * axis (implemented with real-valued D matrixes), followed by a final
+ * rotation about the z axis (again implemented as complex phase factors).
+ * the D matrixes would require 1/2 the memory to store and altogether an
+ * arbitrary rotation would require approximately 1/3 as many arithmetic
+ * operations
+ */
+
+/*
  * ============================================================================
  *
  *                                  Preamble

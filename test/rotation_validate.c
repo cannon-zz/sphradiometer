@@ -64,6 +64,31 @@ static void R_print(const double *R)
 }
 
 
+static void D_print(const struct sh_series_rotation_plan *plan, unsigned int l_max)
+{
+	int l;
+
+	if(l_max > plan->l_max)
+		l_max = plan->l_max;
+
+	for(l = 1; l <= (int) l_max; l++) {
+		fprintf(stderr, "\nl=%d", l);
+		int m, m_prime;
+		for(m = -l; m <= l; m++) {
+			fprintf(stderr, "\n");
+			for(m_prime = -l; m_prime <= l; m_prime++) {
+				complex double coef = sh_series_rotation_plan_wigner_D(plan, l, m, m_prime);
+				fprintf(stderr, "   %g +I %g", creal(coef), cimag(coef));
+			}
+		}
+	}
+
+	if(l_max < plan->l_max)
+		fprintf(stderr, "\nnot displayed:  %d < l <= %d", l_max, plan->l_max);
+	fprintf(stderr, "\n\n");
+}
+
+
 static int R_cmp(const double *R1, const double *R2, double tolerance)
 {
 	double max_delta = fabs(R1[0] - R2[0]);
@@ -311,11 +336,44 @@ static int wigner_D_test1(void)
 		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
 		free(R);
 
+		/*D_print(plan, 6);*/
+
 		for(l = 1; l <= (int) series->l_max; l++)
 			for(m = -l; m <= +l; m++)
 				for(m_prime = -l; m_prime <= +l; m_prime++)
 					if(m_prime != m)
 						assert(sh_series_rotation_plan_wigner_D(plan, l, m, m_prime) == 0.);
+
+		sh_series_rotation_plan_free(plan);
+	}
+
+	sh_series_free(series);
+
+	return 0;
+}
+
+
+/*
+ * do rotations about the y axis produce real-valued D matrixes?
+ */
+
+static int wigner_D_test2(void)
+{
+	struct sh_series *series = sh_series_new(10, 0);
+	double omega;
+	int l, m, m_prime;
+
+	for(omega = 0.125; omega < 7.0; omega += 0.125) {
+		double *R = euler_rotation_matrix(0., omega, 0.);
+		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
+		free(R);
+
+		/*D_print(plan, 6);*/
+
+		for(l = 1; l <= (int) series->l_max; l++)
+			for(m = -l; m <= +l; m++)
+				for(m_prime = -l; m_prime <= +l; m_prime++)
+					assert(cimag(sh_series_rotation_plan_wigner_D(plan, l, m, m_prime)) == 0.);
 
 		sh_series_rotation_plan_free(plan);
 	}
@@ -335,7 +393,7 @@ static int wigner_D_test1(void)
  * test resizing of rotation plans.
  */
 
-static int wigner_D_test2(unsigned int l_max, int Delta_l)
+static int wigner_D_test3(unsigned int l_max, int Delta_l)
 {
 	int i;
 
@@ -349,6 +407,8 @@ static int wigner_D_test2(unsigned int l_max, int Delta_l)
 		struct sh_series *correct = sh_series_impulse(series->l_max, theta + dtheta, phi + dphi);
 		double *R = euler_rotation_matrix(-phi, dtheta, phi + dphi);
 		struct sh_series_rotation_plan *plan = sh_series_rotation_plan_new(series, R);
+
+		/*D_print(plan, 3);*/
 
 		if(Delta_l) {
 			sh_series_resize(series, l_max + Delta_l);
@@ -432,9 +492,10 @@ int main(int argc, char *argv[])
 	assert(test_euler_rotation_matrix() == 0);
 	assert(test_galactic_rotation_matrix() == 0);
 	assert(wigner_D_test1() == 0);
-	assert(wigner_D_test2(1, 0) == 0);
-	assert(wigner_D_test2(13, 0) == 0);
-	assert(wigner_D_test2(13, -5) == 0);
+	assert(wigner_D_test2() == 0);
+	assert(wigner_D_test3(1, 0) == 0);
+	assert(wigner_D_test3(13, 0) == 0);
+	assert(wigner_D_test3(13, -5) == 0);
 
 	exit(0);
 }
