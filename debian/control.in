@@ -17,7 +17,6 @@ Build-Depends:
  libhdf5-dev (>= @MIN_HDF5_VERSION@),
  libhealpix-cxx-dev (>= @MIN_HEALPIXCXX_VERSION@),
  liblapacke-dev,
- libopenblas-dev,
  pkg-config,
  python3-all-dev (>= @MIN_PYTHON_VERSION@),
  python3-lal (>= @MIN_LAL_VERSION@),
@@ -34,7 +33,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libgsl23 (>= @MIN_GSL_VERSION@),
  libhdf5-103 (>= @MIN_HDF5_VERSION@),
  libhealpix-cxx (>= @MIN_HEALPIXCXX_VERSION@),
- libopenblas0
+ liblapacke
 Description: Omni-directional broadband aperture synthesis imaging library.
  This package provides a C library, along with its associated command line
  tools, that implements an omni-directional broadband aperture synthesis
