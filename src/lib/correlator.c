@@ -68,14 +68,11 @@ unsigned int correlator_baseline_power_l_max_naive(double D, double delta_t)
 unsigned int correlator_baseline_power_l_max(const struct correlator_baseline *baseline, double delta_t)
 {
 	double D = vector_magnitude(baseline->d);
-	unsigned int l_max;
 
 	if(delta_t <= 0. || D <= 0.)
 		return (unsigned int) -1;
 
-	l_max = correlator_baseline_power_l_max_naive(D, delta_t);
-
-	return l_max;
+	return correlator_baseline_power_l_max_naive(D, delta_t);
 }
 
 
