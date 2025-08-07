@@ -33,7 +33,6 @@
 #include <gsl/gsl_eigen.h>
 #include <gsl/gsl_math.h>
 #include <math.h>
-#include <sphradiometer/sphradiometer_config.h>	/* for HAVE_GSL_2_0 */
 #include <sphradiometer/inspiral_sky_map.h>
 #include <sphradiometer/instrument.h>
 #include <sphradiometer/sh_series.h>
@@ -438,15 +437,7 @@ complex double *gsl_matrix_complex_column_series(gsl_matrix_complex *mat, int i)
 	complex double *column = malloc(mat->size1 * sizeof(*column));
 
 	for(j = 0; j < (int) mat->size1; j++)
-/* FIXME:  remove support for GSL_COMPLEX_LEGACY when LDG redhat clusters
- * have a gcc newer than 4.8, or whatever is needed to convince GSL to
- * switch to native complex types, and have a new-enough GSL that that's
- * even possible. */
-#ifndef HAVE_GSL_NATIVE_COMPLEX
-		column[j] = *(complex double *) gsl_matrix_complex_get(mat, j, i).dat;
-#else
 		column[j] = gsl_matrix_complex_get(mat, j, i);
-#endif
 
 	return column;
 }

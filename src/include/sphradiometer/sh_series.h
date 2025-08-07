@@ -33,7 +33,6 @@
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sphradiometer/sphradiometer_config.h>	/* needed for HAVE_GSL_2_0 */
 
 
 #ifdef __cplusplus
@@ -148,9 +147,7 @@ struct sh_series_array {
  */
 
 
-#ifdef HAVE_GSL_2_0
 struct sh_series_eval_interp;
-#endif
 
 
 /*
@@ -292,11 +289,9 @@ double complex sh_series_set(struct sh_series *, unsigned int, int, double compl
 
 
 double complex sh_series_eval(const struct sh_series *, double, double);
-#ifdef HAVE_GSL_2_0
 struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *);
 void sh_series_eval_interp_free(struct sh_series_eval_interp *);
 double complex sh_series_eval_interp(const struct sh_series_eval_interp *, double, double);
-#endif
 
 
 complex double *sh_series_mesh_new(unsigned int, int *, int *, double **, double **);

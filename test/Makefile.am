@@ -10,7 +10,8 @@ TESTS = \
 	product_validate \
 	rotation_validate \
 	sh_series_validate \
-	sh_series_io_validate
+	sh_series_io_validate \
+	gsl_validate
 
 check_PROGRAMS = \
 	correlator_validate \
@@ -18,14 +19,8 @@ check_PROGRAMS = \
 	product_validate \
 	rotation_validate \
 	sh_series_validate \
-	sh_series_io_validate
-
-if HAVE_GSL_2_0
-TESTS += \
+	sh_series_io_validate \
 	gsl_validate
-check_PROGRAMS += \
-	gsl_validate
-endif
 
 if S2KIT
 TESTS += \
