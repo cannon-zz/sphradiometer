@@ -85,7 +85,9 @@ double *sinusoidal_noise(double *series, int n, double delta_t, double variance,
  */
 
 
-static double *_inject_transform_point_source(const struct instrument *instrument, double *output, const double *input, const int n, const double delta_t, const double theta, const double phi)
+#if 0
+
+static double *inject_transform_point_source(const struct instrument *instrument, double *output, const double *input, const int n, const double delta_t, const double theta, const double phi)
 {
 	/* This implementation does not work for noise, only for nice
 	 * smooth functions that are well over-sampled.  I'm leaving it
@@ -112,6 +114,7 @@ static double *_inject_transform_point_source(const struct instrument *instrumen
 	return output;
 }
 
+#else
 
 double *inject_transform_point_source(const struct instrument *instrument, double *output, const double *input, const int n, double const delta_t, const double theta, const double phi)
 {
@@ -147,6 +150,8 @@ double *inject_transform_point_source(const struct instrument *instrument, doubl
 
 	return output;
 }
+
+#endif
 
 
 /*
