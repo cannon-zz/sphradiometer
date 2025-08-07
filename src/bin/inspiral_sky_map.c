@@ -535,7 +535,7 @@ static int KLwhiten(COMPLEX16TimeSeries *series, COMPLEX16Sequence *nseries)
 	complex double **evec_columns;
 	gsl_vector *eval_gsl = gsl_vector_alloc(series->data->length);
 	gsl_matrix_complex *evec_gsl = gsl_matrix_complex_alloc(series->data->length, series->data->length);
-	complex double *result = calloc(sizeof(*result), series->data->length);
+	complex double *result = calloc(series->data->length, sizeof(*result));
 
 	/* get eigens */
 	if(eigens_from_AutoCorrelation(eval_gsl, evec_gsl, nseries, series->data->length)) {
@@ -591,9 +591,9 @@ int main(int argc, char *argv[])
 {
 	struct options *options;
 	struct correlator_network_baselines *baselines = NULL;
-	struct correlator_network_plan_fd *fdplansp, *fdplansn;
-	struct autocorrelator_network_plan_fd *fdautoplanp;
-	struct autocorrelator_network_plan_fd *fdautoplann;
+	struct correlator_network_plan_fd *fdplansp = NULL, *fdplansn = NULL;
+	struct autocorrelator_network_plan_fd *fdautoplanp = NULL;
+	struct autocorrelator_network_plan_fd *fdautoplann = NULL;
 	COMPLEX16TimeSeries **series;
 	COMPLEX16Sequence **nseries;
 	double **psds = NULL;
