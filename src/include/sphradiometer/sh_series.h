@@ -333,6 +333,8 @@ int sh_series_is_inf(const struct sh_series *);
  */
 
 
+double *euler_rotation_matrix(double, double, double);
+double *euler_inv_rotation_matrix(double, double, double);
 double *sh_series_rot_matrix(double, double);
 double *sh_series_invrot_matrix(double, double);
 struct sh_series_rotation_plan *sh_series_rotation_plan_new(const struct sh_series *, const double *);

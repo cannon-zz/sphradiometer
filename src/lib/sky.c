@@ -29,6 +29,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <gsl/gsl_math.h>
+#include <sphradiometer/sh_series.h>
 #include <sphradiometer/sky.h>
 
 
@@ -39,78 +40,6 @@
  *
  * ============================================================================
  */
-
-
-/*
- * The matrix returned by euler_rotation_matrix() rotates by gamma about
- * the positive z axis, then by beta about the positive y axis, then by
- * alpha about the positive z axis.  euler_inv_rotation_matrix() returns
- * the inverse of the same matrix.
- *
- * Compared to wikipedia's article on Euler angles, this is the
- * "y-convention Geometrical definition", with our gamma = wikipedia's
- * alpha, our beta = wikipedia's beta, our alpha = wikipedia's gamma.
- *
- * https://en.wikipedia.org/wiki/Euler_angles
- */
-
-
-double *euler_rotation_matrix(double gamma, double beta, double alpha)
-{
-	enum {
-		x = 0,
-		y = 1,
-		z = 2
-	};
-	double *R = malloc(9 * sizeof(*R));
-	double cos_alpha = cos(alpha);
-	double sin_alpha = sin(alpha);
-	double cos_beta = cos(beta);
-	double sin_beta = sin(beta);
-	double cos_gamma = cos(gamma);
-	double sin_gamma = sin(gamma);
-
-	if(!R)
-		return NULL;
-
-	/*
-	 * using rotation matrixes from
-	 *
-	 * https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions
-	 *
-	 * wxMaxima code to generate these expressions below:
-	 *
-	 * Rz(w) := matrix([cos(w), -sin(w), 0], [sin(w), cos(w), 0], [0, 0, 1]);
-	 * Ry(w) := matrix([cos(w), 0, sin(w)], [0, 1, 0], [-sin(w), 0, cos(w)]);
-	 *
-	 * Rz(alpha).Ry(beta).Rz(gamma);
-	 *
-	 * The result is identical to wikipedia's right-handed, active
-	 * rotation Z_alpha Y_beta Z_gamma result for proper Euler angles,
-	 * and that is the convention adoped on wikipedia's page on the
-	 * Wigner D-matrix, described there as the "z-y-z convention,
-	 * right-handed frame, right-hand screw rule, active
-	 * interpretation)".
-	 */
-
-	R[3 * x + x] =  cos_alpha * cos_beta * cos_gamma - sin_alpha * sin_gamma;
-	R[3 * x + y] = -cos_alpha * cos_beta * sin_gamma - sin_alpha * cos_gamma;
-	R[3 * x + z] =  cos_alpha * sin_beta;
-	R[3 * y + x] =  sin_alpha * cos_beta * cos_gamma + cos_alpha * sin_gamma;
-	R[3 * y + y] = -sin_alpha * cos_beta * sin_gamma + cos_alpha * cos_gamma;
-	R[3 * y + z] =  sin_alpha * sin_beta;
-	R[3 * z + x] = -sin_beta * cos_gamma;
-	R[3 * z + y] =  sin_beta * sin_gamma;
-	R[3 * z + z] =  cos_beta;
-
-	return R;
-}
-
-
-double *euler_inv_rotation_matrix(double gamma, double beta, double alpha)
-{
-	return euler_rotation_matrix(-alpha, -beta, -gamma);
-}
 
 
 /*
