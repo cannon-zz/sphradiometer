@@ -98,7 +98,7 @@ void instrument_free(struct instrument *);
 struct instrument *instrument_copy(const struct instrument *);
 struct instrument *instrument_new_from_r_theta_phi(double, double, double, void *);
 #ifndef SWIG
-struct instrument *instrument_new_from_LALDetector(const LALDetector *);
+struct instrument *instrument_new_from_LALDetector(LALDetector *);
 #endif
 struct instrument *instrument_new_from_name(const char *);
 

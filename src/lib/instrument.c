@@ -172,7 +172,7 @@ struct instrument *instrument_new_from_r_theta_phi(double r, double theta, doubl
 }
 
 
-struct instrument *instrument_new_from_LALDetector(const LALDetector *det)
+struct instrument *instrument_new_from_LALDetector(LALDetector *det)
 {
 	return instrument_new(
 		det->location[0] / GSL_CONST_MKS_SPEED_OF_LIGHT,
