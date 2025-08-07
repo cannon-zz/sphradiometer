@@ -416,7 +416,7 @@ int correlator_network_plan_mult_by_projection(struct correlator_network_plan_fd
 	int i, j;
 	struct sh_series **projection = malloc(plan->plans[0]->delay_product->n * sizeof(*projection));
 	const struct instrument_array *instruments = plan->baselines->baselines[0]->instruments;
-	LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
+	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
 	if(!projection || !instruments || !det) {
 		free(projection);
@@ -553,7 +553,7 @@ struct sh_series ***diagonal_projections(const struct instrument_array *instrume
 {
 	int i, j, k;
 	struct sh_series ***projection = malloc(instrument_array_len(instruments) * sizeof(*projection));
-	LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
+	const LALDetector **det = malloc(instrument_array_len(instruments) * sizeof(*det));
 
 	if(!projection || !det) {
 		free(projection);
