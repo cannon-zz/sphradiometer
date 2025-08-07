@@ -297,7 +297,7 @@ int SVD_to_sh_series_file(const struct SVD *svd, int l_max, int polar, double th
  * Starting from an sh_series_array object containing n
  * linearly-independant, though not necessarily mutually orthogonal,
  * functions on the sphere, use a singular-value decomposition to construct
- * a complete set of orthonormal basis functions up to l_max of the
+ * a complete set of orthonormal basis functions up to the l_max of the
  * original array.  The first n basis functions span the space spanned by
  * the original n functions, and the remaining functions, if any, span the
  * null space of the original n functions.  The basis functions are
@@ -312,7 +312,9 @@ complex double *sh_series_array_orthogonalize(struct sh_series_array *array)
 {
 	/* coefficients are in the same order in the sh_series_array as
 	 * needed for A */
+#if 0
 	struct SVD *first_SVD = SVD_new(array->n, sh_series_length(array->l_max, array->polar), array->coeff);
+#endif
 
 	return NULL;	/* FIXME */
 }
