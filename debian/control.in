@@ -20,7 +20,7 @@ Build-Depends:
  pkg-config,
  python3-all-dev (>= @MIN_PYTHON_VERSION@),
  python3-lal (>= @MIN_LAL_VERSION@),
- swig,
+ swig
 
 Package: libsphradiometer
 Architecture: any
@@ -34,14 +34,31 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  libhdf5-103 (>= @MIN_HDF5_VERSION@),
  libhealpix-cxx (>= @MIN_HEALPIXCXX_VERSION@),
  liblapacke
+Recommends:
+ python3-sphradiometer
+Suggests:
+ libsphradiometer-bin
 Description: Omni-directional broadband aperture synthesis imaging library.
- This package provides a C library, along with its associated command line
- tools, that implements an omni-directional broadband aperture synthesis
- imaging algorithm.  The core algorithm is a generalization of the Van
- Cittert-Zernike theorem and is described in Phys. Rev. D, 75(12), 123003
- (doi://10.1103/PhysRevD.75.123003).  Additional algorithms based on that
- core and tailored specifically for the problem of ground-based
- gravitational-wave source localization are also included.
+ This package provides a C library that implements an omni-directional
+ broadband aperture synthesis imaging algorithm.  The core algorithm is a
+ generalization of the Van Cittert-Zernike theorem and is described in
+ Phys. Rev. D, 75(12), 123003 (doi://10.1103/PhysRevD.75.123003).
+ Additional algorithms based on that core and tailored specifically for the
+ problem of ground-based gravitational-wave source localization are also
+ included.
+
+Package: libsphradiometer-bin
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libsphradiometer (= ${binary:Version}),
+ liblal20 (>= @MIN_LAL_VERSION@),
+ lalframe13 (>= @MIN_LALFRAME_VERSION@),
+ lalsimulation29 (>= @MIN_LALSIMULATION_VERSION@),
+ libfftw3-3,
+ libgsl23 (>= @MIN_GSL_VERSION@),
+ libhdf5-103 (>= @MIN_HDF5_VERSION@)
+Description: Omni-directional broadband aperture synthesis imaging library.
+ This package provides example programs demonstrating libsphradiometer.
 
 Package: python3-sphradiometer
 Architecture: any
