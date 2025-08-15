@@ -71,9 +71,11 @@ sh_series_io_validate_LDADD = ../src/lib/libsphradiometer.la ../src/lib/libsphra
 
 plots :
 	-rm -vf tests_*.png
+	-rm -vf tests_*.svg
 	./plottests tests_*.fits
 
 clean-local :
 	-rm -f test.fits
 	-rm -f tests_{exact,fdaverage,tdaverage}_*.fits
 	-rm -f tests_*.png
+	-rm -f tests_*.svg
