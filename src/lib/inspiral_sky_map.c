@@ -268,6 +268,13 @@ static double gmst_from_epoch_and_offset(LIGOTimeGPS epoch, double offset)
  * ============================================================================
  */
 
+#if 0
+
+/*
+ * compute normalized F+ and Fx vectors for the direction (theta, phi) for
+ * all n detectors in the dominant polarization frame.
+ */
+
 
 static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, double theta, double phi)
 {
@@ -277,34 +284,34 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 	double product;
 	int i;
 
-	/* store fp, fc */
+	/* compute F+ and Fx.  GSMT is set to 0, the Earth will be rotated
+	 * in generate_alm_sky() */
 	for(i = 0; i < n; i++)
-		/* gmst is rotated in generate_alm_sky().
-		 * So we can set zero. */
 		XLALComputeDetAMResponse(&fplus[i], &fcross[i], det[i]->response, phi, M_PI_2 - theta, 0.0, 0.0);
 
 	/* dominant polarization angle */
 	normplus2 = normcross2 = product = 0.0;
-	for(i = 0; i < n; i++){
+	for(i = 0; i < n; i++) {
 		normplus2 += fplus[i] * fplus[i];
 		normcross2 += fcross[i] * fcross[i];
 		product += fplus[i] * fcross[i];
 	}
 	twopsi = atan2(2.0 * product, normplus2 - normcross2) / 2.;
 
-	/* set fp, fc */
-	for(i = 0; i < n; i++){
+	/* rotate (F+, Fx) for each detector by 2psi */
+	for(i = 0; i < n; i++) {
 		double temp = cos(twopsi) * fplus[i] + sin(twopsi) * fcross[i];
 		fcross[i] = -sin(twopsi) * fplus[i] + cos(twopsi) * fcross[i];
 		fplus[i] = temp;
 	}
 
+	/* normalize the {F+} and {Fx} vectors to be unit vectors */
 	normplus2 = normcross2 = 0.0;
-	for(i = 0; i < n; i++){
+	for(i = 0; i < n; i++) {
 		normplus2 += fplus[i] * fplus[i];
 		normcross2 += fcross[i] * fcross[i];
 	}
-	for(i = 0; i < n; i++){
+	for(i = 0; i < n; i++) {
 		fplus[i] /= sqrt(normplus2);
 		fcross[i] /= sqrt(normcross2);
 	}
@@ -313,12 +320,14 @@ static void FDP(double *fplus, double *fcross, const LALDetector **det, int n, d
 
 static complex double ExcessProjectionMatrix(double theta, double phi, int i, int j, const LALDetector **det, int n, double *psds)
 {
-	/* this is general parameterized one */
 	double fplus[n], fcross[n];
 
 	FDP(fplus, fcross, det, n, theta, phi);
+
 	return fplus[i] * fplus[j] + fcross[i] * fcross[j] - (int)(i == j);
 }
+
+#endif
 
 
 /*
