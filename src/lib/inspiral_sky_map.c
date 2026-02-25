@@ -1114,22 +1114,42 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 {
 	char filename[strlen(parent_dir) + FILE_LEN];
 	FILE *fp;
-	struct correlator_baseline *new = malloc(sizeof(*new));
+	struct correlator_baseline *new = NULL;
+	int index_a, index_b;
+	double theta, phi;
+	int success = 1;
 
 	/* read no pointer objects */
 	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/correlator_baseline.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
 	if(!fp) {
 		fprintf(stderr, "no correlator_baseline.dat in %d\n", i);
-		return NULL;
+		goto done;
 	}
 	/* following order must be consistent with the one in the writer */
-	fread(&new->index_a, sizeof(new->index_a), 1, fp);
-	fread(&new->index_b, sizeof(new->index_b), 1, fp);
-	fread(&new->theta, sizeof(new->theta), 1, fp);
-	fread(&new->phi, sizeof(new->phi), 1, fp);
+	success &= fread(&index_a, sizeof(index_a), 1, fp) == 1;
+	success &= fread(&index_b, sizeof(index_b), 1, fp) == 1;
+	success &= fread(&theta, sizeof(theta), 1, fp) == 1;
+	success &= fread(&phi, sizeof(phi), 1, fp) == 1;
 	fclose(fp);
+	if(!success) {
+		fprintf(stderr, "failure reading correlator_baseline.dat in %d\n", i);
+		goto done;
+	}
 
+	new = correlator_baseline_new(instruments, index_a, index_b);
+	if(!new) {
+		goto done;
+	}
+
+	if(new->theta != theta || new->phi != phi) {
+		fprintf(stderr, "inconsistent data in correlator_baseline.dat\n");
+		correlator_baseline_free(new);
+		new = NULL;
+		goto done;
+	}
+
+#if 0
 	/* read d */
 	sprintf(filename, "%s/correlator_network_plan_fd/correlator_network_baselines/baselines/%d/d.dat", parent_dir, i);
 	fp = fopen(filename, "rb");
@@ -1143,7 +1163,9 @@ static struct correlator_baseline *read_precalc_correlator_baseline(const struct
 
 	/* substitute instruments */
 	new->instruments = instruments;
+#endif
 
+done:
 	return new;
 }
 
