@@ -324,7 +324,7 @@ static int laplacian_test_1(void)
 static int times_costheta_test(void)
 {
 	struct sh_series *input = random_sh_series(13, 0);
-	struct sh_series *output;
+	struct sh_series *output = NULL;
 	int i;
 
 	if(!input || !(output = sh_series_times_costheta(input))) {
