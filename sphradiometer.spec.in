@@ -6,7 +6,7 @@ Version:	@VERSION@
 Release:	1%{?dist}
 License:	GPL-2.0-or-later
 Source:		%{shortname}-%{version}.tar.gz
-Url:		https://git.ligo.org/kipp.cannon/sphradiometer
+Url:		https://github.com/cannon-zz/sphradiometer
 Prefix:		%{_prefix}
 
 BuildRequires:	liblal-devel >= @MIN_LAL_VERSION@
