@@ -7,11 +7,7 @@ import tempfile
 import warnings
 
 from lal import series as lalseries
-from ligo.lw import ligolw
-from ligo.lw import lsctables
-from ligo.lw import array as ligolw_array
-from ligo.lw import param as ligolw_param
-from ligo.lw import utils as ligolw_utils
+import ligolw
 try:
 	from ligo.skymap import io as skymap_io
 except ImportError:
@@ -19,11 +15,6 @@ except ImportError:
 
 from . import sphradiometer as sph
 from . import healpix as sph_healpix
-
-
-@lsctables.use_in
-class ContentHandler(lalseries.PSDContentHandler):
-	pass
 
 
 #
@@ -552,8 +543,8 @@ class rapidskyloc_io(object):
 		"""
 		elem = ligolw.LIGO_LW()
 		elem.Name = "%s:rapidskyloc_map" % name
-		elem.appendChild(ligolw_param.Param.build("coinc_event:event_id", "int_8s", self.coinc_event_id)).appendChild(ligolw.Comment()).pcdata = "corresponding coinc_event Table entry"
-		elem.appendChild(ligolw_array.Array.build("prob", self.prob))
+		elem.appendChild(ligolw.Param.build("coinc_event:coinc_event_id", "int_8s", self.coinc_event_id, comment = "corresponding coinc_event Table entry"))
+		elem.appendChild(ligolw.Array.build("prob", self.prob))
 		return elem
 
 	@classmethod
@@ -572,8 +563,8 @@ class rapidskyloc_io(object):
 		self = cls.__new__(cls)
 
 		xml = self.get_xml_root(xml, name)
-		coinc_event_id = ligolw_param.Param.get_param(xml, "coinc_event:event_id").value
-		prob = ligolw_array.Array.get_array(xml, "prob").array
+		coinc_event_id = ligolw.Param.get_param(xml, "coinc_event:coinc_event_id").value
+		prob = ligolw.Array.get_array(xml, "prob").array
 		self.prob = prob
 		self.coinc_event_id = coinc_event_id
 		return self
@@ -639,14 +630,14 @@ if __name__ == "__main__":
 
 	snr = {}
 	aut = {}
-	xmldoc = ligolw_utils.load_filename(coinc_file, contenthandler=ContentHandler, verbose=True)
-	sngl_inspiral_index = dict((row.event_id, row) for row in lsctables.SnglInspiralTable.get_table(xmldoc))
-	for elem in xmldoc.getElementsByTagName(ligolw.LIGO_LW.tagName):
-		if elem.hasAttribute("Name") and elem.Name == "COMPLEX8TimeSeries":
-			sngl_inspiral = sngl_inspiral_index[int(ligolw_param.get_pyvalue(elem, "event_id"))]
-			snr[sngl_inspiral.ifo] = lalseries.parse_COMPLEX8TimeSeries(elem)
-			# Currently nseriesp is dummy information, so that seriesp is set
-			aut[sngl_inspiral.ifo] = snr[sngl_inspiral.ifo].data
+	ligolw.set_verbose(True)
+	xmldoc = ligolw.utils.load_filename(coinc_file)
+	sngl_inspiral_index = dict((row.event_id, row) for row in ligolw.lsctables.SnglInspiralTable.get_table(xmldoc))
+	for elem in ligolw.LIGO_LW.get_ligo_lw(xmldoc, "COMPLEX8TimeSeries", unique = False):
+		sngl_inspiral = sngl_inspiral_index[int(ligolw.Param.get_param(elem, "event_id").value)]
+		snr[sngl_inspiral.ifo] = lalseries.parse_COMPLEX8TimeSeries(elem)
+		# Currently nseriesp is dummy information, so that seriesp is set
+		aut[sngl_inspiral.ifo] = snr[sngl_inspiral.ifo].data
 	instruments = sorted(snr.keys())
 
 	# Currently psd is dummy information, so that it's set one
