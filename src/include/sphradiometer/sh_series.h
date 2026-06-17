@@ -352,6 +352,7 @@ struct sh_series *sh_series_rotate_z(struct sh_series *, const struct sh_series 
 
 
 struct sh_series *sh_series_times_costheta(const struct sh_series *);
+struct sh_series *sh_series_times_sin2theta(const struct sh_series *);
 struct sh_series *sh_series_d_by_dphi(struct sh_series *);
 struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *);
 const struct sh_series *sh_series_sintheta_grad(const struct sh_series *, struct sh_series **, struct sh_series **);

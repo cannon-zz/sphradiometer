@@ -353,6 +353,40 @@ static int times_costheta_test(void)
 }
 
 
+/* confirm that the *sin2(theta) function does what it says */
+
+static int times_sin2theta_test(void)
+{
+	struct sh_series *input = random_sh_series(13, 0);
+	struct sh_series *output = NULL;
+	int i;
+
+	if(!input || !(output = sh_series_times_sin2theta(input))) {
+		sh_series_free(input);
+		sh_series_free(output);
+		return -1;
+	}
+
+	for(i = 0; i < 100; i++) {
+		double theta = acos(randrange(-1., +1.));
+		double phi = randrange(-M_PI, M_PI);
+		complex double correct = pow(sin(theta), 2) * sh_series_eval(input, theta, phi);
+		complex double val = sh_series_eval(output, theta, phi);
+		double error = cabs(correct - val);
+		if(error > 1e-14) {
+			fprintf(stderr, "sh_series_times_sin2theta() failed at theta=%g phi=%g:\n\texpected %g+I*%g got %g+I*%g |error|=%g\n", theta, phi, creal(correct), cimag(correct), creal(val), cimag(val), error);
+			sh_series_free(input);
+			sh_series_free(output);
+			return -1;
+		}
+	}
+
+	sh_series_free(input);
+	sh_series_free(output);
+	return 0;
+}
+
+
 /*
  * ============================================================================
  *
@@ -444,6 +478,9 @@ int main(int argc, char *argv[])
 
 	for(i = 0; i < 1000; i++)
 		assert(times_costheta_test() == 0);
+
+	for(i = 0; i < 1000; i++)
+		assert(times_sin2theta_test() == 0);
 
 	for(i = 0; i < 1000; i++)
 		assert(laplacian_test_1() == 0);

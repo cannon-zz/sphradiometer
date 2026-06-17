@@ -108,6 +108,119 @@ struct sh_series *sh_series_times_costheta(const struct sh_series *series)
 
 
 /*
+ * Compute the spherical harmonic expansion of sin^2(theta) * the function
+ * given by the spherical harmonic expansion in series.  Returns the result
+ * in a newly allocated sh_series object.  Returns NULL on failure.
+ *
+ * NOTE:  the result's l_max is increased by 2 from input's l_max.
+ */
+
+
+struct sh_series *sh_series_times_sin2theta(const struct sh_series *series)
+{
+	/* sin^2 theta
+	 *   = (2/3) - (4/3) \sqrt{pi/5} Y_(2 0)
+	 *
+	 * from below we have
+	 *
+	 * Y_(2 0) Y_(l m) = \sqrt{5 (2 l + 1) / (4 pi)} (-1)^m [
+	 *	\sqrt{2 l - 3} wigner3j(2 l (l-2) 0 m -m) wigner3j(2 l (l-2) 0 0 0) Y_(l-2 m) +
+	 *	\sqrt{2 l + 1} wigner3j(2 l l     0 m -m) wigner3j(2 l l     0 0 0) Y_(l m) +
+	 *	\sqrt{2 l + 5} wigner3j(2 l (l+2) 0 m -m) wigner3j(2 l (l+2) 0 0 0) Y_(l+2 m)
+	 * ]
+	 *
+	 * using those, we have
+	 *
+	 * sin^2 theta Y_(l m) = (2/3) Y_(l m) - (2/3) \sqrt{2 l + 1} (-1)^m [
+	 *	\sqrt{2 l - 3} wigner3j(2 l (l-2) 0 m -m) wigner3j(2 l (l-2) 0 0 0) Y_(l-2 m) +
+	 *	\sqrt{2 l + 1} wigner3j(2 l l     0 m -m) wigner3j(2 l l     0 0 0) Y_(l m) +
+	 *	\sqrt{2 l + 5} wigner3j(2 l (l+2) 0 m -m) wigner3j(2 l (l+2) 0 0 0) Y_(l+2 m)
+	 * ]
+	 */
+	struct sh_series *result = sh_series_copy(series);
+	complex double *c;
+	int l, m;
+
+	if(!result)
+		return NULL;
+
+	/*
+	 * compute the contribution each Y_(l m) makes to its own term in
+	 * the result by multiplying each by
+	 * (2/3) (1 - (2l + 1) (-1)^m wigner3j(2 l l 0 m -m) wigner3j(2 l l 0 0 0))
+	 *
+	 * because 2+l+l is even, wigner3j(2 l l 0 m -m) = wigner3j(2 l l 0 -m m)
+	 */
+
+	c = result->coeff;
+	for(l = 0; l <= (int) result->l_max; l++) {
+		double w3j_2ll000_2lp1 = (2 * l + 1) * sh_series_wigner_3j(2, l, l, 0, 0, 0);
+		int m_max = series->polar ? 0 : l;
+		for(m = -m_max; m <= +m_max; m++)
+			c[sh_series_lmoffset(result, l, m)] *= 2./3. * (1. - (m & 1 ? -sh_series_wigner_3j(2, l, l, 0, m, -m) : sh_series_wigner_3j(2, l, l, 0, m, -m)) * w3j_2ll000_2lp1);
+	}
+
+	/*
+	 * in-place resize result to l+2
+	 */
+
+	if(!sh_series_resize(result, result->l_max + 2)) {
+		sh_series_free(result);
+		return NULL;
+	}
+
+	/*
+	 * for each Y_(l m) add its contribution to the Y_(l+/-2 m)
+	 * components of the result
+	 */
+
+	c = result->coeff;
+	/* input (l m) = (0 0).
+	 * sh_series_wigner_3j(2, 0, 2, 0, 0, 0) = 1/sqrt(5)
+	 */
+	c[sh_series_lmoffset(result, 2, 0)] -= 2./3. / sqrt(5.) * sh_series_get(series, 0, 0);
+
+	if(series->l_max < 1)
+		return result;
+
+	/* input (l m) = (1 -1), (1 0), (1 1).
+	 * wigner_3j(2, 1, 3, 0, 0, 0) * wigner_3j(2, 1, 3, 0, 0, 0) = (9. / 1225.)**.5
+	 * wigner_3j(2, 1, 3, 0, -1, 1) * wigner_3j(2, 1, 3, 0, 0, 0) =
+	 * 	wigner_3j(2, 1, 3, 0, 1, -1) * wigner_3j(2, 1, 3, 0, 0, 0) = -(6. / 1225.)**.5
+	 *
+	 * (2+1+3) is even so the wigner3j functions for m=+/-1 are equal.
+	 */
+	c[sh_series_lmoffset(result, 3,  0)] -= 2./3. * sqrt(21.) * sqrt(9./1225.) * sh_series_get(series, 1, 0);
+	if(!series->polar) {
+		c[sh_series_lmoffset(result, 3, -1)] += 2./3. * sqrt(21.) * -sqrt(6./1225.) * sh_series_get(series, 1, -1);
+		c[sh_series_lmoffset(result, 3, +1)] += 2./3. * sqrt(21.) * -sqrt(6./1225.) * sh_series_get(series, 1, +1);
+	}
+
+	/* input l >= 2 */
+	for(l = 2; l <= (int) series->l_max; l++) {
+		/* m-independent parts */
+		/* for (l-2, m) term */
+		double g1 = 2./3. * sqrt((2 * l + 1) * (2 * l - 3)) * sh_series_wigner_3j(2, l, l - 2, 0, 0, 0);
+		/* for (l+2, m) term */
+		double g2 = 2./3. * sqrt((2 * l + 1) * (2 * l + 5)) * sh_series_wigner_3j(2, l, l + 2, 0, 0, 0);
+
+		int m_max = series->polar ? 0 : l;
+		for(m = -m_max; m <= m_max; m++) {
+			/* input a_lm * (-1)^m */
+			complex double alm = m & 1 ? -sh_series_get(series, l, m) : +sh_series_get(series, l, m);
+			/* NOTE:  the (l, m) offset calculation is for the
+			 * output series.  the output series' l_max is 2
+			 * greater than the input series' */
+			c[sh_series_lmoffset(result, l - 2, m)] -= alm * sh_series_wigner_3j(2, l, l - 2, 0, m, -m) * g1;
+			c[sh_series_lmoffset(result, l + 2, m)] -= alm * sh_series_wigner_3j(2, l, l + 2, 0, m, -m) * g2;
+		}
+	}
+
+	return result;
+}
+
+
+/*
  * ============================================================================
  *
  *                          First Order Derivatives
@@ -220,6 +333,14 @@ struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *series)
 	 *		\sqrt{2 l + 3} wigner3j(1 l (l+1) -1 m+1 -m) wigner3j(1 l (l+1) 0 0 0) Y_(l+1 m)
 	 * ]
 	 *
+	 * and (used elsewhere)
+	 *
+	 * Y_(2 0) Y_(l m) = \sqrt{5 (2 l + 1) / (4 pi)} (-1)^m [
+	 *		\sqrt{2 l - 3} wigner3j(2 l (l-2) 0 m -m) wigner3j(2 l (l-2) 0 0 0) Y_(l-2 m) +
+	 *		\sqrt{2 l + 1} wigner3j(2 l l     0 m -m) wigner3j(2 l l     0 0 0) Y_(l m) +
+	 *		\sqrt{2 l + 5} wigner3j(2 l (l+2) 0 m -m) wigner3j(2 l (l+2) 0 0 0) Y_(l+2 m)
+	 * ]
+	 *
 	 * so
 	 *
 	 * sin theta d/dtheta Y_lm(theta, phi) =
@@ -292,6 +413,12 @@ struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *series)
 	 * efficiency of GSL's Wigner 3-j implementation, it's not clear if
 	 * the result is a win or not.  initial benchmarking shows very
 	 * little difference in speed between the two approaches.
+	 *
+	 * another symmetry that helps reduce the wigner3j evaluations in
+	 * the loops over m is
+	 *
+	 *	wigner3j(l1 l2 l3 0 m -m) =
+	 *		(-1)^(l1+l2+l3) wigner3j(l1 l2 l3 0 -m m)
 	 */
 
 	/* FIXME:  GSL's Wigner 3-j functions are not stable for large l,
