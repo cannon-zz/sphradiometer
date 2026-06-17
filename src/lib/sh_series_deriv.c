@@ -43,10 +43,15 @@
 
 /*
  * Compute the spherical harmonic expansion of cos(theta) * the function
- * described the spherical harmonic expansion in series.  Returns the
- * result in a newly allocated sh_series object.  Returns NULL on failure.
+ * given by the spherical harmonic expansion in series.  Returns the result
+ * in a newly allocated sh_series object.  Returns NULL on failure.
  *
  * NOTE:  the result's l_max is increased by 1 from input's l_max.
+ *
+ * NOTE:  sin(theta) has a conical cusp at the poles where it is not
+ * differentiable and so that function cannot be represented as a linear
+ * combination of a finite number of spherical harmonics, and an equivalent
+ * multiplication by sin(theta) is not available here.
  */
 
 
@@ -76,8 +81,9 @@ struct sh_series *sh_series_times_costheta(const struct sh_series *series)
 		return NULL;
 
 	c = result->coeff;
-	/* (l m) = (0 0) is a special case */
+	/* input (l m) = (0 0) */
 	c[sh_series_lmoffset(result, 1, 0)] += sh_series_get(series, 0, 0) / sqrt(3);
+	/* input l >= 1 */
 	for(l = 1; l <= (int) series->l_max; l++) {
 		/* m-independent parts */
 		/* for (l-1, m) term */
@@ -555,8 +561,9 @@ struct sh_series *sh_series_sintheta_curl(const struct sh_series *u, const struc
  *
  * 	\grad^{2} Y_{lm}(\hat{s}) = -l (l + 1) Y_{lm}(\hat{s}).
  *
- * The Laplacian is computed by multiplying each coefficient of the input
- * by the corresponding integer eigenvalue.  This is a fast operation.
+ * The Laplacian is, therefore, computed by multiplying each coefficient of
+ * the input by the corresponding integer eigenvalue.  This is a fast
+ * operation.
  *
  * The explicit form of the operator is
  *
