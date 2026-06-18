@@ -618,6 +618,9 @@ int main(int argc, char *argv[])
 	struct sh_series *a = random_sh_series(8, 0);
 	struct sh_series *b = sh_series_copy(a);
 	assert(sh_series_cmp(a, b) == 0);
+	a = sh_series_resize(a, 10);
+	assert(a != NULL);
+	assert(sh_series_cmp(a, b) == 0);
 	a = sh_series_resize(a, 15);
 	assert(a != NULL);
 	assert(sh_series_cmp(a, b) == 0);
