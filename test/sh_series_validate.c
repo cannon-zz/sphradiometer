@@ -149,6 +149,18 @@ static complex double Y_00_00(double theta, double phi, void *nul)
 }
 
 
+static complex double Y_01_00(double theta, double phi, void *nul)
+{
+	return 1.0 / 2 * sqrt(3 / M_PI) * cos(theta);
+}
+
+
+static complex double Y_02_00(double theta, double phi, void *nul)
+{
+	return 1.0 / 4 * sqrt(5 / M_PI) * (3 * pow(cos(theta), 2) - 1);
+}
+
+
 static complex double Y_07_01(double theta, double phi, void *nul)
 {
 	return -1.0 / 64 * sqrt(105 / (2 * M_PI)) * cexp(I * phi) * sin(theta) * (429 * pow(cos(theta), 6) - 495 * pow(cos(theta), 4) + 135 * pow(cos(theta), 2) - 5);
@@ -213,6 +225,8 @@ static int test_evaluation1(void)
 		complex double (*func)(double, double, void *);
 	} tests[] = {
 		{0, 0, Y_00_00},
+		{1, 0, Y_01_00},
+		{2, 0, Y_02_00},
 		{7, 1, Y_07_01},
 		{8, -7, Y_08_n7},
 		{8, -6, Y_08_n6},
