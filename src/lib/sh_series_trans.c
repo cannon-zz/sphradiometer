@@ -810,17 +810,32 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 
 	/* populate F[] */
 #pragma omp parallel for shared(series, ntheta, nphi, cos_theta_array, m_max, F) num_threads(4)
-	for(int i = 0; i < ntheta; i++)
-		for(int m = -m_max; m <= m_max; m++) {
-			double P[series->l_max + 1];
-			complex double *coeff = series->coeff + sh_series_moffset(series->l_max, m);
-			complex double x = 0.;
+	for(int i = 0; i < ntheta; i++) {
+		/* m = 0 */
+		double P[series->l_max + 1];
+		complex double *coeff = series->coeff + sh_series_moffset(series->l_max, 0);
+		complex double x = 0.;
+		/* compute (normalized) P_{lm}(cos theta) */
+		gsl_sf_legendre_sphPlm_array(series->l_max, 0, cos_theta_array[i], P);
+		for(int l = 0; l <= (int) series->l_max; l++)
+			x += *coeff++ * P[l];
+		*(F + i * nphi) = x;
+
+		for(int m = 1; m <= m_max; m++) {
+			complex double *coeffp = series->coeff + sh_series_moffset(series->l_max, +m);
+			complex double *coeffm = series->coeff + sh_series_moffset(series->l_max, -m);
+			complex double xp = 0.;
+			complex double xm = 0.;
 			/* compute (normalized) P_{lm}(cos theta) */
-			gsl_sf_legendre_sphPlm_array(series->l_max, abs(m), cos_theta_array[i], P + abs(m));
-			for(int l = abs(m); l <= (int) series->l_max; l++)
-				x += *coeff++ * P[l];
-			*(F + i * nphi + (m + nphi) % nphi) = (m < 0) && (m & 1) ? -x : +x;
+			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + m);
+			for(int l = abs(m); l <= (int) series->l_max; l++) {
+				xp += *coeffp++ * P[l];
+				xm += *coeffm++ * P[l];
+			}
+			*(F + i * nphi + m) = +xp;
+			*(F + (i + 1) * nphi - m) = (m & 1) ? -xm : +xm;
 		}
+	}
 
 	/* Fourier transform the m co-ordinate to the phi co-ordinate */
 	{
