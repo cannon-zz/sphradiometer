@@ -735,9 +735,15 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 
 
 /*
- * Given a function of theta, phi, project the function onto spherical
- * harmonics upto and including l = l_max, and return the coefficients as
- * an sh_series object.  Returns NULL on failure.
+ * Given a complex valued function of theta, phi, project the function onto
+ * spherical harmonics upto and including l = l_max, and return the
+ * coefficients as an sh_series object.  Returns NULL on failure.
+ *
+ * The function's signature is
+ *
+ * complex double func(double theta, double phi, void *data);
+ *
+ * where data is the data argument passed to sh_series_from_func()
  */
 
 
@@ -753,6 +759,19 @@ struct sh_series *sh_series_from_func(struct sh_series *series, complex double (
 
 	return series;
 }
+
+
+/*
+ * Given a real-valued function of theta, phi, project the function onto
+ * spherical harmonics upto and including l = l_max, and return the
+ * coefficients as an sh_series object.  Returns NULL on failure.
+ *
+ * The function's signature is
+ *
+ * double func(double theta, double phi, void *data);
+ *
+ * where data is the data argument passed to sh_series_from_realfunc()
+ */
 
 
 struct sh_series *sh_series_from_realfunc(struct sh_series *series, double (*func)(double, double, void *), void *data)
