@@ -309,7 +309,9 @@ struct sh_series *sh_series_sintheta_d_by_dtheta(const struct sh_series *series)
 	 * using
 	 *
 	 * Y_(j1 m1) Y_(j2 m2) =
-	 *	\sqrt{(2 j1 + 1) (2 j2 + 1) / (4 pi)} \sum_j3=0^\infty \sum_m3=-j3^+j3 (-1)^m3 \sqrt{2 j3 + 1} wigner3j(j1 j2 j3 m1 m2 -m3) wigner3j(j1 j2 j3 0 0 0) Y_(j3 m3)
+	 *	\sqrt{(2 j1 + 1) (2 j2 + 1) / (4 pi)}
+	 *	\sum_j3=0^\infty \sum_m3=-j3^+j3
+	 *		(-1)^m3 \sqrt{2 j3 + 1} wigner3j(j1 j2 j3 m1 m2 -m3) wigner3j(j1 j2 j3 0 0 0) Y_(j3 m3)
 	 *
 	 * and the fact that wigner3j(j1 j2 j3 m1 m2 m3) = 0 unless all of
 	 * the following are true
