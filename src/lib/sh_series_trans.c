@@ -616,6 +616,8 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 			*(_F++) *= weight;
 	}
 	}
+	free(cos_theta_weights);
+	cos_theta_weights = NULL;
 
 	/* for each non-negative m, */
 	for(int m = 0; m <= m_max; m++) {
@@ -653,7 +655,6 @@ struct sh_series *sh_series_from_mesh(struct sh_series *series, complex double *
 	free(P);
 	free(F);
 	free(cos_theta_array);
-	free(cos_theta_weights);
 
 	return series;
 }
@@ -703,6 +704,8 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 			*(_F++) *= weight;
 	}
 	}
+	free(cos_theta_weights);
+	cos_theta_weights = NULL;
 
 	/* for each non-negative m, */
 	for(int m = 0; m <= m_max; m++) {
@@ -726,7 +729,6 @@ struct sh_series *sh_series_from_realmesh(struct sh_series *series, double *mesh
 	free(P);
 	free(F);
 	free(cos_theta_array);
-	free(cos_theta_weights);
 
 	return series;
 }
