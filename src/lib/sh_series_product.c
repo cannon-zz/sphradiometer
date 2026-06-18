@@ -282,7 +282,7 @@ static struct sh_series *pixel_domain_product(struct sh_series *dest, const stru
 		sh_series_free(wrkspc);
 		return NULL;
 	}
-	a_mesh = sh_series_to_mesh(wrkspc);
+	a_mesh = sh_series_to_mesh(wrkspc, NULL, NULL, NULL);
 	sh_series_free(wrkspc);
 
 	wrkspc = sh_series_copy(b);
@@ -291,7 +291,7 @@ static struct sh_series *pixel_domain_product(struct sh_series *dest, const stru
 		free(a_mesh);
 		return NULL;
 	}
-	b_mesh = sh_series_to_mesh(wrkspc);
+	b_mesh = sh_series_to_mesh(wrkspc, NULL, NULL, NULL);
 	sh_series_free(wrkspc);
 
 	if(!a_mesh || !b_mesh) {

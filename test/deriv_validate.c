@@ -159,14 +159,18 @@ static int grad_test_2(void)
 	int ntheta, nphi;
 	int i, j;
 	double *cos_theta_array;
-	double *cos_theta_weights;
 	struct sh_series *u, *v;
+
+	if(!series)
+		return -1;
 
 	/* test mesh conversion just to be sure (confirms function has
 	 * an exact representation in a finite Ylm basis) */
-	pixels = sh_series_to_mesh(series);
-	free(sh_series_mesh_new(series->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights));
-	free(cos_theta_weights);
+	pixels = sh_series_to_mesh(series, &ntheta, &nphi, &cos_theta_array);
+	if(!pixels) {
+		sh_series_free(series);
+		return -1;
+	}
 	for(j = 0; j < ntheta; j++) {
 		double theta = acos(cos_theta_array[j]);
 		for(i = 0; i < nphi; i++) {
@@ -193,14 +197,12 @@ static int grad_test_2(void)
 	sh_series_free(series);
 
 	/* derivative w.r.t. phi */
-	pixels = sh_series_to_mesh(v);
+	pixels = sh_series_to_mesh(v, &ntheta, &nphi, &cos_theta_array);
 	if(!pixels) {
 		sh_series_free(u);
 		sh_series_free(v);
 		return -1;
 	}
-	free(sh_series_mesh_new(v->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights));
-	free(cos_theta_weights);
 	for(j = 0; j < ntheta; j++) {
 		double theta = acos(cos_theta_array[j]);
 		for(i = 0; i < nphi; i++) {
@@ -223,9 +225,11 @@ static int grad_test_2(void)
 	free(v);
 
 	/* sin(theta) * deriviative w.r.t. theta */
-	pixels = sh_series_to_mesh(u);
-	free(sh_series_mesh_new(u->l_max, &ntheta, &nphi, &cos_theta_array, &cos_theta_weights));
-	free(cos_theta_weights);
+	pixels = sh_series_to_mesh(u, &ntheta, &nphi, &cos_theta_array);
+	if(!pixels) {
+		sh_series_free(u);
+		return -1;
+	}
 	for(j = 0; j < ntheta; j++) {
 		double theta = acos(cos_theta_array[j]);
 		for(i = 0; i < nphi; i++) {

@@ -327,9 +327,10 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 	if(!interp)
 		return NULL;
 
-	/* compute the parameters of the mesh */
+	/* start by doing the frequency-domain to pixel-doman transform. */
 
-	if(pixels_from_l_max(series->l_max, &interp->ntheta, &interp->nphi, &interp->theta, NULL)) {
+	mesh = sh_series_to_mesh(series, &interp->ntheta, &interp->nphi, &interp->theta);
+	if(!mesh) {
 		free(interp);
 		return NULL;
 	}
@@ -359,9 +360,8 @@ struct sh_series_eval_interp *sh_series_eval_interp_new(const struct sh_series *
 	interp->im = gsl_spline2d_alloc(gsl_interp2d_bicubic, interp->nphi + 4, interp->ntheta + 2);
 	interp->theta_acc = gsl_interp_accel_alloc();
 	interp->phi_acc = gsl_interp_accel_alloc();
-	mesh = sh_series_to_mesh(series);
 	interp_mesh = malloc((interp->nphi + 4) * (interp->ntheta + 2) * sizeof(*interp_mesh));
-	if(!tmp || !interp->phi || !interp->re || !interp->im || !interp->theta_acc || !interp->phi_acc || !mesh || !interp_mesh) {
+	if(!tmp || !interp->phi || !interp->re || !interp->im || !interp->theta_acc || !interp->phi_acc || !interp_mesh) {
 		free(interp->theta);
 		free(interp->phi);
 		gsl_spline2d_free(interp->re);
@@ -793,33 +793,50 @@ struct sh_series *sh_series_from_realfunc(struct sh_series *series, double (*fun
  */
 
 
-complex double *sh_series_to_mesh(const struct sh_series *series)
+complex double *sh_series_to_mesh(const struct sh_series *series, int *ntheta, int *nphi, double **cos_theta_array)
 {
-	int ntheta, nphi;
-	double *cos_theta_array;
+	int _ntheta, _nphi;
+	double *_cos_theta_array;
 	int m_max = series->polar ? 0 : series->l_max;
-	complex double *mesh = sh_series_mesh_new(series->l_max, &ntheta, &nphi, &cos_theta_array, NULL);
-	complex double *F = calloc(ntheta * nphi, sizeof(*F));
+	complex double *mesh = sh_series_mesh_new(series->l_max, &_ntheta, &_nphi, &_cos_theta_array, NULL);
+	complex double *F = calloc(_ntheta * _nphi, sizeof(*F));
+
+	/* check memory allocation */
 
 	if(!mesh || !F) {
+		if(ntheta)
+			*ntheta = 0;
+		if(nphi)
+			*nphi = 0;
+		if(cos_theta_array)
+			*cos_theta_array = NULL;
 		free(mesh);
 		free(F);
-		free(cos_theta_array);
+		free(_cos_theta_array);
 		return NULL;
 	}
 
+	/* pass mesh parameters to calling code if asked */
+
+	if(ntheta)
+		*ntheta = _ntheta;
+	if(nphi)
+		*nphi = _nphi;
+	if(cos_theta_array)
+		*cos_theta_array = _cos_theta_array;
+
 	/* populate F[] */
-#pragma omp parallel for shared(series, ntheta, nphi, cos_theta_array, m_max, F) num_threads(4)
-	for(int i = 0; i < ntheta; i++) {
+#pragma omp parallel for shared(series, _ntheta, _nphi, _cos_theta_array, m_max, F) num_threads(4)
+	for(int i = 0; i < _ntheta; i++) {
 		/* m = 0 */
 		double P[series->l_max + 1];
 		complex double *coeff = series->coeff + sh_series_moffset(series->l_max, 0);
 		complex double x = 0.;
 		/* compute (normalized) P_{lm}(cos theta) */
-		gsl_sf_legendre_sphPlm_array(series->l_max, 0, cos_theta_array[i], P);
+		gsl_sf_legendre_sphPlm_array(series->l_max, 0, _cos_theta_array[i], P);
 		for(int l = 0; l <= (int) series->l_max; l++)
 			x += *coeff++ * P[l];
-		*(F + i * nphi) = x;
+		*(F + i * _nphi) = x;
 
 		for(int m = 1; m <= m_max; m++) {
 			complex double *coeffp = series->coeff + sh_series_moffset(series->l_max, +m);
@@ -827,27 +844,28 @@ complex double *sh_series_to_mesh(const struct sh_series *series)
 			complex double xp = 0.;
 			complex double xm = 0.;
 			/* compute (normalized) P_{lm}(cos theta) */
-			gsl_sf_legendre_sphPlm_array(series->l_max, m, cos_theta_array[i], P + m);
+			gsl_sf_legendre_sphPlm_array(series->l_max, m, _cos_theta_array[i], P + m);
 			for(int l = abs(m); l <= (int) series->l_max; l++) {
 				xp += *coeffp++ * P[l];
 				xm += *coeffm++ * P[l];
 			}
-			*(F + i * nphi + m) = +xp;
-			*(F + (i + 1) * nphi - m) = (m & 1) ? -xm : +xm;
+			*(F + i * _nphi + m) = +xp;
+			*(F + (i + 1) * _nphi - m) = (m & 1) ? -xm : +xm;
 		}
 	}
 
 	/* Fourier transform the m co-ordinate to the phi co-ordinate */
 	{
-	int n[] = {nphi};
-	fftw_plan plan = fftw_plan_many_dft(1, n, ntheta, F, NULL, 1, nphi, mesh, NULL, 1, nphi, FFTW_BACKWARD, FFTW_ESTIMATE);
+	int n[] = {_nphi};
+	fftw_plan plan = fftw_plan_many_dft(1, n, _ntheta, F, NULL, 1, _nphi, mesh, NULL, 1, _nphi, FFTW_BACKWARD, FFTW_ESTIMATE);
 	fftw_execute(plan);
 	fftw_destroy_plan(plan);
 	}
 
 	/* clean up */
 	free(F);
-	free(cos_theta_array);
+	if(!cos_theta_array)
+		free(_cos_theta_array);
 
 	return mesh;
 }

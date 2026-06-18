@@ -298,7 +298,7 @@ complex double *sh_series_mesh_new(unsigned int, int *, int *, double **, double
 double *sh_series_real_mesh_new(unsigned int, int *, int *, double **, double **);
 struct sh_series *sh_series_from_mesh(struct sh_series *, double complex *);
 struct sh_series *sh_series_from_realmesh(struct sh_series *, double *);
-double complex *sh_series_to_mesh(const struct sh_series *);
+complex double *sh_series_to_mesh(const struct sh_series *, int *, int *, double **);
 
 
 struct sh_series *sh_series_from_func(struct sh_series *, double complex (*)(double, double, void *), void *);

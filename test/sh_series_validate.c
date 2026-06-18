@@ -497,7 +497,7 @@ static int test_projection2(void)
 
 	for(lmax = 1; lmax < 50; lmax++) {
 		struct sh_series *orig = random_sh_series(lmax, 0);
-		complex double *mesh = sh_series_to_mesh(orig);
+		complex double *mesh = sh_series_to_mesh(orig, NULL, NULL, NULL);
 		struct sh_series *final = sh_series_new(lmax, 0);
 		sh_series_from_mesh(final, mesh);
 		err = diagnostics_rms_error(orig, final) / lmax / lmax;
