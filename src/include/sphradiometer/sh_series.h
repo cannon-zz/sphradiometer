@@ -363,6 +363,14 @@ struct sh_series *sh_series_invlaplacian(struct sh_series *);
 
 
 /*
+ * Extremization
+ */
+
+
+double sh_series_real_maximum(const struct sh_series *, double *, double *);
+
+
+/*
  * I/O
  */
 

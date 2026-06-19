@@ -17,6 +17,7 @@ libsphradiometer_la_SOURCES = \
 	projection.c \
 	sh_series.c \
 	sh_series_deriv.c \
+	sh_series_extremize.c \
 	sh_series_array.c \
 	sh_series_healpix.cc \
 	sh_series_io.c \

@@ -6,6 +6,7 @@ EXTRA_DIST = \
 TESTS = \
 	correlator_validate \
 	deriv_validate \
+	extremize_validate \
 	healpy_validate.py \
 	product_validate \
 	rotation_validate \
@@ -16,6 +17,7 @@ TESTS = \
 check_PROGRAMS = \
 	correlator_validate \
 	deriv_validate \
+	extremize_validate \
 	product_validate \
 	rotation_validate \
 	sh_series_validate \
@@ -38,6 +40,11 @@ deriv_validate_SOURCES = deriv_validate.c
 deriv_validate_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
 deriv_validate_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
 deriv_validate_LDADD = ../src/lib/libsphradiometer.la ../src/lib/libsphradiometerdiag.la
+
+extremize_validate_SOURCES = extremize_validate.c
+extremize_validate_CFLAGS = $(AM_CFLAGS) $(FFTW_CFLAGS) $(GSL_CFLAGS) $(LAL_CFLAGS) $(LALSIMULATION_CFLAGS)
+extremize_validate_LDFLAGS = $(AM_LDFLAGS) $(FFTW_LIBS) $(GSL_LIBS) $(LAL_LIBS) $(LALSIMULATION_LIBS)
+extremize_validate_LDADD = ../src/lib/libsphradiometer.la ../src/lib/libsphradiometerdiag.la
 
 gsl_validate_SOURCES = gsl_validate.c
 gsl_validate_CFLAGS = $(AM_CFLAGS) $(GSL_CFLAGS)
