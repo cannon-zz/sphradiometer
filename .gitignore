@@ -41,6 +41,7 @@ src/python/sphradiometer.py
 src/python/sphradiometer_wrap.c
 test/correlator_validate
 test/deriv_validate
+test/extremize_validate
 test/gsl_validate
 test/product_validate
 test/rotation_validate
