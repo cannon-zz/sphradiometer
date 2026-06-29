@@ -59,13 +59,13 @@ static int test_real_maximum(void)
 
 		fprintf(stderr, "expected max %.16g @ theta, phi = %.16g %.16g\n", cabs(sh_series_eval(series, correct_theta, correct_phi)), correct_theta, correct_phi);
 
-		max = sh_series_real_maximum(series, &theta, &phi);
+		sh_series_neg(series);
+		max = -sh_series_real_minimum(series, &theta, &phi);
+		sh_series_free(series);
 
 		fprintf(stderr, "estimated theta, phi = %.16g %.16g\n", theta, phi);
 		fprintf(stderr, "value at theta, phi = %.16g\n", max);
 		fprintf(stderr, "\n");
-
-		sh_series_free(series);
 	}
 
 	return 0;
