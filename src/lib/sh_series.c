@@ -394,7 +394,8 @@ struct sh_series *sh_series_add(struct sh_series *a, const complex double z, con
 
 /*
  * Multiply the coefficients in the sh_series object a by the complex
- * factor z, returning a pointer to a or NULL on failure.
+ * factor z.  Transformation is done in place.  Return value is the address
+ * of the series or NULL on failure.
  */
 
 
