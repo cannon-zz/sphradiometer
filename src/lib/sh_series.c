@@ -412,6 +412,27 @@ struct sh_series *sh_series_scale(struct sh_series *a, complex double z)
 
 
 /*
+ * Special case of sh_series_scale() to negate (change the sign of) the
+ * coefficients in the sh_series object a.  Floating point units have a
+ * dedicated change-sign operand, so this should be slightly faster.
+ * Transformation is done in place.  Return value is the address of the
+ * series or NULL on failure.
+ */
+
+
+struct sh_series *sh_series_neg(struct sh_series *a)
+{
+	complex double *c = a->coeff;
+	const complex double *c_last = c + sh_series_length(a->l_max, a->polar);
+
+	for(; c < c_last; c++)
+		*c = -*c;
+
+	return a;
+}
+
+
+/*
  * Replace an sh_series object with the coefficients of the complex
  * conjugate of the function it describes.
  */

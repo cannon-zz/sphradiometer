@@ -384,6 +384,31 @@ static int test_realimag(void)
 }
 
 
+static int test_scale_neg(void)
+{
+	int i;
+	for(i = 0; i < 10000; i++) {
+		struct sh_series *a = random_sh_series(floor(randrange(0, 21)), random() & 1);
+		struct sh_series *b = sh_series_copy(a);
+		double err;
+
+		sh_series_scale(a, -1.0);
+		sh_series_neg(b);
+
+		err = diagnostics_rms_error(a, b);
+		if(err > 0.0) {
+			fprintf(stderr, "sh_series_scale by -1 not same as neg:  a: l_max=%d,polar=%d,  b: l_max=%d,polar=%d.\n", a->l_max, a->polar, b->l_max, b->polar);
+			return -1;
+		}
+
+		sh_series_free(a);
+		sh_series_free(b);
+	}
+
+	return 0;
+}
+
+
 static int test_add(void)
 {
 	int i;
@@ -760,6 +785,7 @@ int main(int argc, char *argv[])
 	assert(test_evaluation2() == 0);
 	assert(test_conj() == 0);
 	assert(test_realimag() == 0);
+	assert(test_scale_neg() == 0);
 	assert(test_add() == 0);
 	assert(test_projection1() == 0);
 	assert(test_projection2() == 0);
