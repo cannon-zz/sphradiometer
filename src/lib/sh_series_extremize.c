@@ -26,6 +26,7 @@
  */
 
 
+#include <assert.h>
 #include <complex.h>
 #include <math.h>
 #include <gsl/gsl_multimin.h>
@@ -49,6 +50,15 @@
  */
 
 
+/*
+ * the extremizer code doesn't know the rules for the co-ordinates and can
+ * cross over wrap-around boundaries if the extremum is near one, so this
+ * is used to sanitize co-ordinates before evaluating functions on the
+ * sphere.  theta is put into [0, pi] and phi into [0, 2pi).  the values
+ * are modified in-place.
+ */
+
+
 static void condition_theta_phi(double *theta, double *phi)
 {
 	/*fprintf(stderr, "condition_theta_phi(%.16g %.16g) --> ", *theta, *phi);*/
@@ -58,7 +68,8 @@ static void condition_theta_phi(double *theta, double *phi)
 	if(*theta < 0.)
 		*theta += 2 * M_PI;
 
-	/* flip theta into [0, pi), flipping phi if needed */
+	/* constrain theta to [0, pi], flipping phi to the other side of
+	 * the sphere if needed */
 
 	if(*theta > M_PI) {
 		*theta = 2. * M_PI - *theta;
@@ -71,6 +82,9 @@ static void condition_theta_phi(double *theta, double *phi)
 	if(*phi < 0.)
 		*phi += 2 * M_PI;
 	/*fprintf(stderr, "%.16g %.16g\n", *theta, *phi);*/
+
+	assert(0. <= *theta && *theta <= M_PI);
+	assert(0. <= *phi && *phi < 2. * M_PI);
 }
 
 
