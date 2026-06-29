@@ -103,19 +103,19 @@ static void condition_theta_phi(double *theta, double *phi)
 
 
 struct fdf_params {
+	double sign;	/* +1 = minimizer, -1 = maximizer */
 	const struct sh_series *series;
-	struct sh_series *u;
-	struct sh_series *v;
+	struct sh_series *u_sintheta;
+	struct sh_series *v_sintheta;
 };
 
 
 /*
- * function and gradient evaluators to use GSL's "fdf" minimizers to find
- * the minimum
+ * function and gradient evaluators to use GSL's "fdf" minimizers
  */
 
 
-static double f_for_min(const gsl_vector *x, void *params)
+static double func(const gsl_vector *x, void *params)
 {
 	struct fdf_params *fdf_params = params;
 	double theta = gsl_vector_get(x, 0);
@@ -123,15 +123,15 @@ static double f_for_min(const gsl_vector *x, void *params)
 
 	condition_theta_phi(&theta, &phi);
 
-	double val = creal(sh_series_eval(fdf_params->series, theta, phi));
+	double val = fdf_params->sign * creal(sh_series_eval(fdf_params->series, theta, phi));
 
-	/*fprintf(stderr, "f_for_min(%.16g, %.16g) = %.16g\n", theta, phi, val);*/
+	/*fprintf(stderr, "func(%.16g, %.16g) = %.16g\n", theta, phi, val);*/
 
 	return val;
 }
 
 
-static void df_for_min(const gsl_vector *x, void *params, gsl_vector *g)
+static void dfunc(const gsl_vector *x, void *params, gsl_vector *g)
 {
 	struct fdf_params *fdf_params = params;
 	double theta = gsl_vector_get(x, 0);
@@ -141,57 +141,33 @@ static void df_for_min(const gsl_vector *x, void *params, gsl_vector *g)
 
 	double sin_theta = sin(theta);
 
-	double u = creal(sh_series_eval(fdf_params->u, theta, phi));
-	double v = creal(sh_series_eval(fdf_params->v, theta, phi));
+	double u = fdf_params->sign * creal(sh_series_eval(fdf_params->u_sintheta, theta, phi)) / sin_theta;
+	double v = fdf_params->sign * creal(sh_series_eval(fdf_params->v_sintheta, theta, phi)) / sin_theta;
 
-	/*fprintf(stderr, "grad f_for_min(%.16g, %.16g) = %.16g theta + %.16g phi\n", theta, phi, u / sin_theta, v / sin_theta);*/
+	/*fprintf(stderr, "grad dfunc(%.16g, %.16g) = %.16g theta + %.16g phi\n", theta, phi, u, v);*/
 
-	gsl_vector_set(g, 0, u / sin_theta);
-	gsl_vector_set(g, 1, v / sin_theta);
+	gsl_vector_set(g, 0, u);
+	gsl_vector_set(g, 1, v);
 }
 
 
-static void fdf_for_min(const gsl_vector *x, void *params, double *f, gsl_vector *g)
+static void func_dfunc(const gsl_vector *x, void *params, double *f, gsl_vector *g)
 {
-	*f = f_for_min(x, params);
-	df_for_min(x, params, g);
+	*f = func(x, params);
+	dfunc(x, params, g);
 }
 
 
 /*
- * function and gradient evaluators to use GSL's "fdf" minimizers to find
- * the maximum
+ * find a point near the extremum.  the input series is low-pass filtered
+ * and transformed to the pixel domain where a brute-force search is used
+ * to select the co-ordinates of the pixel with the maximum (sign = -1) or
+ * minimum (sign = +1) value.  the result is hopefully within a wavelength
+ * of the extremum at full bandwidth.
  */
 
 
-static double f_for_max(const gsl_vector *x, void *params)
-{
-	return -f_for_min(x, params);
-}
-
-
-static void df_for_max(const gsl_vector *x, void *params, gsl_vector *g)
-{
-	df_for_min(x, params, g);
-
-	gsl_vector_set(g, 0, -gsl_vector_get(g, 0));
-	gsl_vector_set(g, 1, -gsl_vector_get(g, 1));
-}
-
-
-static void fdf_for_max(const gsl_vector *x, void *params, double *f, gsl_vector *g)
-{
-	*f = f_for_max(x, params);
-	df_for_max(x, params, g);
-}
-
-
-/*
- * find a point near the extremum
- */
-
-
-static double find_near_max(const struct sh_series *series, double *theta, double *phi)
+static double find_near_extremum(const struct sh_series *series, double sign, unsigned l_lowpass, double *theta, double *phi)
 {
 	struct sh_series *low_bandwidth;
 	/* needed to work around const'edness.  optimizer should remove */
@@ -200,7 +176,7 @@ static double find_near_max(const struct sh_series *series, double *theta, doubl
 	int i, j;
 	double *cos_theta_array;
 	complex double *mesh, *m;
-	double max;
+	double min;
 
 	/*
 	 * for safety
@@ -212,11 +188,11 @@ static double find_near_max(const struct sh_series *series, double *theta, doubl
 	 * make a low-bandwidth version of the function
 	 */
 
-	if(series->l_max > 6) {
+	if(series->l_max > l_lowpass) {
 		low_bandwidth = sh_series_copy(series);
 		if(!low_bandwidth)
 			return NAN;
-		sh_series_resize(low_bandwidth, 6);
+		sh_series_resize(low_bandwidth, l_lowpass);
 		if(!low_bandwidth)
 			return NAN;
 		const_low_bandwidth = low_bandwidth;
@@ -234,22 +210,22 @@ static double find_near_max(const struct sh_series *series, double *theta, doubl
 		return NAN;
 
 	/*
-	 * select the maximum re(pixel)
+	 * select the minimum/maximum Re(pixel)
 	 */
 
 	m = mesh;
-	max = creal(*m);
+	min = sign * creal(*m);
 	*theta = acos(cos_theta_array[0]);
 	*phi = 0.;
-	/*fprintf(stderr, "best guess max %.16g @ %.16g %.16g\n", max, *theta, *phi);*/
+	/*fprintf(stderr, "best guess %.16g @ %.16g %.16g\n", sign * min, *theta, *phi);*/
 	for(j = 0; j < ntheta; j++) {
 		for(i = 0; i < nphi; i++) {
-			double val = creal(*m++);
-			if(val > max) {
+			double val = sign * creal(*m++);
+			if(val < min) {
 				*theta = acos(cos_theta_array[j]);
 				*phi = i * 2 * M_PI / nphi;
-				max = val;
-				/*fprintf(stderr, "best guess max %.16g @ %.16g %.16g\n", max, *theta, *phi);*/
+				min = val;
+				/*fprintf(stderr, "best guess %.16g @ %.16g %.16g\n", sign * min, *theta, *phi);*/
 			}
 		}
 	}
@@ -261,7 +237,7 @@ static double find_near_max(const struct sh_series *series, double *theta, doubl
 	free(mesh);
 	free(cos_theta_array);
 
-	return max;
+	return sign * min;
 }
 
 
@@ -275,10 +251,15 @@ static double find_near_max(const struct sh_series *series, double *theta, doubl
 
 
 /*
- * report the co-ordinates and value of the maximum of the real-valued
+ * report the co-ordinates and value of the extremum of the real-valued
  * function on the sphere described by series.  on success the co-ordinates
  * are stored in the addresses pointed to by theta and phi, and the value
  * is returned.  on failure NaN is returned.
+ *
+ * sign selects the extremum type:  -1 = find maximum, +1 = find minimum.
+ *
+ * see sh_series_real_minimum() sh_series_real_maximum() for exported
+ * wrappers.
  *
  * NOTE:  this is a first attempt at this, it's not working very well, I'm
  * still experimenting.  use at your own risk.
@@ -293,15 +274,16 @@ static double find_near_max(const struct sh_series *series, double *theta, doubl
  */
 
 
-double sh_series_real_maximum(const struct sh_series *series, double *theta, double *phi)
+static double sh_series_real_extremum(const struct sh_series *series, double sign, double *theta, double *phi)
 {
 	struct fdf_params fdf_params = {
+		.sign = sign,
 		.series = series,
 	};
 	gsl_multimin_function_fdf fdf = {
-		.f = f_for_max,
-		.df = df_for_max,
-		.fdf = fdf_for_max,
+		.f = func,
+		.df = dfunc,
+		.fdf = func_dfunc,
 		.n = 2,
 		.params = &fdf_params
 	};
@@ -316,7 +298,7 @@ double sh_series_real_maximum(const struct sh_series *series, double *theta, dou
 	 * starting point for the gradient descent
 	 */
 
-	if(isnan(find_near_max(series, gsl_vector_ptr(x, 0), gsl_vector_ptr(x, 1)))) {
+	if(isnan(find_near_extremum(series, sign, 6, gsl_vector_ptr(x, 0), gsl_vector_ptr(x, 1)))) {
 		gsl_vector_free(x);
 		return NAN;
 	}
@@ -326,7 +308,7 @@ double sh_series_real_maximum(const struct sh_series *series, double *theta, dou
 	 * initialization of fdf_params.
 	 */
 
-	if(!sh_series_sintheta_grad(series, &fdf_params.u, &fdf_params.v)) {
+	if(!sh_series_sintheta_grad(series, &fdf_params.u_sintheta, &fdf_params.v_sintheta)) {
 		gsl_vector_free(x);
 		return NAN;
 	}
@@ -338,12 +320,12 @@ double sh_series_real_maximum(const struct sh_series *series, double *theta, dou
 	gsl_multimin_fdfminimizer *extremizer = gsl_multimin_fdfminimizer_alloc(gsl_multimin_fdfminimizer_vector_bfgs2, 2);
 	if(!extremizer) {
 		gsl_vector_free(x);
-		sh_series_free(fdf_params.u);
-		sh_series_free(fdf_params.v);
+		sh_series_free(fdf_params.u_sintheta);
+		sh_series_free(fdf_params.v_sintheta);
 		return NAN;
 	}
 
-	gsl_multimin_fdfminimizer_set(extremizer, &fdf, x, M_PI / 20., 0.001);
+	gsl_multimin_fdfminimizer_set(extremizer, &fdf, x, M_PI / 24., 0.001);
 	gsl_vector_free(x);
 
 	for(int iter = 0; iter < 100; iter++) {
@@ -351,21 +333,21 @@ double sh_series_real_maximum(const struct sh_series *series, double *theta, dou
 
 		status = gsl_multimin_fdfminimizer_iterate(extremizer);
 		if(status) {
-			/*fprintf(stderr, "iterator failed\n");*/
+			fprintf(stderr, "iterator failed\n");
 			break;
 		}
 
 		status = gsl_multimin_test_gradient(extremizer->gradient, 1e-3);
 		if(status == GSL_SUCCESS) {
-			/*fprintf(stderr, "iterator converged\n");*/
+			fprintf(stderr, "iterator converged\n");
 			break;
 		}
 
-		/*x = gsl_multimin_fdfminimizer_x(extremizer);
+		x = gsl_multimin_fdfminimizer_x(extremizer);
 		*theta = gsl_vector_get(x, 0);
 		*phi = gsl_vector_get(x, 1);
 		val = -gsl_multimin_fdfminimizer_minimum(extremizer);
-		fprintf(stderr, "iter %d max %.16g @ %.16g %.16g\n", iter, val, *theta, *phi);*/
+		fprintf(stderr, "iter %d max %.16g @ %.16g %.16g\n", iter, val, *theta, *phi);
 	}
 
 	x = gsl_multimin_fdfminimizer_x(extremizer);
@@ -374,8 +356,20 @@ double sh_series_real_maximum(const struct sh_series *series, double *theta, dou
 	val = -gsl_multimin_fdfminimizer_minimum(extremizer);
 
 	gsl_multimin_fdfminimizer_free(extremizer);
-	sh_series_free(fdf_params.u);
-	sh_series_free(fdf_params.v);
+	sh_series_free(fdf_params.u_sintheta);
+	sh_series_free(fdf_params.v_sintheta);
 
 	return val;
+}
+
+
+double sh_series_real_minimum(const struct sh_series *series, double *theta, double *phi)
+{
+	return sh_series_real_extremum(series, +1.0, theta, phi);
+}
+
+
+double sh_series_real_maximum(const struct sh_series *series, double *theta, double *phi)
+{
+	return sh_series_real_extremum(series, -1.0, theta, phi);
 }

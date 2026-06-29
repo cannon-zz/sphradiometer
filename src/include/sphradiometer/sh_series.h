@@ -367,6 +367,7 @@ struct sh_series *sh_series_invlaplacian(struct sh_series *);
  */
 
 
+double sh_series_real_minimum(const struct sh_series *, double *, double *);
 double sh_series_real_maximum(const struct sh_series *, double *, double *);
 
 
