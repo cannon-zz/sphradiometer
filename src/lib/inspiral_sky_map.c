@@ -839,7 +839,7 @@ static int whiten(complex double *series, complex double *noise, int length)
 
 static double log_uniformsky_prior(double theta, double phi, void *data)
 {
-	return log(0.25 * sin(theta) / M_PI);
+	return log(sin(theta) / (4 * M_PI));
 }
 
 
