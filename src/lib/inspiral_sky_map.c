@@ -134,7 +134,7 @@ long precalculated_TimeSeries_length(long length, double deltaT)
  */
 
 
-int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, int n_series)
+static int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, int n_series)
 {
 	int i;
 	LIGOTimeGPS start;
@@ -181,7 +181,7 @@ int time_series_pad(COMPLEX16TimeSeries **series, COMPLEX16Sequence **nseries, i
 }
 
 
-void scale_COMPLEX16Sequence(COMPLEX16Sequence *series, double factor)
+static void scale_COMPLEX16Sequence(COMPLEX16Sequence *series, double factor)
 {
 	unsigned int i;
 	for(i = 0; i < series->length; i++)
@@ -558,7 +558,7 @@ error:
  */
 
 
-struct sh_series ***diagonal_projections(const struct instrument_array *instruments, double beta, double psi, double **psd, int length, int l_max)
+static struct sh_series ***diagonal_projections(const struct instrument_array *instruments, double beta, double psi, double **psd, int length, int l_max)
 {
 	int i, j, k;
 	struct sh_series ***projection = malloc(instrument_array_len(instruments) * sizeof(*projection));
@@ -719,7 +719,7 @@ static int autocorrelator_network_from_projection(struct sh_series *sky, complex
  */
 
 
-complex double inner_product(complex double *a, complex double *b, int length)
+static complex double inner_product(complex double *a, complex double *b, int length)
 {
 	int i;
 	complex double prod = 0;
@@ -731,7 +731,7 @@ complex double inner_product(complex double *a, complex double *b, int length)
 }
 
 
-complex double *matrix_dot_vector(complex double **mat, complex double *vec, int dim)
+static complex double *matrix_dot_vector(complex double **mat, complex double *vec, int dim)
 {
 	int i;
 	complex double *result = malloc(dim * sizeof(*result));
@@ -743,7 +743,7 @@ complex double *matrix_dot_vector(complex double **mat, complex double *vec, int
 }
 
 
-void complex_conjugate_vector(complex double *vec, int dim)
+static void complex_conjugate_vector(complex double *vec, int dim)
 {
 	int i;
 
@@ -752,7 +752,7 @@ void complex_conjugate_vector(complex double *vec, int dim)
 }
 
 
-complex double **convert_basis_from_frequency(complex double **mat, complex double **evec_columns, int dim)
+static complex double **convert_basis_from_frequency(complex double **mat, complex double **evec_columns, int dim)
 {
 	/* mat is on frequency domain.  this function convert mat on evec. */
 	int i, j;
@@ -805,7 +805,7 @@ complex double **convert_basis_from_frequency(complex double **mat, complex doub
 }
 
 
-double *KL_transform(COMPLEX16TimeSeries *series, complex double **evec_columns)
+static double *KL_transform(COMPLEX16TimeSeries *series, complex double **evec_columns)
 {
 	int i;
 	double *result = malloc(series->data->length * sizeof(*result));
