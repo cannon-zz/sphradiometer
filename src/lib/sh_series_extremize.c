@@ -285,9 +285,9 @@ double sh_series_real_minimum(const struct sh_series *series, double *theta, dou
 		return NAN;
 
 	/*
-	 * find the co-ordinates of the maximum magnitude of a
-	 * low-bandwidth approximation of series.  this will be the
-	 * starting point for the gradient descent
+	 * find the co-ordinates of the minimum of a low-bandwidth
+	 * approximation of series.  this will be the starting point for
+	 * the gradient descent
 	 */
 
 	if(isnan(find_near_minimum(series, 6, gsl_vector_ptr(x, 0), gsl_vector_ptr(x, 1)))) {
@@ -306,7 +306,7 @@ double sh_series_real_minimum(const struct sh_series *series, double *theta, dou
 	}
 
 	/*
-	 * initialize the "minimizer" (we're using it to find a maximum)
+	 * initialize the minimizer
 	 */
 
 	gsl_multimin_fdfminimizer *extremizer = gsl_multimin_fdfminimizer_alloc(gsl_multimin_fdfminimizer_vector_bfgs2, 2);
