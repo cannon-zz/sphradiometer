@@ -28,6 +28,7 @@
 
 #include <assert.h>
 #include <complex.h>
+#include <float.h>
 #include <math.h>
 #include <gsl/gsl_multimin.h>
 #include <gsl/gsl_vector.h>
@@ -213,9 +214,7 @@ static double find_near_minimum(const struct sh_series *series, unsigned l_lowpa
 	 */
 
 	m = mesh;
-	min = creal(*m);
-	*theta = acos(cos_theta_array[0]);
-	*phi = 0.;
+	min = INFINITY;
 	/*fprintf(stderr, "best guess %.16g @ %.16g %.16g\n", min, *theta, *phi);*/
 	for(j = 0; j < ntheta; j++) {
 		for(i = 0; i < nphi; i++) {
