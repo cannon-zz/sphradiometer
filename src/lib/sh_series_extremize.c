@@ -109,7 +109,7 @@ struct fdf_params {
 
 
 /*
- * function and gradient evaluators to use GSL's "fdf" minimizers
+ * function and gradient evaluators to use with GSL's "fdf" minimizers
  */
 
 
@@ -250,7 +250,8 @@ static double find_near_minimum(const struct sh_series *series, unsigned l_lowpa
  * report the co-ordinates and value of the minimum of the real-valued
  * function on the sphere described by series.  on success the co-ordinates
  * are stored in the addresses pointed to by theta and phi, and the value
- * is returned.  on failure NaN is returned.
+ * is returned.  on failure NaN is returned, and the co-ordinates are left
+ * undefined.
  *
  * NOTE:  this is a first attempt at this, it's not working very well, I'm
  * still experimenting.  use at your own risk.
