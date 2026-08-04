@@ -62,7 +62,6 @@
 
 static void condition_theta_phi(double *theta, double *phi)
 {
-	/*fprintf(stderr, "condition_theta_phi(%.16g %.16g) --> ", *theta, *phi);*/
 	/* unwind theta into [0, 2pi) */
 
 	*theta = fmod(*theta, 2 * M_PI);
@@ -82,7 +81,6 @@ static void condition_theta_phi(double *theta, double *phi)
 	*phi = fmod(*phi, 2 * M_PI);
 	if(*phi < 0.)
 		*phi += 2 * M_PI;
-	/*fprintf(stderr, "%.16g %.16g\n", *theta, *phi);*/
 
 	assert(0. <= *theta && *theta <= M_PI);
 	assert(0. <= *phi && *phi < 2. * M_PI);
@@ -325,21 +323,23 @@ double sh_series_real_minimum(const struct sh_series *series, double *theta, dou
 
 		status = gsl_multimin_fdfminimizer_iterate(extremizer);
 		if(status) {
-			fprintf(stderr, "iterator failed\n");
+			/*fprintf(stderr, "iterator failed\n");*/
 			break;
 		}
 
 		status = gsl_multimin_test_gradient(extremizer->gradient, 1e-3);
 		if(status == GSL_SUCCESS) {
-			fprintf(stderr, "iterator converged\n");
+			/*fprintf(stderr, "iterator converged\n");*/
 			break;
 		}
 
+#if 0
 		x = gsl_multimin_fdfminimizer_x(extremizer);
 		*theta = gsl_vector_get(x, 0);
 		*phi = gsl_vector_get(x, 1);
 		val = gsl_multimin_fdfminimizer_minimum(extremizer);
-		fprintf(stderr, "iter %d max %.16g @ %.16g %.16g\n", iter, val, *theta, *phi);
+		fprintf(stderr, "iter %d max %.16g @ %.16g %.16g\n", * iter, val, *theta, *phi);
+#endif
 	}
 
 	x = gsl_multimin_fdfminimizer_x(extremizer);
