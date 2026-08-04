@@ -414,7 +414,7 @@ struct sh_series *sh_series_scale(struct sh_series *a, complex double z)
 /*
  * Special case of sh_series_scale() to negate (change the sign of) the
  * coefficients in the sh_series object a.  Floating point units have a
- * dedicated change-sign operand, so this should be slightly faster.
+ * dedicated change-sign operator, so this should be slightly faster.
  * Transformation is done in place.  Return value is the address of the
  * series or NULL on failure.
  */
