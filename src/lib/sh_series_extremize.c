@@ -190,9 +190,10 @@ static double find_near_minimum(const struct sh_series *series, unsigned l_lowpa
 		low_bandwidth = sh_series_copy(series);
 		if(!low_bandwidth)
 			return NAN;
-		sh_series_resize(low_bandwidth, l_lowpass);
-		if(!low_bandwidth)
+		if(!sh_series_resize(low_bandwidth, l_lowpass)) {
+			sh_series_free(low_bandwidth);
 			return NAN;
+		}
 		const_low_bandwidth = low_bandwidth;
 	} else
 		const_low_bandwidth = series;
@@ -218,9 +219,12 @@ static double find_near_minimum(const struct sh_series *series, unsigned l_lowpa
 		for(i = 0; i < nphi; i++) {
 			double val = creal(*m++);
 			if(val < min) {
-				*theta = acos(cos_theta_array[j]);
-				*phi = i * 2 * M_PI / nphi;
 				min = val;
+				*theta = acos(cos_theta_array[j]);
+				/* force a type conversion to ensure the
+				 * optimizer doesn't do the integer
+				 * division first */
+				*phi = 2. * M_PI * i / (double) nphi;
 				/*fprintf(stderr, "best guess %.16g @ %.16g %.16g\n", min, *theta, *phi);*/
 			}
 		}
